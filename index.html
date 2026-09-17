@@ -37225,33 +37225,35 @@
           <div class="board-end-footer">*** ಉತ್ತರ ಪತ್ರಿಕೆ ಮುಕ್ತಾಯ ***</div>
         </div>
       `;
-    } else {
-      // 🌟 ೨ ಸಮತೋಲಿತ ಪೂರ್ಣ A4 ಪುಟಗಳು (೪೦/೮೦ ಅಂಕಗಳಿಗೆ - ಕೇವಲ ೧ ಪ್ರಶ್ನೆ ಒಂಟಿಯಾಗಿ ಹೋಗಲ್ಲ!)
+   } else {
+      // 🌟 ೨ ಸಮತೋಲಿತ ಪೂರ್ಣ A4 ಪುಟಗಳು - ನಿಖರ ಆರ್ಡರ್ ಮತ್ತು ಗ್ಯಾಪ್ ಫಿಕ್ಸ್
       let p1Sections = [];
       let p2Sections = [];
       let k1Sections = [];
       let k2Sections = [];
       
       let countP1 = 0;
-      const targetP1 = Math.ceil(allQuestions.length / 2); // ಸುಮಾರು ಅರ್ಧದಷ್ಟು ಪ್ರಶ್ನೆಗಳು ೧ನೇ ಪುಟಕ್ಕೆ
+      const targetP1 = Math.ceil(allQuestions.length / 2);
+      let isPage2Started = false; // 🌟 ಒಮ್ಮೆ ಪೇಜ್ 2 ಶುರುವಾದರೆ ಮುಂದಿನ ಪ್ರಶ್ನೆಗಳು ಪೇಜ್ 1 ಕ್ಕೆ ವಾಪಸ್ ಬರುವುದಿಲ್ಲ!
 
       for (let i = 0; i < renderedSections.length; i++) {
-        if (countP1 + renderedSections[i].count <= targetP1 + 2 || p1Sections.length === 0) {
+        if (!isPage2Started && (countP1 + renderedSections[i].count <= targetP1 || p1Sections.length === 0)) {
           p1Sections.push(renderedSections[i].html);
           k1Sections.push(keySections[i].html);
           countP1 += renderedSections[i].count;
         } else {
+          isPage2Started = true; // ಲಾಕ್ ಆಯಿತು! ಮುಂದಿನ ಎಲ್ಲಾ ಸೆಕ್ಷನ್‌ಗಳು ಪೇಜ್ ೨ ಗೇ ಹೋಗುತ್ತವೆ
           p2Sections.push(renderedSections[i].html);
           k2Sections.push(keySections[i].html);
         }
       }
 
-      // ೧ನೇ ಪುಟ (Page 1) + ೨ನೇ ಪುಟ (Page 2) ಎರಡಕ್ಕೂ ಪೂರ್ಣ A4 ಬಾರ್ಡರ್
+      // ೧ನೇ ಪುಟ (Page 1) + ೨ನೇ ಪುಟ (Page 2) - ನೈಸರ್ಗಿಕ ಲೇಔಟ್ (ಗ್ಯಾಪ್ ಇಲ್ಲದೆ)
       paperHtml = `
         <!-- 🌟 PAGE 1 (Full A4 Frame) -->
         <div class="a4-sheet-container">
           <div>${mainHeaderHtml}</div>
-          <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
             ${p1Sections.join('')}
           </div>
         </div>
@@ -37259,10 +37261,10 @@
         <!-- 🌟 PAGE 2 (Full A4 Frame) -->
         <div class="a4-sheet-container">
           <div>${page2SubHeaderHtml}</div>
-          <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
             ${p2Sections.join('')}
           </div>
-          <div class="board-end-footer">*** ಪರೀಕ್ಷಾ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಮುಕ್ತಾಯ ***</div>
+          <div class="board-end-footer" style="margin-top: 12px; text-align: center; font-weight: bold; font-size: 11px;">*** ಪರೀಕ್ಷಾ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಮುಕ್ತಾಯ ***</div>
         </div>
       `;
 
@@ -37275,7 +37277,7 @@
               <h3 style="font-size: 14.5px; font-weight: 900; text-decoration: underline;">ಉತ್ತರ ಪತ್ರಿಕೆ & ಮೌಲ್ಯಮಾಪನ ಸೂಚಿ (ಪುಟ ೧)</h3>
             </div>
           </div>
-          <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
             ${k1Sections.join('')}
           </div>
         </div>
@@ -37283,10 +37285,10 @@
         <!-- 🌟 KEY PAGE 2 -->
         <div class="a4-sheet-container">
           <div>${page2SubHeaderHtml}</div>
-          <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
             ${k2Sections.join('')}
           </div>
-          <div class="board-end-footer">*** ಉತ್ತರ ಪತ್ರಿಕೆ ಮುಕ್ತಾಯ ***</div>
+          <div class="board-end-footer" style="margin-top: 12px; text-align: center; font-weight: bold; font-size: 11px;">*** ಉತ್ತರ ಪತ್ರಿಕೆ ಮುಕ್ತಾಯ ***</div>
         </div>
       `;
     }

@@ -36419,14 +36419,13 @@ window.generateExamPackageFromBank = window.generateExamPackage = async function
   }
 };
 
-
 /* ==========================================================================
-   🏆 100% GUARANTEED PERMANENT FIX: TRUE A4 FULL-PAGE BORDER & ZERO-SPILL
+   🏆 100% ULTIMATE DSERT BOARD PRINT ENGINE: NO CUT-OFF & CLEAN NATURAL FLOW
    ========================================================================== */
 
-// ೧. 🌟 ಪೂರ್ಣ A4 ಪುಟದ ತಳಭಾಗದವರೆಗೂ ಬಾರ್ಡರ್ ಲಾಕ್ ಮಾಡುವ ಮಾಸ್ಟರ್ CSS
-(function injectTrueFullA4BorderMasterCSS() {
-  const styleId = 'true-full-a4-border-master-fixed';
+// ೧. 🌟 ಅಧಿಕೃತ DSERT / KSEAB ಪರೀಕ್ಷಾ ಬಾರ್ಡರ್ & ಸ್ಪೇಸಿಂಗ್ CSS
+(function injectOfficialCleanBoardCSS() {
+  const styleId = 'official-clean-board-master-css';
   let st = document.getElementById(styleId);
   if (!st) {
     st = document.createElement('style');
@@ -36434,119 +36433,113 @@ window.generateExamPackageFromBank = window.generateExamPackage = async function
     document.head.appendChild(st);
   }
   st.innerHTML = `
-    /* ಸ್ಕ್ರೀನ್ & ಪ್ರಿಂಟ್ ಎರಡರಲ್ಲೂ ಕಡ್ಡಾಯವಾಗಿ ಪೂರ್ಣ ಎತ್ತರದ A4 ಶೀಟ್ */
+    /* A4 ಪರೀಕ್ಷಾ ಶೀಟ್ - ನೈಸರ್ಗಿಕ ಪೂರ್ಣ ಬಾರ್ಡರ್ (No overflow hidden, No cut-off!) */
     .a4-board-sheet, .a4-sheet-container {
       width: 100% !important;
       max-width: 815px !important;
-      height: 274mm !important; /* ಕಡ್ಡಾಯವಾಗಿ ಪೂರ್ಣ A4 ಎತ್ತರ */
-      min-height: 274mm !important;
-      max-height: 274mm !important;
-      border: 2.5px solid #000 !important;
-      margin: 0 auto 20px auto !important;
+      border: 2px solid #000 !important;
+      padding: 7mm 10mm 7mm 10mm !important;
+      margin: 0 auto 16px auto !important;
       box-sizing: border-box !important;
       background: #fff !important;
       font-family: 'Anek Kannada', sans-serif !important;
       color: #000 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      justify-content: space-between !important; /* ತಳಭಾಗದವರೆಗೆ ಬಾರ್ಡರ್ ಎಳೆಯುವುದು */
+      display: block !important;
+      height: auto !important;
+      min-height: 265mm !important; /* ೨೦ ಅಂಕಕ್ಕೂ ಪೂರ್ಣ ಪೇಜ್ ಬಾರ್ಡರ್ */
       position: relative !important;
-      page-break-after: always !important;
-      break-after: page !important;
-      overflow: hidden !important;
+      -webkit-box-decoration-break: clone !important;
+      box-decoration-break: clone !important;
     }
 
-    /* 🌟 ೨೦ ಅಂಕದ ಪತ್ರಿಕೆಗೆ - ಪೂರ್ಣ ಪುಟ ತುಂಬುವ ಆರಾಮದಾಯಕ ವಿನ್ಯಾಸ (Airy 20M) */
-    .sheet-mode-20m {
-      padding: 8mm 12mm 6mm 12mm !important;
-    }
-    .sheet-mode-20m .paper-dynamic-content-area {
-      flex: 1 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      justify-content: space-around !important; /* ೭ ವಿಭಾಗಗಳನ್ನೂ ಪೂರ್ಣ ಪುಟದಲ್ಲಿ ಹರಡುವುದು */
-      padding: 2px 0 !important;
-    }
+    /* ೨೦ ಅಂಕದ ಪತ್ರಿಕೆಗೆ ಮುಕ್ತವಾದ ಅಧಿಕೃತ ಬೋರ್ಡ್ ವಿನ್ಯಾಸ (20M Natural Spacing) */
     .sheet-mode-20m .board-q-row-fit {
       display: flex !important;
       align-items: flex-start !important;
-      gap: 7px !important;
-      margin-bottom: 5px !important;
-      line-height: 1.50 !important;
+      gap: 6px !important;
+      margin-bottom: 6.5px !important; /* ಆರಾಮದಾಯಕ ಸಾಲುಗಳ ಅಂತರ */
+      line-height: 1.45 !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
     .sheet-mode-20m .board-q-num-fit {
       font-weight: 900 !important;
-      font-size: 12pt !important;
-      min-width: 27px !important;
+      font-size: 11.5pt !important;
+      min-width: 26px !important;
       color: #000 !important;
       flex-shrink: 0 !important;
     }
     .sheet-mode-20m .board-q-text-fit {
       flex: 1 !important;
       font-weight: 700 !important;
-      font-size: 11.5pt !important;
+      font-size: 11pt !important;
       color: #000 !important;
       text-align: justify !important;
-      line-height: 1.50 !important;
+      line-height: 1.45 !important;
+    }
+    .sheet-mode-20m .section-wrapper-box {
+      margin-top: 10px !important; /* ರೋಮನ್ ಹೆಡಿಂಗ್ ಮುನ್ನ ಸ್ಪೇಸ್ */
+      margin-bottom: 4px !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
     .sheet-mode-20m .mcq-grid-layout {
       display: grid !important;
       grid-template-columns: repeat(4, 1fr) !important;
       gap: 3px 12px !important;
-      font-size: 11pt !important;
+      font-size: 10.5pt !important;
       padding-left: 28px !important;
       margin-top: 2px !important;
     }
 
-    /* 🌟 ೪೦ ಅಂಕದ ಪತ್ರಿಕೆಗೆ - ೨೪ ಪ್ರಶ್ನೆಗಳೂ ಒಂದೇ ಪುಟದಲ್ಲಿ ಫಿಟ್ (24Q Single Page Fit) */
-    .sheet-mode-40m {
-      padding: 4.5mm 8mm 4mm 8mm !important;
-    }
-    .sheet-mode-40m .paper-dynamic-content-area {
-      flex: 1 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      justify-content: space-between !important;
-    }
+    /* ೪೦ ಅಂಕದ ಪತ್ರಿಕೆಗೆ ಕಾಂಪ್ಯಾಕ್ಟ್ ವಿನ್ಯಾಸ (40M Clean Flow) */
     .sheet-mode-40m .board-q-row-fit {
       display: flex !important;
       align-items: flex-start !important;
-      gap: 4.5px !important;
-      margin-bottom: 1.8px !important;
-      line-height: 1.22 !important;
+      gap: 5px !important;
+      margin-bottom: 3px !important;
+      line-height: 1.30 !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
     .sheet-mode-40m .board-q-num-fit {
       font-weight: 900 !important;
       font-size: 10.5pt !important;
-      min-width: 23px !important;
+      min-width: 24px !important;
       color: #000 !important;
       flex-shrink: 0 !important;
     }
     .sheet-mode-40m .board-q-text-fit {
       flex: 1 !important;
       font-weight: 700 !important;
-      font-size: 9.8pt !important;
+      font-size: 10.2pt !important;
       color: #000 !important;
       text-align: justify !important;
-      line-height: 1.22 !important;
+      line-height: 1.30 !important;
+    }
+    .sheet-mode-40m .section-wrapper-box {
+      margin-top: 8px !important;
+      margin-bottom: 3px !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
     .sheet-mode-40m .mcq-grid-layout {
       display: grid !important;
       grid-template-columns: repeat(4, 1fr) !important;
-      gap: 1px 6px !important;
-      font-size: 9.5pt !important;
-      padding-left: 24px !important;
-      margin-top: 1px !important;
+      gap: 2px 8px !important;
+      font-size: 9.8pt !important;
+      padding-left: 26px !important;
+      margin-top: 2px !important;
     }
 
-    /* ವಿಭಾಗದ ಹೆಡಿಂಗ್ ಟೇಬಲ್ */
+    /* ರೋಮನ್ ಹೆಡಿಂಗ್ ಟೇಬಲ್ (ಅಂಕಗಳು ಬಲಬದಿಗೆ ಲಾಕ್) */
     .board-heading-table {
       width: 100% !important;
       border-collapse: collapse !important;
-      margin-top: 4px !important;
-      margin-bottom: 2px !important;
+      margin-bottom: 3px !important;
       border-bottom: 1.5px solid #000 !important;
       padding-bottom: 1px !important;
+      page-break-inside: avoid !important;
     }
     .board-heading-title-td {
       text-align: left !important;
@@ -36567,46 +36560,36 @@ window.generateExamPackageFromBank = window.generateExamPackage = async function
       vertical-align: bottom !important;
     }
 
-    /* ಉತ್ತರ ಪತ್ರಿಕೆಯ ಹ್ಯಾಂಗಿಂಗ್ ಇಂಡೆಂಟ್ */
+    /* ಉತ್ತರ ಪತ್ರಿಕೆಯ ಹ್ಯಾಂಗಿಂಗ್ ಇಂಡೆಂಟ್ (No Outer Box, Pure Clean Rows) */
     .key-answer-hanging-row {
       display: flex !important;
       align-items: flex-start !important;
       gap: 8px !important;
-      margin-bottom: 3.5px !important;
-      line-height: 1.35 !important;
+      margin-bottom: 4px !important;
+      line-height: 1.38 !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
     }
     .key-hanging-num {
       font-weight: 900 !important;
-      font-size: 10.5pt !important;
+      font-size: 11pt !important;
       min-width: 25px !important;
       flex-shrink: 0 !important;
       color: #000 !important;
     }
     .key-hanging-text {
       flex: 1 !important;
-      font-size: 10pt !important;
+      font-size: 10.5pt !important;
       font-weight: 600 !important;
       color: #0f172a !important;
       text-align: justify !important;
-      line-height: 1.35 !important;
-    }
-
-    /* ಪುಟದ ತಳಭಾಗದ ಫೂಟರ್ */
-    .board-sheet-footer-line {
-      margin-top: auto !important;
-      padding-top: 3px !important;
-      border-top: 1px dashed #94a3b8 !important;
-      display: flex !important;
-      justify-content: space-between !important;
-      font-size: 9pt !important;
-      font-weight: 800 !important;
-      color: #475569 !important;
+      line-height: 1.38 !important;
     }
 
     @media print {
       @page {
         size: A4 portrait;
-        margin: 4mm 6mm !important;
+        margin: 6mm 8mm !important;
       }
       html, body {
         background: #fff !important;
@@ -36614,48 +36597,45 @@ window.generateExamPackageFromBank = window.generateExamPackage = async function
         padding: 0 !important;
       }
       .a4-board-sheet, .a4-sheet-container {
-        border: 2.5px solid #000 !important;
-        height: 275mm !important;
-        min-height: 275mm !important;
-        max-height: 275mm !important;
+        border: 2px solid #000 !important;
+        padding: 6mm 10mm !important;
         margin: 0 auto !important;
-        page-break-after: always !important;
-        break-after: page !important;
-        overflow: hidden !important;
+        min-height: 270mm !important;
+        height: auto !important;
       }
       .btn-live-q-edit, .no-print, button { display: none !important; }
     }
   `;
 })();
 
-// ೨. 🌟 ಕಾಂಪ್ಯಾಕ್ಟ್ ಹೆಡರ್ ಬಿಲ್ಡರ್ (ವಿಷಯ, ತರಗತಿ, ದಿನಾಂಕ, ಅಂಕಗಳ ಕೆಳಗೆ ಸಾಲಿಡ್ ಗೆರೆ)
+// ೨. 🌟 ಅಧಿಕೃತ ಕಾಂಪ್ಯಾಕ್ಟ್ ಹೆಡರ್ (ಕೆಳಗೆ ಕಪ್ಪು ಸಾಲಿಡ್ ಗೆರೆ ಸಹಿತ)
 function generateOfficialBoardHeader(schoolName, subject, grade, examType, marks, examDate = "") {
   const isEnglish = String(subject).toLowerCase().includes('english');
   const cleanDate = examDate && examDate.trim() !== '' ? escapeHtml(examDate.trim()) : '_____________';
 
   return `
-    <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 2.5px; margin-bottom: 4px;">
-      <div style="text-align: center; margin-bottom: 1.5px;">
-        <h1 style="font-size: 14pt; font-weight: 900; color: #000; text-transform: uppercase; margin: 0; line-height: 1.15;">
+    <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 6px;">
+      <div style="text-align: center; margin-bottom: 2px;">
+        <h1 style="font-size: 14.5pt; font-weight: 900; color: #000; text-transform: uppercase; margin: 0; line-height: 1.15;">
           ${escapeHtml(schoolName)}
         </h1>
-        <div style="font-size: 10.5pt; font-weight: 900; color: #000; margin-top: 1px; line-height: 1.2;">
+        <div style="font-size: 11pt; font-weight: 900; color: #000; margin-top: 1px; line-height: 1.2;">
           ${escapeHtml(examType)}
         </div>
       </div>
 
-      <table style="width: 100%; border-collapse: collapse; margin-top: 2px;">
+      <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
         <tr>
-          <td style="width: 32%; text-align: left; font-weight: 800; font-size: 10pt; color: #000; padding: 1px 0;">
+          <td style="width: 32%; text-align: left; font-weight: 800; font-size: 10.5pt; color: #000; padding: 1px 0;">
             ${isEnglish ? 'Subject' : 'ವಿಷಯ'} : <b>${escapeHtml(subject)}</b>
           </td>
-          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10pt; color: #000; padding: 1px 0;">
+          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10.5pt; color: #000; padding: 1px 0;">
             ${isEnglish ? 'Class' : 'ತರಗತಿ'} : <b>${grade}${isEnglish ? 'th' : 'ನೇ ತರಗತಿ'}</b>
           </td>
-          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10pt; color: #000; padding: 1px 0;">
+          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10.5pt; color: #000; padding: 1px 0;">
             ${isEnglish ? 'Date' : 'ದಿನಾಂಕ'} : <b>${cleanDate}</b>
           </td>
-          <td style="width: 20%; text-align: right; font-weight: 800; font-size: 10pt; color: #000; padding: 1px 0;">
+          <td style="width: 20%; text-align: right; font-weight: 800; font-size: 10.5pt; color: #000; padding: 1px 0;">
             ${isEnglish ? 'Marks' : 'ಗರಿಷ್ಠ ಅಂಕಗಳು'} : <b>${marks}</b>
           </td>
         </tr>
@@ -36664,12 +36644,22 @@ function generateOfficialBoardHeader(schoolName, subject, grade, examType, marks
   `;
 }
 
-// ೩. 🌟 ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ & ಉತ್ತರ ಪತ್ರಿಕೆ ರೆಂಡರರ್ (20M Airy Full Page & 40M 24Q Single Page)
+// ೩. 🌟 ಪ್ರಶ್ನೆ ಪಠ್ಯ ಶುದ್ಧೀಕರಣ ([cite: 3] ಮತ್ತು ಡಬಲ್ ನಂಬರ್ ನಿವಾರಣೆ)
+function cleanQuestionTextForDisplay(text) {
+  if (!text) return '';
+  let clean = String(text).trim();
+  clean = clean.replace(/\[cite:\s*\d+\]/gi, '').replace(/\[\d+\]/g, '').trim();
+  clean = clean.replace(/^[\(\[]?\d+[\)\]\.\s\:\-]+/, '').trim();
+  clean = clean.replace(/<img[^>]*>/gi, '').replace(/!\[.*?\]\(.*?\)/gi, '').trim();
+  clean = clean.replace(/\s*\((?:ಸುಲಭ|ಸಾಧಾರಣ|ಕಠಿಣ)\)\s*$/gi, '').trim();
+  return clean;
+}
+
+// ೪. 🌟 ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ & ಉತ್ತರ ಪತ್ರಿಕೆ ರೆಂಡರರ್ (ಯಾವುದೇ ಪ್ರಶ್ನೆ ಕಟ್ ಆಗುವುದಿಲ್ಲ!)
 window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
   const allQuestions = (appState.activeGeneratedQuestions || []).filter(Boolean);
   const isEnglish = String(document.getElementById('cfg-medium')?.value || '').toLowerCase().includes('english');
   const currentSubject = document.getElementById('cfg-subject')?.value || 'ಸಮಾಜ ವಿಜ್ಞಾನ';
-  const grade = document.getElementById('cfg-class')?.value || '6';
 
   const isShortPaper = (allQuestions.length <= 16);
   const sheetModeClass = isShortPaper ? 'sheet-mode-20m' : 'sheet-mode-40m';
@@ -36703,7 +36693,7 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
     const r = romanNumerals[romanIndex++ - 1];
     const headingText = (typeof getCleanSectionHeading === 'function') ? getCleanSectionHeading(tKey, isEnglish, currentSubject) : `${tKey}:`;
     const marksPerQ = (tKey === 'match') ? 4 : getExactQuestionMarks(qList[0]);
-    const totalMarks = (tKey === 'match') ? 4 : (marksPerQ * qList.length);
+    const totalMarks = (tKey === 'match') ? (qList.length * 4) : (marksPerQ * qList.length);
 
     const headerTableHtml = `
       <table class="board-heading-table">
@@ -36719,63 +36709,64 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
     `;
 
     if (tKey === 'match') {
-      const mItem = qList[0];
-      const idx = allQuestions.indexOf(mItem);
-      let pairs = mItem.matchPairs || [{ a: 'ಅಂಶ 1', b: 'ಉತ್ತರ 1' }, { a: 'ಅಂಶ 2', b: 'ಉತ್ತರ 2' }, { a: 'ಅಂಶ 3', b: 'ಉತ್ತರ 3' }, { a: 'ಅಂಶ 4', b: 'ಉತ್ತರ 4' }];
-      if (pairs.length > 4) pairs = pairs.slice(0, 4);
+      qList.forEach(mItem => {
+        const idx = allQuestions.indexOf(mItem);
+        let pairs = mItem.matchPairs || [{ a: 'ಅಂಶ 1', b: 'ಉತ್ತರ 1' }, { a: 'ಅಂಶ 2', b: 'ಉತ್ತರ 2' }, { a: 'ಅಂಶ 3', b: 'ಉತ್ತರ 3' }, { a: 'ಅಂಶ 4', b: 'ಉತ್ತರ 4' }];
+        if (pairs.length > 4) pairs = pairs.slice(0, 4);
 
-      const colA = pairs.map((p, i) => ({ text: String(p.a || '').replace(/^[\(\[]?\d+[\)\]\.\s]+/, '').trim(), origIdx: i }));
-      let colB = pairs.map((p, i) => ({ text: String(p.b || '').replace(/^[\(\[]?[A-Za-z\u0C80-\u0CFF][\)\]\.\s]+/, '').trim(), origIdx: i }));
-      for (let i = colB.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [colB[i], colB[j]] = [colB[j], colB[i]]; }
+        const colA = pairs.map((p, i) => ({ text: String(p.a || '').replace(/^[\(\[]?\d+[\)\]\.\s]+/, '').trim(), origIdx: i }));
+        let colB = pairs.map((p, i) => ({ text: String(p.b || '').replace(/^[\(\[]?[A-Za-z\u0C80-\u0CFF][\)\]\.\s]+/, '').trim(), origIdx: i }));
+        for (let i = colB.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [colB[i], colB[j]] = [colB[j], colB[i]]; }
 
-      const matchQNum = qNum++;
-      const matchKNum = kNum++;
+        const matchQNum = qNum++;
+        const matchKNum = kNum++;
 
-      paperSectionsHtml.push(`
-        <div style="margin-bottom: 2px;">
-          ${headerTableHtml}
-          <div class="board-q-row-fit" style="margin-bottom: 1.5px;">
-            <span class="board-q-num-fit">${matchQNum}.</span>
-            <span class="board-q-text-fit">'ಅ' ಗುಂಪಿನಲ್ಲಿರುವ ಅಂಶಗಳನ್ನು 'ಬ' ಗುಂಪಿನೊಂದಿಗೆ ಹೊಂದಿಸಿ ಬರೆಯಿರಿ:</span>
-            <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
-          </div>
-          <table style="width: 100%; max-width: 580px; margin: 1px auto; border-collapse: collapse; font-size: ${isShortPaper ? '10.5pt' : '9.5pt'};">
-            <tr>
-              <td style="width: 50%; text-decoration: underline; font-weight: 900; padding: 1px 8px;">'ಅ' ಗುಂಪು</td>
-              <td style="width: 50%; text-decoration: underline; font-weight: 900; padding: 1px 8px;">'ಬ' ಗುಂಪು</td>
-            </tr>
-            ${colA.map((a, i) => `
+        paperSectionsHtml.push(`
+          <div class="section-wrapper-box">
+            ${headerTableHtml}
+            <div class="board-q-row-fit" style="margin-bottom: 2px;">
+              <span class="board-q-num-fit">${matchQNum}.</span>
+              <span class="board-q-text-fit">'ಅ' ಗುಂಪಿನಲ್ಲಿರುವ ಅಂಶಗಳನ್ನು 'ಬ' ಗುಂಪಿನೊಂದಿಗೆ ಹೊಂದಿಸಿ ಬರೆಯಿರಿ:</span>
+              <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+            </div>
+            <table style="width: 100%; max-width: 580px; margin: 2px auto; border-collapse: collapse; font-size: 10.5pt;">
               <tr>
-                <td style="padding: 1px 8px; font-weight: 700;">(${i + 1}) ${escapeHtml(a.text)}</td>
-                <td style="padding: 1px 8px; font-weight: 700;">(${String.fromCharCode(65 + i)}) ${escapeHtml(colB[i].text)}</td>
+                <td style="width: 50%; text-decoration: underline; font-weight: 900; padding: 1px 8px;">'ಅ' ಗುಂಪು</td>
+                <td style="width: 50%; text-decoration: underline; font-weight: 900; padding: 1px 8px;">'ಬ' ಗುಂಪು</td>
               </tr>
-            `).join('')}
-          </table>
-        </div>
-      `);
+              ${colA.map((a, i) => `
+                <tr>
+                  <td style="padding: 1.5px 8px; font-weight: 700;">(${i + 1}) ${escapeHtml(a.text)}</td>
+                  <td style="padding: 1.5px 8px; font-weight: 700;">(${String.fromCharCode(65 + i)}) ${escapeHtml(colB[i].text)}</td>
+                </tr>
+              `).join('')}
+            </table>
+          </div>
+        `);
 
-      keySectionsHtml.push(`
-        <div style="margin-bottom: 4px;">
-          <table class="board-heading-table"><tr><td class="board-heading-title-td"><b>${r}. ಹೊಂದಿಸಿ ಬರೆದ ಸರಿಯಾದ ಉತ್ತರಗಳು:</b></td></tr></table>
-          <div class="key-answer-hanging-row">
-            <span class="key-hanging-num">${matchKNum}.</span>
-            <div class="key-hanging-text" style="font-weight: 700;">
-              ${colA.map((a, i) => {
-                const bIdx = colB.findIndex(b => b.origIdx === a.origIdx);
-                return `(${i + 1}) ➔ <b>(${String.fromCharCode(65 + bIdx)}) ${escapeHtml(colB[bIdx].text)}</b>`;
-              }).join(' &nbsp;|&nbsp; ')}
+        keySectionsHtml.push(`
+          <div class="section-wrapper-box">
+            <table class="board-heading-table"><tr><td class="board-heading-title-td"><b>${r}. ಹೊಂದಿಸಿ ಬರೆದ ಸರಿಯಾದ ಉತ್ತರಗಳು:</b></td></tr></table>
+            <div class="key-answer-hanging-row">
+              <span class="key-hanging-num">${matchKNum}.</span>
+              <div class="key-hanging-text" style="font-weight: 700;">
+                ${colA.map((a, i) => {
+                  const bIdx = colB.findIndex(b => b.origIdx === a.origIdx);
+                  return `(${i + 1}) ➔ <b>(${String.fromCharCode(65 + bIdx)}) ${escapeHtml(colB[bIdx].text)}</b>`;
+                }).join(' &nbsp;|&nbsp; ')}
+              </div>
             </div>
           </div>
-        </div>
-      `);
+        `);
+      });
     } else if (tKey === 'mcq') {
       paperSectionsHtml.push(`
-        <div style="margin-bottom: 2px;">
+        <div class="section-wrapper-box">
           ${headerTableHtml}
           <div>${qList.map(m => {
             const idx = allQuestions.indexOf(m);
             return `
-              <div style="margin-bottom: 2px;">
+              <div style="margin-bottom: 2.5px; page-break-inside: avoid;">
                 <div class="board-q-row-fit">
                   <span class="board-q-num-fit">${qNum++}.</span>
                   <span class="board-q-text-fit">${escapeHtml(cleanQuestionTextForDisplay(m.q))}</span>
@@ -36791,7 +36782,7 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
       `);
 
       keySectionsHtml.push(`
-        <div style="margin-bottom: 4px;">
+        <div class="section-wrapper-box">
           <table class="board-heading-table"><tr><td class="board-heading-title-td"><b>${r}. ಬಹು ಆಯ್ಕೆಯ ಪ್ರಶ್ನೆಗಳ ಉತ್ತರಗಳು:</b></td></tr></table>
           <div>${qList.map(m => `
             <div class="key-answer-hanging-row">
@@ -36803,13 +36794,13 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
       `);
     } else {
       paperSectionsHtml.push(`
-        <div style="margin-bottom: 2px;">
+        <div class="section-wrapper-box">
           ${headerTableHtml}
           <div>${qList.map(item => {
             const idx = allQuestions.indexOf(item);
             const isTF = (tKey === 'true_false');
             return `
-              <div style="margin-bottom: 2px;">
+              <div style="margin-bottom: 2.5px; page-break-inside: avoid;">
                 <div class="board-q-row-fit">
                   <span class="board-q-num-fit">${qNum++}.</span>
                   <span class="board-q-text-fit">${escapeHtml(cleanQuestionTextForDisplay(item.q))}${isTF ? " &nbsp; [ &nbsp;&nbsp;&nbsp;&nbsp; ]" : ""}</span>
@@ -36822,7 +36813,7 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
       `);
 
       keySectionsHtml.push(`
-        <div style="margin-bottom: 4px;">
+        <div class="section-wrapper-box">
           <table class="board-heading-table"><tr><td class="board-heading-title-td"><b>${r}. ${escapeHtml(headingText)}</b></td></tr></table>
           <div>${qList.map(item => `
             <div class="key-answer-hanging-row">
@@ -36837,45 +36828,32 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
 
   const totalCalculatedMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
 
-  // 🌟 ಪತ್ರಿಕೆ ರೆಂಡರ್ (ಪೂರ್ಣ A4 ಪುಟ ತುಂಬುವ ಕಂಟೈನರ್)
+  // 🌟 ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರೆಂಡರ್
   document.getElementById('rendered-paper').innerHTML = `
     <div class="a4-board-sheet ${sheetModeClass}">
       ${headerHtml}
-      <div class="paper-dynamic-content-area">
-        ${paperSectionsHtml.join('')}
-      </div>
-      <div class="board-sheet-footer-line">
-        <span>${grade}ನೇ ತರಗತಿ - ${escapeHtml(currentSubject)}</span>
-        <span>*** ಪರೀಕ್ಷಾರ್ಥಿಗಳಿಗೆ ಶುಭವಾಗಲಿ ***</span>
-        <span>ಪುಟ 1 / 1</span>
-      </div>
+      <div>${paperSectionsHtml.join('')}</div>
     </div>
   `;
 
-  // 🌟 ಉತ್ತರ ಪತ್ರಿಕೆ ರೆಂಡರ್
+  // 🌟 ಉತ್ತರ ಪತ್ರಿಕೆ ರೆಂಡರ್ (No Extra Black Outer Boxes)
   document.getElementById('rendered-key').innerHTML = `
     <div class="a4-board-sheet ${sheetModeClass}">
       ${headerHtml}
-      <div style="text-align: center; margin-bottom: 4px; border-bottom: 2px solid #000; padding-bottom: 2px;">
-        <h3 style="font-size: 12pt; font-weight: 900; margin: 0; text-transform: uppercase;">
+      <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #000; padding-bottom: 2px;">
+        <h3 style="font-size: 12.5pt; font-weight: 900; margin: 0; text-transform: uppercase; color: #000;">
           ಮಾದರಿ ಉತ್ತರ ಸೂಚಿ & ಮೌಲ್ಯಮಾಪನ ಯೋಜನೆ (Scheme of Valuation)
         </h3>
       </div>
-      <div class="paper-dynamic-content-area">
-        ${keySectionsHtml.join('')}
-      </div>
-      <div class="board-sheet-footer-line">
-        <span>ಉತ್ತರ ಪತ್ರಿಕೆ</span>
-        <span>*** End of Valuation Scheme ***</span>
-        <span>ಪುಟ 1 / 1</span>
-      </div>
+      <div>${keySectionsHtml.join('')}</div>
     </div>
   `;
 
+  const grade = document.getElementById('cfg-class')?.value || '6';
   renderCompleteOfficialDSERTBlueprintPackage(allQuestions, totalCalculatedMarks, currentSubject, grade);
 };
 
-// ೪. 🌟 ಜನರೇಟರ್ ಎಂಜಿನ್ (24 ಪ್ರಶ್ನೆ ಮತ್ತು 40 ಅಂಕಗಳ 100% ಕರಾರುವಾಕ್ ಲಾಕ್)
+// ೫. 🌟 ಜನರೇಟರ್ ಎಂಜಿನ್ (24 ಪ್ರಶ್ನೆ ಮತ್ತು 40 ಅಂಕಗಳ 100% ಕರಾರುವಾಕ್ ಲಾಕ್)
 window.generateExamPackageFromBank = window.generateExamPackage = async function() {
   const startTime = performance.now();
 
@@ -36952,7 +36930,7 @@ window.generateExamPackageFromBank = window.generateExamPackage = async function
       return;
     }
 
-    // 🌟 ನಿಖರ ಅಂಕ ಮತ್ತು ಪ್ರಶ್ನೆ ಸಂಖ್ಯೆಯ ಗ್ಯಾರಂಟಿ ಸಾಲ್ವರ್ (24 = 24 strictly)
+    // 🌟 ನಿಖರ 24 ಪ್ರಶ್ನೆ ಮತ್ತು 40 ಅಂಕಗಳ ಗ್ಯಾರಂಟಿ ಸಾಲ್ವರ್
     let chosenQuestions = solveExactBoardPaperCombinationStrict(pool.length > 0 ? pool : allSubjQuestions, targetTotalMarks, targetTotalQuestions, allSubjQuestions);
 
     if (chosenQuestions.length === 0) {
@@ -36985,83 +36963,6 @@ window.generateExamPackageFromBank = window.generateExamPackage = async function
   } catch (err) {
     console.error("Gen error:", err);
   }
-};
-
-// ೫. 🌟 PDF & ಪ್ರಿಂಟ್ ಎಕ್ಸ್ಪೋರ್ಟರ್ (ಪೂರ್ಣ A4 ಬಾಕ್ಸ್ ಪ್ರಿಂಟ್)
-window.exportCurrentTabToPDF = function() {
-  let activeTabId = 'tab-content-paper', fileLabel = 'ಪ್ರಶ್ನೆ_ಪತ್ರಿಕೆ';
-  if (!document.getElementById('tab-content-key')?.classList.contains('hidden')) { activeTabId = 'tab-content-key'; fileLabel = 'ಉತ್ತರ_ಪತ್ರಿಕೆ'; }
-  else if (!document.getElementById('tab-content-blueprint')?.classList.contains('hidden')) { activeTabId = 'tab-content-blueprint'; fileLabel = 'ನೀಲನಕ್ಷೆ'; }
-
-  const activeSheet = document.querySelector(`#${activeTabId} .a4-board-sheet, #${activeTabId} .a4-sheet-container`);
-  if (!activeSheet || activeSheet.innerText.trim() === '') {
-    return alert('ದಯವಿಟ್ಟು ಮೊದಲು ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಯನ್ನು ರಚಿಸಿ.');
-  }
-
-  const sheetClone = activeSheet.cloneNode(true);
-  sheetClone.querySelectorAll('.btn-live-q-edit, .no-print, button').forEach(el => el.remove());
-
-  const rawSubject = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
-  const cleanSubject = rawSubject.split('(')[0].trim().replace(/\s+/g, '_');
-  const grade = (document.getElementById('cfg-class')?.value || '6') + 'ನೇ_ತರಗತಿ';
-  const fileName = `${cleanSubject}_${grade}_${fileLabel}`;
-
-  let printFrame = document.getElementById('isolated-vector-print-frame');
-  if (printFrame) printFrame.remove();
-
-  printFrame = document.createElement('iframe');
-  printFrame.id = 'isolated-vector-print-frame';
-  printFrame.style.position = 'fixed';
-  printFrame.style.width = '794px';
-  printFrame.style.height = '1123px';
-  printFrame.style.top = '-10000px';
-  printFrame.style.left = '-10000px';
-  printFrame.style.border = 'none';
-  document.body.appendChild(printFrame);
-
-  const frameDoc = printFrame.contentWindow.document;
-  frameDoc.open();
-  frameDoc.write(`
-    <!DOCTYPE html>
-    <html lang="kn">
-    <head>
-      <meta charset="UTF-8">
-      <title>${fileName}</title>
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Anek+Kannada:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-      <style>
-        @page { size: A4 portrait; margin: 4mm 6mm !important; }
-        * { box-sizing: border-box; font-family: 'Anek Kannada', sans-serif !important; }
-        body { margin: 0; padding: 0; background: #fff; color: #000; width: 794px; }
-        .a4-board-sheet, .a4-sheet-container { width: 100% !important; border: 2.5px solid #000 !important; height: 275mm !important; min-height: 275mm !important; margin: 0 auto !important; box-sizing: border-box !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; overflow: hidden !important; }
-        
-        b, strong { font-weight: 900 !important; }
-        .board-heading-table { width: 100% !important; border-collapse: collapse !important; margin-top: 4px !important; margin-bottom: 2px !important; border-bottom: 1.5px solid #000 !important; padding-bottom: 1px !important; }
-        .board-heading-title-td { text-align: left !important; font-weight: 900 !important; font-size: 11pt !important; color: #000 !important; }
-        .board-heading-marks-td { text-align: right !important; font-weight: 900 !important; font-size: 11pt !important; color: #000 !important; white-space: nowrap !important; width: 85px !important; }
-        
-        .board-q-row-fit { display: flex !important; align-items: flex-start !important; gap: 5px !important; margin-bottom: 2px !important; }
-        .board-q-num-fit { font-weight: 900 !important; min-width: 24px !important; font-size: 10.5pt !important; color: #000 !important; }
-        .board-q-text-fit { flex: 1 !important; font-weight: 700 !important; font-size: 10pt !important; text-align: justify !important; }
-        
-        .key-answer-hanging-row { display: flex !important; align-items: flex-start !important; gap: 8px !important; margin-bottom: 3.5px !important; line-height: 1.35 !important; }
-        .key-hanging-num { font-weight: 900 !important; font-size: 10.5pt !important; min-width: 25px !important; color: #000 !important; }
-        .key-hanging-text { flex: 1 !important; font-size: 10pt !important; text-align: justify !important; }
-
-        .board-sheet-footer-line { margin-top: auto !important; padding-top: 3px !important; border-top: 1px dashed #94a3b8 !important; display: flex !important; justify-content: space-between !important; font-size: 9pt !important; font-weight: 800 !important; }
-
-        .demo-watermark-overlay { position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; height: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important; pointer-events: none !important; }
-        .demo-watermark-text { position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) rotate(-32deg) !important; font-size: 34px !important; font-weight: 900 !important; color: rgba(0, 0, 0, 0.16) !important; border: 4px dashed rgba(0, 0, 0, 0.22) !important; padding: 16px 36px !important; border-radius: 25px !important; text-transform: uppercase !important; white-space: nowrap !important; }
-      </style>
-    </head>
-    <body>${sheetClone.outerHTML}</body>
-    </html>
-  `);
-  frameDoc.close();
-
-  showToast('📄 PDF ಸಿದ್ಧವಾಗಿದೆ. "Save as PDF" ಆಯ್ಕೆಮಾಡಿ.', 'info');
-  setTimeout(() => { printFrame.contentWindow.focus(); printFrame.contentWindow.print(); }, 400);
 };
 
   </script>

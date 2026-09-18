@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="kn">
 <head>
@@ -37468,8 +37467,20 @@ window.exportCurrentTabToPDF = function() {
           border: 2px solid #000 !important;
           padding: 6mm 10mm !important;
           margin: 0 auto !important;
+          min-height: 270mm !important;
           box-sizing: border-box !important;
+          -webkit-box-decoration-break: clone !important;
+          box-decoration-break: clone !important;
         }
+
+        .section-wrapper-box {
+          margin-top: 8px !important;
+          margin-bottom: 4px !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+        .sheet-mode-20m .section-wrapper-box { margin-top: 10px !important; margin-bottom: 4px !important; }
+        .sheet-mode-40m .section-wrapper-box { margin-top: 7px !important; margin-bottom: 3px !important; }
 
         b, strong { font-weight: 900 !important; }
 
@@ -38662,6 +38673,9 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
     `;
 
     if (tKey === 'match') {
+      let matchPaperItemsHtml = [];
+      let matchKeyItemsHtml = [];
+
       qList.forEach(mItem => {
         const idx = allQuestions.indexOf(mItem);
         let pairs = mItem.matchPairs || [{ a: 'ಅಂಶ 1', b: 'ಉತ್ತರ 1' }, { a: 'ಅಂಶ 2', b: 'ಉತ್ತರ 2' }, { a: 'ಅಂಶ 3', b: 'ಉತ್ತರ 3' }, { a: 'ಅಂಶ 4', b: 'ಉತ್ತರ 4' }];
@@ -38674,9 +38688,8 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
         const matchQNum = qNum++;
         const matchKNum = kNum++;
 
-        paperSectionsHtml.push(`
-          <div style="margin-bottom: 2px;">
-            ${headerTableHtml}
+        matchPaperItemsHtml.push(`
+          <div style="margin-bottom: 4px;">
             <div class="board-q-row-fit" style="margin-bottom: 1.5px;">
               <span class="board-q-num-fit">${matchQNum}.</span>
               <span class="board-q-text-fit">'ಅ' ಗುಂಪಿನಲ್ಲಿರುವ ಅಂಶಗಳನ್ನು 'ಬ' ಗುಂಪಿನೊಂದಿಗೆ ಹೊಂದಿಸಿ ಬರೆಯಿರಿ:</span>
@@ -38697,24 +38710,35 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
           </div>
         `);
 
-        keySectionsHtml.push(`
-          <div style="margin-bottom: 4px;">
-            <table class="board-heading-table-clean"><tr><td class="heading-title-clean-td"><b>${r}. ಹೊಂದಿಸಿ ಬರೆದ ಸರಿಯಾದ ಉತ್ತರಗಳು:</b></td></tr></table>
-            <div class="key-hanging-row-item">
-              <span class="key-num-label">${matchKNum}.</span>
-              <div class="key-text-content" style="font-weight: 700;">
-                ${colA.map((a, i) => {
-                  const bIdx = colB.findIndex(b => b.origIdx === a.origIdx);
-                  return `(${i + 1}) ➔ <b>(${String.fromCharCode(65 + bIdx)}) ${escapeHtml(colB[bIdx].text)}</b>`;
-                }).join(' &nbsp;|&nbsp; ')}
-              </div>
+        matchKeyItemsHtml.push(`
+          <div class="key-hanging-row-item">
+            <span class="key-num-label">${matchKNum}.</span>
+            <div class="key-text-content" style="font-weight: 700;">
+              ${colA.map((a, i) => {
+                const bIdx = colB.findIndex(b => b.origIdx === a.origIdx);
+                return `(${i + 1}) ➔ <b>(${String.fromCharCode(65 + bIdx)}) ${escapeHtml(colB[bIdx].text)}</b>`;
+              }).join(' &nbsp;|&nbsp; ')}
             </div>
           </div>
         `);
       });
+
+      paperSectionsHtml.push(`
+        <div class="section-wrapper-box">
+          ${headerTableHtml}
+          ${matchPaperItemsHtml.join('')}
+        </div>
+      `);
+
+      keySectionsHtml.push(`
+        <div class="section-wrapper-box">
+          <table class="board-heading-table-clean"><tr><td class="heading-title-clean-td"><b>${r}. ಹೊಂದಿಸಿ ಬರೆದ ಸರಿಯಾದ ಉತ್ತರಗಳು:</b></td></tr></table>
+          ${matchKeyItemsHtml.join('')}
+        </div>
+      `);
     } else if (tKey === 'mcq') {
       paperSectionsHtml.push(`
-        <div style="margin-bottom: 2px;">
+        <div class="section-wrapper-box">
           ${headerTableHtml}
           <div>${qList.map(m => {
             const idx = allQuestions.indexOf(m);
@@ -38732,7 +38756,7 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
       `);
 
       keySectionsHtml.push(`
-        <div style="margin-bottom: 4px;">
+        <div class="section-wrapper-box">
           <table class="board-heading-table-clean"><tr><td class="heading-title-clean-td"><b>${r}. ಬಹು ಆಯ್ಕೆಯ ಪ್ರಶ್ನೆಗಳ ಉತ್ತರಗಳು:</b></td></tr></table>
           <div>${qList.map(m => `
             <div class="key-hanging-row-item">
@@ -38744,7 +38768,7 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
       `);
     } else {
       paperSectionsHtml.push(`
-        <div style="margin-bottom: 2px;">
+        <div class="section-wrapper-box">
           ${headerTableHtml}
           <div>${qList.map(item => {
             const idx = allQuestions.indexOf(item);
@@ -38763,7 +38787,7 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
       `);
 
       keySectionsHtml.push(`
-        <div style="margin-bottom: 4px;">
+        <div class="section-wrapper-box">
           <table class="board-heading-table-clean"><tr><td class="heading-title-clean-td"><b>${r}. ${escapeHtml(headingText)}</b></td></tr></table>
           <div>${qList.map(item => `
             <div class="key-hanging-row-item">

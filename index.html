@@ -42225,6 +42225,221 @@ window.generateExamPackageFromBank = window.generateExamPackage = async function
   }
 };
 
+
+/* ==========================================================================
+   🌐 100% MARATHI & ENGLISH BLUEPRINT + HEADER LOCALIZATION MASTER OVERRIDE
+   ========================================================================== */
+
+// ೧. 🌟 ಭಾಷಾ ಕೋಡ್ ಡಿಟೆಕ್ಟರ್
+function _getLangCode() {
+  const m = String(document.getElementById('cfg-medium')?.value || 'ಕನ್ನಡ').toLowerCase();
+  if (m.includes('marathi') || m.includes('ಮರಾಠಿ')) return 'mr'; // Marathi
+  if (m.includes('english') || m.includes('ಇಂಗ್ಲಿಷ್')) return 'en'; // English
+  return 'kn'; // Kannada
+}
+
+// ೨. 🌟 ಅಧಿಕೃತ ತ್ರಿಭಾಷಾ ಹೆಡರ್ (ಪರೀಕ್ಷೆಯ ಹೆಸರು, ವಿಷಯ, ತರಗತಿ, ದಿನಾಂಕ & ಅಂಕಗಳು 100% ಮರಾಠಿ / English)
+function generateOfficialBoardHeader(schoolName, subject, grade, examType, marks, examDate = "") {
+  const lang = _getLangCode();
+  const cleanDate = examDate && examDate.trim() !== '' ? escapeHtml(examDate.trim()) : '_____________';
+  
+  const displayExamType = _getExamName(examType, lang);
+  const displaySubject = _getSubjName(subject, lang);
+
+  const L = {
+    mr: { subj: 'विषय', cls: 'इयत्ता', dt: 'दिनांक', marks: 'एकूण गुण', clsSuf: 'वी' },
+    en: { subj: 'Subject', cls: 'Class', dt: 'Date', marks: 'Max. Marks', clsSuf: 'th' },
+    kn: { subj: 'ವಿಷಯ', cls: 'ತರಗತಿ', dt: 'ದಿನಾಂಕ', marks: 'ಗರಿಷ್ಠ ಅಂಕಗಳು', clsSuf: 'ನೇ ತರಗತಿ' }
+  }[lang] || { subj: 'ವಿಷಯ', cls: 'ತರಗತಿ', dt: 'ದಿನಾಂಕ', marks: 'ಗರಿಷ್ಠ ಅಂಕಗಳು', clsSuf: 'ನೇ ತರಗತಿ' };
+
+  return `
+    <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 6px;">
+      <!-- ಶಾಲೆಯ ಹೆಸರು & ಪರೀಕ್ಷೆಯ ಹೆಸರು -->
+      <div style="text-align: center; margin-bottom: 2px;">
+        <h1 style="font-size: 14.5pt; font-weight: 900; color: #000; text-transform: uppercase; margin: 0; line-height: 1.15;">
+          ${escapeHtml(schoolName)}
+        </h1>
+        <div style="font-size: 11pt; font-weight: 900; color: #000; margin-top: 2px; line-height: 1.2;">
+          ${escapeHtml(displayExamType)}
+        </div>
+      </div>
+
+      <!-- ವಿವರಗಳ ಪಟ್ಟಿ -->
+      <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
+        <tr>
+          <td style="width: 34%; text-align: left; font-weight: 800; font-size: 10.5pt; color: #000; padding: 1px 0;">
+            ${L.subj} : <b>${escapeHtml(displaySubject)}</b>
+          </td>
+          <td style="width: 22%; text-align: center; font-weight: 800; font-size: 10.5pt; color: #000; padding: 1px 0;">
+            ${L.cls} : <b>${grade}${L.clsSuf}</b>
+          </td>
+          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10.5pt; color: #000; padding: 1px 0;">
+            ${L.dt} : <b>${cleanDate}</b>
+          </td>
+          <td style="width: 20%; text-align: right; font-weight: 800; font-size: 10.5pt; color: #000; padding: 1px 0;">
+            ${L.marks} : <b>${marks}</b>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+}
+
+// ೩. 🌟 100% ಅಧಿಕೃತ ಮರಾಠಿ & English ನೀಲನಕ್ಷೆ (Zero Kannada in Marathi/English Blueprint)
+function renderCompleteOfficialDSERTBlueprintPackage(questions, totalMarks, subject, grade) {
+  const container = document.getElementById('rendered-blueprint');
+  if (!container) return;
+
+  const lang = _getLangCode();
+  const displaySubject = _getSubjName(subject, lang);
+  const totalQ = questions.length;
+
+  const kMarks = Math.round(totalMarks * 0.25);
+  const uMarks = Math.round(totalMarks * 0.45);
+  const aMarks = Math.round(totalMarks * 0.20);
+  const sMarks = totalMarks - (kMarks + uMarks + aMarks);
+
+  const easyMarks = Math.round(totalMarks * 0.30);
+  const avgMarks = Math.round(totalMarks * 0.50);
+  const diffMarks = totalMarks - (easyMarks + avgMarks);
+
+  // ಪಾಠವಾರು ಗುಂಪು ರಚನೆ
+  const chapterGroupMap = new Map();
+  questions.forEach(q => {
+    const ch = (q.chapter || (lang === 'mr' ? 'घटक' : (lang === 'en' ? 'Unit' : 'ಘಟಕ'))).trim();
+    if (!chapterGroupMap.has(ch)) {
+      chapterGroupMap.set(ch, { count: 0, marks: 0 });
+    }
+    chapterGroupMap.get(ch).count += 1;
+    chapterGroupMap.get(ch).marks += _getExactMarks(q);
+  });
+
+  const sortedChapters = Array.from(chapterGroupMap.entries());
+
+  // 🌟 ಭಾಷಾವಾರು ನೀಲನಕ್ಷೆ ಡಿಕ್ಷನರಿ
+  const T = {
+    mr: {
+      title: `इयत्ता ${grade}वी ${displaySubject} - अधिकृत आराखडा (Blue Print)`,
+      s1: 'टप्पा १: उद्दिष्टानुसार गुणविभागणी (Weightage to Objectives)',
+      s2: 'टप्पा २: काठिण्य पातळीनुसार गुणविभागणी (Difficulty Level)',
+      s3: 'टप्पा ३: घटकानुसार (पाठानhyper-नुसार) गुणविभागणी (Unit-wise Weightage)',
+      sr: 'अ.क्र.', obj: 'उद्दिष्टे', marks: 'गुण', qCount: 'प्रश्नांची संख्या', pct: 'टक्केवारी',
+      k: 'ज्ञान (Knowledge)', u: 'आकलन (Understanding)', a: 'उपयोजन (Application)', s: 'कौशल्य / नकाशा / आकृती (Skill)',
+      lvl: 'काठिण्य पातळी', easy: 'सोपे (Easy)', avg: 'मध्यम (Average)', diff: 'कठीण (Difficult)',
+      chName: 'घटकाचे / पाठाचे नाव', tot: 'एकूण'
+    },
+    en: {
+      title: `Class ${grade}th ${displaySubject} - Official Blue Print`,
+      s1: 'Step 1: Weightage to Objectives',
+      s2: 'Step 2: Weightage to Difficulty Level',
+      s3: 'Step 3: Unit-wise / Chapter-wise Weightage',
+      sr: 'Sl. No.', obj: 'Objectives', marks: 'Marks', qCount: 'No. of Questions', pct: 'Percentage',
+      k: 'Knowledge', u: 'Understanding', a: 'Application', s: 'Skill / Map / Diagram',
+      lvl: 'Difficulty Level', easy: 'Easy', avg: 'Average', diff: 'Difficult',
+      chName: 'Unit / Chapter Name', tot: 'Total'
+    },
+    kn: {
+      title: `${grade}ನೇ ತರಗತಿ ${displaySubject} - ಅಧಿಕೃತ ನೀಲನಕ್ಷೆ (Blue Print)`,
+      s1: 'ಹಂತ 1: ಉದ್ದೇಶವಾರು ಅಂಕ ಹಂಚಿಕೆ (Weightage to Objectives)',
+      s2: 'ಹಂತ 2: ಕ್ಲಿಷ್ಟತೆಯ ಮಟ್ಟದ ಹಂಚಿಕೆ (Difficulty Level)',
+      s3: 'ಹಂತ 3: ಘಟಕವಾರು (ಪಾಠವಾರು) ಅಂಕ ಹಂಚಿಕೆ (Unit-wise Weightage)',
+      sr: 'ಕ್ರ.ಸಂ.', obj: 'ಉದ್ದೇಶಗಳು', marks: 'ಅಂಕಗಳು', qCount: 'ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ', pct: 'ಶೇಕಡಾವಾರು',
+      k: 'ಜ್ಞಾನ (Knowledge)', u: 'ತಿಳುವಳಿಕೆ (Understanding)', a: 'ಅನ್ವಯ (Application)', s: 'ಕೌಶಲ / ನಕ್ಷೆ / ಚಿತ್ರ (Skill)',
+      lvl: 'ಕ್ಲಿಷ್ಟತೆಯ ಮಟ್ಟ', easy: 'ಸುಲಭ (Easy)', avg: 'ಸಾಧಾರಣ (Average)', diff: 'ಕಠಿಣ (Difficult)',
+      chName: 'ಘಟಕದ / ಪಾಠದ ಹೆಸರು', tot: 'ಒಟ್ಟು'
+    }
+  }[lang] || {
+    title: `${grade}ನೇ ತರಗತಿ ${displaySubject} - ಅಧಿಕೃತ ನೀಲನಕ್ಷೆ (Blue Print)`,
+    s1: 'ಹಂತ 1: ಉದ್ದೇಶವಾರು ಅಂಕ ಹಂಚಿಕೆ', s2: 'ಹಂತ 2: ಕ್ಲಿಷ್ಟತೆಯ ಮಟ್ಟದ ಹಂಚಿಕೆ', s3: 'ಹಂತ 3: ಘಟಕವಾರು ಅಂಕ ಹಂಚಿಕೆ',
+    sr: 'ಕ್ರ.ಸಂ.', obj: 'ಉದ್ದೇಶಗಳು', marks: 'ಅಂಕಗಳು', qCount: 'ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ', pct: 'ಶೇಕಡಾವಾರು',
+    k: 'ಜ್ಞಾನ', u: 'ತಿಳುವಳಿಕೆ', a: 'ಅನ್ವಯ', s: 'ಕೌಶಲ', lvl: 'ಮಟ್ಟ', easy: 'ಸುಲಭ', avg: 'ಸಾಧಾರಣ', diff: 'ಕಠಿಣ',
+    chName: 'ಘಟಕದ ಹೆಸರು', tot: 'ಒಟ್ಟು'
+  };
+
+  container.innerHTML = `
+    <div class="a4-board-sheet">
+      <h2 style="text-align: center; font-size: 14pt; font-weight: 900; color: #000; margin-bottom: 8px; border-bottom: 2px solid #000; padding-bottom: 4px;">
+        ${escapeHtml(T.title)}
+      </h2>
+
+      <!-- Table 1: Objectives -->
+      <div style="margin-bottom: 10px;">
+        <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">${escapeHtml(T.s1)}</h4>
+        <table class="blueprint-official-table">
+          <thead>
+            <tr>
+              <th style="width: 8%;">${T.sr}</th>
+              <th style="width: 36%; text-align: left;">${T.obj}</th>
+              <th style="width: 18%;">${T.marks}</th>
+              <th style="width: 18%;">${T.qCount}</th>
+              <th style="width: 20%;">${T.pct}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td style="text-align: left;">${T.k}</td><td>${kMarks}</td><td>${Math.round(totalQ * 0.3)}</td><td>25%</td></tr>
+            <tr><td>2</td><td style="text-align: left;">${T.u}</td><td>${uMarks}</td><td>${Math.round(totalQ * 0.45)}</td><td>45%</td></tr>
+            <tr><td>3</td><td style="text-align: left;">${T.a}</td><td>${aMarks}</td><td>${Math.round(totalQ * 0.15)}</td><td>20%</td></tr>
+            <tr><td>4</td><td style="text-align: left;">${T.s}</td><td>${sMarks}</td><td>${Math.max(1, totalQ - (Math.round(totalQ * 0.3) + Math.round(totalQ * 0.45) + Math.round(totalQ * 0.15)))}</td><td>10%</td></tr>
+            <tr style="font-weight: 900; background: #f1f5f9;"><td></td><td style="text-align: left;">${T.tot}</td><td>${totalMarks}</td><td>${totalQ}</td><td>100%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table 2: Difficulty -->
+      <div style="margin-bottom: 10px;">
+        <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">${escapeHtml(T.s2)}</h4>
+        <table class="blueprint-official-table">
+          <thead>
+            <tr>
+              <th style="width: 8%;">${T.sr}</th>
+              <th style="width: 36%; text-align: left;">${T.lvl}</th>
+              <th style="width: 18%;">${T.marks}</th>
+              <th style="width: 18%;">${T.qCount}</th>
+              <th style="width: 20%;">${T.pct}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td style="text-align: left;">${T.easy}</td><td>${easyMarks}</td><td>${Math.round(totalQ * 0.35)}</td><td>30%</td></tr>
+            <tr><td>2</td><td style="text-align: left;">${T.avg}</td><td>${avgMarks}</td><td>${Math.round(totalQ * 0.50)}</td><td>50%</td></tr>
+            <tr><td>3</td><td style="text-align: left;">${T.diff}</td><td>${diffMarks}</td><td>${Math.max(1, totalQ - (Math.round(totalQ * 0.35) + Math.round(totalQ * 0.50)))}</td><td>20%</td></tr>
+            <tr style="font-weight: 900; background: #f1f5f9;"><td></td><td style="text-align: left;">${T.tot}</td><td>${totalMarks}</td><td>${totalQ}</td><td>100%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table 3: Unit-wise -->
+      <div>
+        <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">${escapeHtml(T.s3)}</h4>
+        <table class="blueprint-official-table">
+          <thead>
+            <tr>
+              <th style="width: 8%;">${T.sr}</th>
+              <th style="width: 54%; text-align: left;">${T.chName}</th>
+              <th style="width: 18%;">${T.qCount}</th>
+              <th style="width: 20%;">${T.marks}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sortedChapters.map(([chName, stats], i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td style="text-align: left; font-weight: 700;">${escapeHtml(chName)}</td>
+                <td style="font-weight: 900;">${stats.count}</td>
+                <td style="font-weight: 900; color: #0f172a;">${stats.marks}</td>
+              </tr>
+            `).join('')}
+            <tr style="font-weight: 900; background: #f1f5f9;">
+              <td colspan="2" style="text-align: right; padding-right: 12px;">${T.tot}</td>
+              <td style="font-size: 11pt;">${totalQ}</td>
+              <td style="font-size: 11pt;">${totalMarks}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
   </script>
 </body>
 </html>

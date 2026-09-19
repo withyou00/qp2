@@ -40603,6 +40603,270 @@ window.exportCurrentTabToPDF = function() {
     setTimeout(triggerPrint, 500);
   }
 };
+
+/* ==========================================================================
+   🌐 100% ENGLISH BLUEPRINT & EXAM TYPE HEADER TRANSLATION OVERRIDE
+   ========================================================================== */
+
+// ೧. 🌟 ಪರೀಕ್ಷಾ ವಿಧಾನದ ಹೆಸರನ್ನು ಅಧಿಕೃತ ಇಂಗ್ಲಿಷ್‌ಗೆ ಪರಿವರ್ತಿಸುವ ಮಾಸ್ಟರ್ ಮ್ಯಾಪರ್
+function getStandardEnglishExamTypeName(rawExamType) {
+  const e = String(rawExamType || '').toLowerCase().trim();
+  
+  if (e.includes('1ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-1') || e.includes('fa 1') || e.includes('fa1')) return 'Formative Assessment - 1 (FA-1) 2026-27';
+  if (e.includes('2ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-2') || e.includes('fa 2') || e.includes('fa2')) return 'Formative Assessment - 2 (FA-2) 2026-27';
+  if (e.includes('3ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-3') || e.includes('fa 3') || e.includes('fa3')) return 'Formative Assessment - 3 (FA-3) 2026-27';
+  if (e.includes('4ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-4') || e.includes('fa 4') || e.includes('fa4')) return 'Formative Assessment - 4 (FA-4) 2026-27';
+  if (e.includes('sa-1') || e.includes('ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1') || e.includes('ಸಂಕಲನಾತ್ಮಕ-1') || e.includes('ಮಧ್ಯವಾರ್ಷಿಕ') || e.includes('sa 1') || e.includes('sa1')) return 'Summative Assessment - 1 (SA-1) 2026-27';
+  if (e.includes('sa-2') || e.includes('ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-2') || e.includes('ಸಂಕಲನಾತ್ಮಕ-2') || e.includes('ವಾರ್ಷಿಕ') || e.includes('sa 2') || e.includes('sa2')) return 'Summative Assessment - 2 (SA-2) 2026-27';
+  if (e.includes('lba') || e.includes('ಘಟಕ')) return 'Unit Test (LBA) 2026-27';
+  if (e.includes('ಮೌಖಿಕ') || e.includes('oral')) return 'Oral Examination 2026-27';
+
+  return rawExamType.replace(/\s*\([^)]*\)/g, '').trim();
+}
+
+// ೨. 🌟 ಹೆಡರ್ ಬಿಲ್ಡರ್ (ಇಂಗ್ಲಿಷ್ ಪತ್ರಿಕೆ ಇದ್ದಾಗ ಪರೀಕ್ಷೆಯ ಹೆಸರು ಕಡ್ಡಾಯವಾಗಿ ಇಂಗ್ಲಿಷ್‌ನಲ್ಲಿ ಬರುತ್ತದೆ)
+function generateOfficialBoardHeader(schoolName, subject, grade, examType, marks, examDate = "") {
+  const selectedMediumStr = String(document.getElementById('cfg-medium')?.value || 'ಕನ್ನಡ').toLowerCase();
+  const isEnglish = selectedMediumStr.includes('english') || selectedMediumStr.includes('ಇಂಗ್ಲಿಷ್') || String(subject).toLowerCase().includes('english');
+  const cleanDate = examDate && examDate.trim() !== '' ? escapeHtml(examDate.trim()) : '_____________';
+  
+  // 🌟 ಪರೀಕ್ಷೆಯ ಹೆಸರನ್ನು ಇಂಗ್ಲಿಷ್‌ಗೆ ಪರಿವರ್ತನೆ
+  const displayExamType = isEnglish ? getStandardEnglishExamTypeName(examType) : examType;
+
+  return `
+    <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 6px;">
+      <!-- ಶಾಲೆಯ ಹೆಸರು & ಪರೀಕ್ಷೆಯ ಹೆಸರು -->
+      <div style="text-align: center; margin-bottom: 2px;">
+        <h1 style="font-size: 14.5pt; font-weight: 900; color: #000; text-transform: uppercase; margin: 0; line-height: 1.15;">
+          ${escapeHtml(schoolName)}
+        </h1>
+        <div style="font-size: 11pt; font-weight: 900; color: #000; margin-top: 1px; line-height: 1.2;">
+          ${escapeHtml(displayExamType)}
+        </div>
+      </div>
+
+      <!-- ವಿವರಗಳ ಪಟ್ಟಿ -->
+      <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
+        <tr>
+          <td style="width: 32%; text-align: left; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+            ${isEnglish ? 'Subject' : 'ವಿಷಯ'} : <b>${escapeHtml(subject)}</b>
+          </td>
+          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+            ${isEnglish ? 'Class' : 'ತರಗತಿ'} : <b>${grade}${isEnglish ? 'th' : 'ನೇ ತರಗತಿ'}</b>
+          </td>
+          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+            ${isEnglish ? 'Date' : 'ದಿನಾಂಕ'} : <b>${cleanDate}</b>
+          </td>
+          <td style="width: 20%; text-align: right; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+            ${isEnglish ? 'Marks' : 'ಗರಿಷ್ಠ ಅಂಕಗಳು'} : <b>${marks}</b>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+}
+
+// ೩. 🌟 100% ಬೈಲಿಂಗ್ವಲ್ ನೀಲನಕ್ಷೆ (ಇಂಗ್ಲಿಷ್ ಪೇಪರ್ ಇದ್ದಾಗ ನೀಲನಕ್ಷೆಯ ಪ್ರತಿಯೊಂದು ಅಕ್ಷರವೂ ಇಂಗ್ಲಿಷ್‌ನಲ್ಲಿಯೇ ಬರುತ್ತದೆ)
+function renderCompleteOfficialDSERTBlueprintPackage(questions, totalMarks, subject, grade) {
+  const container = document.getElementById('rendered-blueprint');
+  if (!container) return;
+
+  const selectedMediumStr = String(document.getElementById('cfg-medium')?.value || 'ಕನ್ನಡ').toLowerCase();
+  const isEnglish = selectedMediumStr.includes('english') || selectedMediumStr.includes('ಇಂಗ್ಲಿಷ್') || String(subject).toLowerCase().includes('english');
+
+  const totalQ = questions.length;
+  const kMarks = Math.round(totalMarks * 0.25);
+  const uMarks = Math.round(totalMarks * 0.45);
+  const aMarks = Math.round(totalMarks * 0.20);
+  const sMarks = totalMarks - (kMarks + uMarks + aMarks);
+
+  const easyMarks = Math.round(totalMarks * 0.30);
+  const avgMarks = Math.round(totalMarks * 0.50);
+  const diffMarks = totalMarks - (easyMarks + avgMarks);
+
+  // ಪಾಠವಾರು ಗುಂಪು ರಚನೆ
+  const chapterGroupMap = new Map();
+  questions.forEach(q => {
+    const ch = (q.chapter || (isEnglish ? 'General Unit' : 'ಸಾಮಾನ್ಯ ಘಟಕ')).trim();
+    if (!chapterGroupMap.has(ch)) {
+      chapterGroupMap.set(ch, { count: 0, marks: 0 });
+    }
+    chapterGroupMap.get(ch).count += 1;
+    chapterGroupMap.get(ch).marks += getExactQuestionMarks(q);
+  });
+
+  const sortedChapters = Array.from(chapterGroupMap.entries()).sort((a, b) => getSerialSortNum(a[0]) - getSerialSortNum(b[0]));
+
+  if (isEnglish) {
+    // 🌟 ಇಂಗ್ಲಿಷ್ ಮಾಧ್ಯಮದ ಅಧಿಕೃತ ನೀಲನಕ್ಷೆ (100% English Blueprint)
+    container.innerHTML = `
+      <div class="a4-board-sheet">
+        <h2 style="text-align: center; font-size: 14pt; font-weight: 900; color: #000; margin-bottom: 8px; border-bottom: 2px solid #000; padding-bottom: 4px;">
+          Class ${grade}th ${escapeHtml(subject)} - Official Blue Print
+        </h2>
+
+        <!-- Step 1: Weightage to Objectives -->
+        <div style="margin-bottom: 10px;">
+          <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">Step 1: Weightage to Objectives</h4>
+          <table class="blueprint-official-table">
+            <thead>
+              <tr>
+                <th style="width: 8%;">Sl. No.</th>
+                <th style="width: 36%; text-align: left;">Objectives</th>
+                <th style="width: 18%;">Marks</th>
+                <th style="width: 18%;">No. of Questions</th>
+                <th style="width: 20%;">Percentage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td style="text-align: left;">Knowledge</td><td>${kMarks}</td><td>${questions.filter(q=>q.obj==='ಜ್ಞಾನ'||q.obj==='Knowledge').length || Math.round(totalQ * 0.3)}</td><td>25%</td></tr>
+              <tr><td>2</td><td style="text-align: left;">Understanding</td><td>${uMarks}</td><td>${questions.filter(q=>q.obj==='ತಿಳುವಳಿಕೆ'||q.obj==='Understanding').length || Math.round(totalQ * 0.45)}</td><td>45%</td></tr>
+              <tr><td>3</td><td style="text-align: left;">Application</td><td>${aMarks}</td><td>${questions.filter(q=>q.obj==='ಅನ್ವಯ'||q.obj==='Application').length || Math.round(totalQ * 0.15)}</td><td>20%</td></tr>
+              <tr><td>4</td><td style="text-align: left;">Skill / Map / Diagram</td><td>${sMarks}</td><td>${Math.max(1, totalQ - (questions.filter(q=>q.obj==='ಜ್ಞಾನ'||q.obj==='Knowledge').length + questions.filter(q=>q.obj==='ತಿಳುವಳಿಕೆ'||q.obj==='Understanding').length + questions.filter(q=>q.obj==='ಅನ್ವಯ'||q.obj==='Application').length))}</td><td>10%</td></tr>
+              <tr style="font-weight: 900; background: #f1f5f9;"><td></td><td style="text-align: left;">Total</td><td>${totalMarks}</td><td>${totalQ}</td><td>100%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Step 2: Weightage to Difficulty Level -->
+        <div style="margin-bottom: 10px;">
+          <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">Step 2: Weightage to Difficulty Level</h4>
+          <table class="blueprint-official-table">
+            <thead>
+              <tr>
+                <th style="width: 8%;">Sl. No.</th>
+                <th style="width: 36%; text-align: left;">Level</th>
+                <th style="width: 18%;">Marks</th>
+                <th style="width: 18%;">No. of Questions</th>
+                <th style="width: 20%;">Percentage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td style="text-align: left;">Easy</td><td>${easyMarks}</td><td>${questions.filter(q=>q.diff==='ಸುಲಭ'||q.diff==='Easy').length || Math.round(totalQ * 0.35)}</td><td>30%</td></tr>
+              <tr><td>2</td><td style="text-align: left;">Average</td><td>${avgMarks}</td><td>${questions.filter(q=>q.diff==='ಸಾಧಾರಣ'||q.diff==='Average').length || Math.round(totalQ * 0.50)}</td><td>50%</td></tr>
+              <tr><td>3</td><td style="text-align: left;">Difficult</td><td>${diffMarks}</td><td>${Math.max(1, totalQ - (questions.filter(q=>q.diff==='ಸುಲಭ'||q.diff==='Easy').length + questions.filter(q=>q.diff==='ಸಾಧಾರಣ'||q.diff==='Average').length))}</td><td>20%</td></tr>
+              <tr style="font-weight: 900; background: #f1f5f9;"><td></td><td style="text-align: left;">Total</td><td>${totalMarks}</td><td>${totalQ}</td><td>100%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Step 3: Unit-wise Weightage -->
+        <div>
+          <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">Step 3: Unit-wise / Chapter-wise Weightage</h4>
+          <table class="blueprint-official-table">
+            <thead>
+              <tr>
+                <th style="width: 8%;">Sl. No.</th>
+                <th style="width: 54%; text-align: left;">Unit / Chapter Name</th>
+                <th style="width: 18%;">No. of Questions</th>
+                <th style="width: 20%;">Total Marks</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedChapters.map(([chName, stats], i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td style="text-align: left; font-weight: 700;">${escapeHtml(chName)}</td>
+                  <td style="font-weight: 900;">${stats.count}</td>
+                  <td style="font-weight: 900; color: #0f172a;">${stats.marks}</td>
+                </tr>
+              `).join('')}
+              <tr style="font-weight: 900; background: #f1f5f9;">
+                <td colspan="2" style="text-align: right; padding-right: 12px;">Total</td>
+                <td style="font-size: 11pt;">${totalQ}</td>
+                <td style="font-size: 11pt;">${totalMarks}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } else {
+    // 🌟 ಕನ್ನಡ ಮಾಧ್ಯಮದ ಅಧಿಕೃತ ನೀಲನಕ್ಷೆ (100% Kannada Blueprint)
+    container.innerHTML = `
+      <div class="a4-board-sheet">
+        <h2 style="text-align: center; font-size: 14pt; font-weight: 900; color: #000; margin-bottom: 8px; border-bottom: 2px solid #000; padding-bottom: 4px;">
+          ${grade}ನೇ ತರಗತಿ ${escapeHtml(subject)} - ಅಧಿಕೃತ ನೀಲನಕ್ಷೆ (Blue Print)
+        </h2>
+
+        <!-- ಹಂತ ೧: ಉದ್ದೇಶವಾರು ಹಂಚಿಕೆ -->
+        <div style="margin-bottom: 10px;">
+          <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">ಹಂತ 1: ಉದ್ದೇಶವಾರು ಅಂಕ ಹಂಚಿಕೆ (Weightage to Objectives)</h4>
+          <table class="blueprint-official-table">
+            <thead>
+              <tr>
+                <th style="width: 8%;">ಕ್ರ.ಸಂ.</th>
+                <th style="width: 36%; text-align: left;">ಉದ್ದೇಶಗಳು</th>
+                <th style="width: 18%;">ಅಂಕಗಳು</th>
+                <th style="width: 18%;">ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ</th>
+                <th style="width: 20%;">ಶೇಕಡಾವಾರು</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td style="text-align: left;">ಜ್ಞಾನ (Knowledge)</td><td>${kMarks}</td><td>${questions.filter(q=>q.obj==='ಜ್ಞಾನ').length || Math.round(totalQ * 0.3)}</td><td>25%</td></tr>
+              <tr><td>2</td><td style="text-align: left;">ತಿಳುವಳಿಕೆ (Understanding)</td><td>${uMarks}</td><td>${questions.filter(q=>q.obj==='ತಿಳುವಳಿಕೆ').length || Math.round(totalQ * 0.45)}</td><td>45%</td></tr>
+              <tr><td>3</td><td style="text-align: left;">ಅನ್ವಯ (Application)</td><td>${aMarks}</td><td>${questions.filter(q=>q.obj==='ಅನ್ವಯ').length || Math.round(totalQ * 0.15)}</td><td>20%</td></tr>
+              <tr><td>4</td><td style="text-align: left;">ಕೌಶಲ / ನಕ್ಷೆ / ಚಿತ್ರ (Skill)</td><td>${sMarks}</td><td>${Math.max(1, totalQ - (questions.filter(q=>q.obj==='ಜ್ಞಾನ').length + questions.filter(q=>q.obj==='ತಿಳುವಳಿಕೆ').length + questions.filter(q=>q.obj==='ಅನ್ವಯ').length))}</td><td>10%</td></tr>
+              <tr style="font-weight: 900; background: #f1f5f9;"><td></td><td style="text-align: left;">ಒಟ್ಟು</td><td>${totalMarks}</td><td>${totalQ}</td><td>100%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ಹಂತ ೨: ಕ್ಲಿಷ್ಟತೆಯ ಮಟ್ಟ -->
+        <div style="margin-bottom: 10px;">
+          <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">ಹಂತ 2: ಕ್ಲಿಷ್ಟತೆಯ ಮಟ್ಟದ ಹಂಚಿಕೆ (Difficulty Level)</h4>
+          <table class="blueprint-official-table">
+            <thead>
+              <tr>
+                <th style="width: 8%;">ಕ್ರ.ಸಂ.</th>
+                <th style="width: 36%; text-align: left;">ಮಟ್ಟ</th>
+                <th style="width: 18%;">ಅಂಕಗಳು</th>
+                <th style="width: 18%;">ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ</th>
+                <th style="width: 20%;">ಶೇಕಡಾವಾರು</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td style="text-align: left;">ಸುಲಭ (Easy)</td><td>${easyMarks}</td><td>${questions.filter(q=>q.diff==='ಸುಲಭ').length || Math.round(totalQ * 0.35)}</td><td>30%</td></tr>
+              <tr><td>2</td><td style="text-align: left;">ಸಾಧಾರಣ (Average)</td><td>${avgMarks}</td><td>${questions.filter(q=>q.diff==='ಸಾಧಾರಣ').length || Math.round(totalQ * 0.50)}</td><td>50%</td></tr>
+              <tr><td>3</td><td style="text-align: left;">ಕಠಿಣ (Difficult)</td><td>${diffMarks}</td><td>${Math.max(1, totalQ - (questions.filter(q=>q.diff==='ಸುಲಭ').length + questions.filter(q=>q.diff==='ಸಾಧಾರಣ').length))}</td><td>20%</td></tr>
+              <tr style="font-weight: 900; background: #f1f5f9;"><td></td><td style="text-align: left;">ಒಟ್ಟು</td><td>${totalMarks}</td><td>${totalQ}</td><td>100%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ಹಂತ ೩: ಘಟಕವಾರು ಅಂಕ ಹಂಚಿಕೆ -->
+        <div>
+          <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">ಹಂತ 3: ಘಟಕವಾರು (ಪಾಠವಾರು) ಅಂಕ ಹಂಚಿಕೆ (Unit-wise Weightage)</h4>
+          <table class="blueprint-official-table">
+            <thead>
+              <tr>
+                <th style="width: 8%;">ಕ್ರ.ಸಂ.</th>
+                <th style="width: 54%; text-align: left;">ಘಟಕದ / ಪಾಠದ ಹೆಸರು</th>
+                <th style="width: 18%;">ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ</th>
+                <th style="width: 20%;">ಒಟ್ಟು ಅಂಕಗಳು</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedChapters.map(([chName, stats], i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td style="text-align: left; font-weight: 700;">${escapeHtml(chName)}</td>
+                  <td style="font-weight: 900;">${stats.count}</td>
+                  <td style="font-weight: 900; color: #0f172a;">${stats.marks}</td>
+                </tr>
+              `).join('')}
+              <tr style="font-weight: 900; background: #f1f5f9;">
+                <td colspan="2" style="text-align: right; padding-right: 12px;">ಒಟ್ಟು</td>
+                <td style="font-size: 11pt;">${totalQ}</td>
+                <td style="font-size: 11pt;">${totalMarks}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+}
   </script>
 </body>
 </html>

@@ -41545,6 +41545,144 @@ if (typeof handleQuestionTypeChangeInAdmin === 'function') {
 }
 renderCustomQuestionList();
 
+
+/* ==========================================================================
+   🎼 100% POEM STANZA FORMATTER: PROPER MULTI-LINE POEM COMPLETION ENGINE
+   ========================================================================== */
+
+// ೧. 🌟 ಪದ್ಯದ ಸಾಲುಗಳನ್ನು (Lines, Stanzas, ಅಥವಾ) ಪ್ರತ್ಯೇಕಿಸುವ ಮಾಸ್ಟರ್ ಪಾರ್ಸರ್
+function formatPoemToStanzaLines(rawText) {
+  if (!rawText) return '';
+  let text = String(rawText).trim();
+
+  // ಶೀರ್ಷಿಕೆ/ಸೂಚನೆ ಪ್ರತ್ಯೇಕತೆ
+  let mainInstruction = '';
+  if (/^.*?ಪದ್ಯಭಾಗವನ್ನು\s*.*?(?:ಪೂರ್ಣಗೊಳಿಸಿ|ಬರೆಯಿರಿ)[\:\.\s]*/is.test(text)) {
+    const match = text.match(/^(.*?ಪದ್ಯಭಾಗವನ್ನು\s*.*?(?:ಪೂರ್ಣಗೊಳಿಸಿ|ಬರೆಯಿರಿ)[\:\.]*)/is);
+    if (match) {
+      mainInstruction = match[1].trim();
+      text = text.substring(match[1].length).trim();
+    }
+  }
+
+  // 'ಅಥವಾ' / '[ ಅಥವಾ ]' / 'OR' ಇದ್ದರೆ ೨ ಪದ್ಯಗಳನ್ನಾಗಿ ವಿಭಜಿಸುವುದು
+  const stanzas = text.split(/\s*(?:\[\s*ಅಥವಾ\s*\]|\(\s*ಅಥವಾ\s*\)|\bಅಥವಾ\b|\bOR\b)\s*/i);
+
+  const renderSingleStanzaBlock = (stanzaText) => {
+    let clean = stanzaText.trim();
+    
+    // ಡಾಟ್‌ಗಳು ಅಥವಾ ಅಂಡರ್‌ಸ್ಕೋರ್‌ಗಳನ್ನು ನೀಟಾದ ಗೆರೆಗಳನ್ನಾಗಿ ಮಾಡುವುದು
+    clean = clean.replace(/\.{4,}/g, ' ................................................................ ');
+    clean = clean.replace(/_{4,}/g, ' ___________________________________ ');
+
+    // \n (ನ್ಯೂ ಲೈನ್) ಅಥವಾ | (ಪೈಪ್) ಅಥವಾ / (ಸ್ಲ್ಯಾಶ್) ಆಧಾರದ ಮೇಲೆ ಪ್ರತ್ಯೇಕ ಸಾಲುಗಳಾಗಿ ವಿಭಜನೆ
+    let lines = [];
+    if (clean.includes('\n')) {
+      lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
+    } else if (clean.includes('|')) {
+      lines = clean.split('|').map(l => l.trim()).filter(Boolean);
+    } else if (clean.includes('/')) {
+      lines = clean.split('/').map(l => l.trim()).filter(Boolean);
+    } else {
+      // ಒಂದು ವೇಳೆ ಯಾವುದೇ ಚಿಹ್ನೆ ಇಲ್ಲದಿದ್ದರೆ ಡಾಟ್‌ಗಳ ಆಧಾರದ ಮೇಲೆ ವಿಂಗಡಣೆ
+      lines = clean.replace(/(\.{15,}|_{10,})/g, '$1\n').split('\n').map(l => l.trim()).filter(Boolean);
+    }
+
+    return `
+      <div style="margin: 3px 0 3px 12px; padding: 6px 14px; background: #fafafa; border-left: 3px solid #6366f1; border-radius: 6px; font-weight: 700; font-size: 11pt; line-height: 1.85; color: #000;">
+        ${lines.map(line => `<div style="margin-bottom: 2px;">${escapeHtml(line)}</div>`).join('')}
+      </div>
+    `;
+  };
+
+  return `
+    <div style="width: 100%; margin-top: 2px;">
+      ${mainInstruction ? `<div style="font-weight: 800; font-size: 10.8pt; margin-bottom: 2px; color: #000;">${escapeHtml(mainInstruction)}</div>` : ''}
+      ${renderSingleStanzaBlock(stanzas[0])}
+      ${stanzas.length > 1 ? `
+        <div style="text-align: center; font-weight: 900; font-size: 11pt; margin: 4px 0; color: #475569;">[ ಅಥವಾ ]</div>
+        ${renderSingleStanzaBlock(stanzas[1])}
+      ` : ''}
+    </div>
+  `;
+}
+
+// ೨. 🌟 ಪದ್ಯ ಹಾಗೂ ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಗಳ ಪ್ರದರ್ಶನ ಎಂಜಿನ್ ಅಪ್ಡೇಟ್
+const origBuildQuestionItemWithImagePoem = window.buildQuestionItemWithImage;
+window.buildQuestionItemWithImage = function(q, num) {
+  const allQuestions = (appState.activeGeneratedQuestions || []);
+  const idx = allQuestions.indexOf(q);
+  const qText = String(q.q || '').trim();
+  const qType = String(q.type || '').toLowerCase();
+  const imgSrc = (typeof getAnyQuestionImageSource === 'function') ? getAnyQuestionImageSource(q) : '';
+
+  // 🌟 ಪದ್ಯ ಪೂರ್ಣಗೊಳಿಸಿ (Poem Completion) ಪ್ರಶ್ನೆಯಾಗಿದ್ದರೆ Stanza ರೂಪದಲ್ಲಿ ಪ್ರದರ್ಶನ
+  const isPoemQuestion = (
+    qType === 'poem_4lines' || 
+    qType.includes('ಪದ್ಯ') || 
+    qText.includes('ಪದ್ಯಭಾಗ') || 
+    qText.includes('ಪದ್ಯವನ್ನು') ||
+    qText.includes('ಕಂಠಪಾಠ') ||
+    (qText.includes('.....') && qText.includes('ಪದ್ಯ')) ||
+    (qText.includes('_____') && qText.includes('ಪದ್ಯ'))
+  );
+
+  if (isPoemQuestion) {
+    return `
+      <div style="margin-bottom: 6px; break-inside: avoid; page-break-inside: avoid; width: 100%;">
+        <div class="board-q-row-fit" style="margin-bottom: 2px;">
+          <span class="board-q-num-fit">${num}.</span>
+          <div style="flex: 1;">
+            <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit" style="float: right;"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+          </div>
+        </div>
+        ${formatPoemToStanzaLines(qText)}
+      </div>
+    `;
+  }
+
+  // ಗದ್ಯ ಗ್ರಹಣ / ಚಿತ್ರ ಗ್ರಹಣ ಪ್ರಶ್ನೆಗಳಾಗಿದ್ದರೆ
+  if (typeof renderCompoundQuestionBlock === 'function' && (qType.includes('ಗದ್ಯ') || qType.includes('ಚಿತ್ರ') || qText.includes('ಗದ್ಯಭಾಗ'))) {
+    return renderCompoundQuestionBlock(q, num, idx);
+  }
+
+  // 🌟 ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಗಳು (ನ್ಯೂ-ಲೈನ್ \n ಇದ್ದರೆ ಲೈನ್ ಬ್ರೇಕ್ ಉಳಿಸಿಕೊಳ್ಳುವುದು)
+  let cleanQ = cleanQuestionTextForDisplay(qText).replace(/\s*\((?:ಸುಲಭ|ಸಾಧಾರಣ|ಕಠಿಣ)\)\s*$/gi, '').trim();
+
+  return `
+    <div style="margin-bottom: 3px; break-inside: avoid; page-break-inside: avoid;">
+      <div class="board-q-row-fit">
+        <span class="board-q-num-fit">${num}.</span>
+        <div class="board-q-text-fit" style="white-space: pre-line !important;">
+          ${(typeof renderSafeRichTextWithUnderlines === 'function') ? renderSafeRichTextWithUnderlines(cleanQ) : escapeHtml(cleanQ)}
+        </div>
+        <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+      </div>
+      ${renderQuestionDiagramImage(imgSrc)}
+    </div>
+  `;
+};
+
+// ೩. 🌟 ಉತ್ತರ ಪತ್ರಿಕೆಯಲ್ಲೂ ಪದ್ಯದ ಸಾಲುಗಳು ಸಾಲು-ಸಾಲಾಗಿ ಬರುವಂತೆ ಫಿಕ್ಸ್
+const origRenderFullExamPaperForPoemKey = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  if (typeof origRenderFullExamPaperForPoemKey === 'function') {
+    origRenderFullExamPaperForPoemKey(headerHtml);
+  }
+
+  // ಉತ್ತರ ಪತ್ರಿಕೆಯಲ್ಲಿ ಪದ್ಯದ ಸಾಲುಗಳನ್ನು ಸಾಲು-ಸಾಲಾಗಿ ಸುಂದರವಾಗಿ ಅಲೈನ್ ಮಾಡುವುದು
+  const keyContainer = document.getElementById('rendered-key');
+  if (keyContainer) {
+    const keyRows = keyContainer.querySelectorAll('.key-hanging-row-item .key-text-content, .key-answer-hanging-row .key-hanging-text');
+    keyRows.forEach(row => {
+      if (row.innerText.includes('\n') || row.innerText.includes('|')) {
+        row.style.whiteSpace = 'pre-line';
+        row.style.lineHeight = '1.6';
+      }
+    });
+  }
+};
+
   </script>
 </body>
 </html>

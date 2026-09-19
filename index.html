@@ -41547,23 +41547,16 @@ renderCustomQuestionList();
 
 
 /* ==========================================================================
-   🎼 100% POEM STANZA FORMATTER: PROPER MULTI-LINE POEM COMPLETION ENGINE
+   🎼 AUTO-CONVERT ALL EXISTING OLD POEMS INTO 4-LINE DSERT STANZAS & FIX MARKS
    ========================================================================== */
 
-// ೧. 🌟 ಪದ್ಯದ ಸಾಲುಗಳನ್ನು (Lines, Stanzas, ಅಥವಾ) ಪ್ರತ್ಯೇಕಿಸುವ ಮಾಸ್ಟರ್ ಪಾರ್ಸರ್
+// ೧. 🌟 ಹಳೆಯ ಯಾವುದೇ ಮಾದರಿಯ ಪದ್ಯವನ್ನು ತಾನಾಗಿಯೇ ೪ ಸಾಲುಗಳ ಪದ್ಯವನ್ನಾಗಿ ಮಾಡುವ ಮಾಸ್ಟರ್ ಪಾರ್ಸರ್
 function formatPoemToStanzaLines(rawText) {
   if (!rawText) return '';
   let text = String(rawText).trim();
 
-  // ಶೀರ್ಷಿಕೆ/ಸೂಚನೆ ಪ್ರತ್ಯೇಕತೆ
-  let mainInstruction = '';
-  if (/^.*?ಪದ್ಯಭಾಗವನ್ನು\s*.*?(?:ಪೂರ್ಣಗೊಳಿಸಿ|ಬರೆಯಿರಿ)[\:\.\s]*/is.test(text)) {
-    const match = text.match(/^(.*?ಪದ್ಯಭಾಗವನ್ನು\s*.*?(?:ಪೂರ್ಣಗೊಳಿಸಿ|ಬರೆಯಿರಿ)[\:\.]*)/is);
-    if (match) {
-      mainInstruction = match[1].trim();
-      text = text.substring(match[1].length).trim();
-    }
-  }
+  // ಪ್ರಶ್ನೆಯ ಮುಂಚೂಣಿ ಸೂಚನೆಗಳನ್ನು ತೆಗೆದುಹಾಕುವುದು
+  text = text.replace(/^(?:ಪದ್ಯದ\s*ಮುಂದಿನ\s*ಸಾಲುಗಳನ್ನು\s*ಪೂರ್ಣಗೊಳಿಸಿರಿ|ಕೆಳಗಿನ\s*ಪದ್ಯಭಾಗದ\s*ಸಾಲುಗಳನ್ನು\s*ಪೂರ್ಣಗೊಳಿಸಿರಿ|ಕೆಳಗಿನ\s*ಪದ್ಯಭಾಗವನ್ನು\s*ಪೂರ್ಣಗೊಳಿಸಿ|ಪದ್ಯಭಾಗವನ್ನು\s*ಪೂರ್ಣಗೊಳಿಸಿ\s*ಬರೆಯಿರಿ|ಕಂಠಪಾಠದ\s*ಪದ್ಯವನ್ನು\s*ಬರೆಯಿರಿ)[\:\.\s]*/is, '').trim();
 
   // 'ಅಥವಾ' / '[ ಅಥವಾ ]' / 'OR' ಇದ್ದರೆ ೨ ಪದ್ಯಗಳನ್ನಾಗಿ ವಿಭಜಿಸುವುದು
   const stanzas = text.split(/\s*(?:\[\s*ಅಥವಾ\s*\]|\(\s*ಅಥವಾ\s*\)|\bಅಥವಾ\b|\bOR\b)\s*/i);
@@ -41571,12 +41564,12 @@ function formatPoemToStanzaLines(rawText) {
   const renderSingleStanzaBlock = (stanzaText) => {
     let clean = stanzaText.trim();
     
-    // ಡಾಟ್‌ಗಳು ಅಥವಾ ಅಂಡರ್‌ಸ್ಕೋರ್‌ಗಳನ್ನು ನೀಟಾದ ಗೆರೆಗಳನ್ನಾಗಿ ಮಾಡುವುದು
-    clean = clean.replace(/\.{4,}/g, ' ................................................................ ');
-    clean = clean.replace(/_{4,}/g, ' ___________________________________ ');
-
-    // \n (ನ್ಯೂ ಲೈನ್) ಅಥವಾ | (ಪೈಪ್) ಅಥವಾ / (ಸ್ಲ್ಯಾಶ್) ಆಧಾರದ ಮೇಲೆ ಪ್ರತ್ಯೇಕ ಸಾಲುಗಳಾಗಿ ವಿಭಜನೆ
+    // ಡಾಟ್ / ಡ್ಯಾಶ್ / ಅಂಡರ್‌ಸ್ಕೋರ್ ಎಲ್ಲವನ್ನೂ ಪ್ರಮಾಣಿತ ಗೆರೆಗಳನ್ನಾಗಿ ಮಾಡುವುದು
+    const longDottedLine = '....................................................................................................';
+    
     let lines = [];
+
+    // A. ಈಗಾಗಲೇ \n (ನ್ಯೂ ಲೈನ್) ಅಥವಾ | (ಪೈಪ್) ಇದ್ದರೆ
     if (clean.includes('\n')) {
       lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
     } else if (clean.includes('|')) {
@@ -41584,12 +41577,34 @@ function formatPoemToStanzaLines(rawText) {
     } else if (clean.includes('/')) {
       lines = clean.split('/').map(l => l.trim()).filter(Boolean);
     } else {
-      // ಒಂದು ವೇಳೆ ಯಾವುದೇ ಚಿಹ್ನೆ ಇಲ್ಲದಿದ್ದರೆ ಡಾಟ್‌ಗಳ ಆಧಾರದ ಮೇಲೆ ವಿಂಗಡಣೆ
-      lines = clean.replace(/(\.{15,}|_{10,})/g, '$1\n').split('\n').map(l => l.trim()).filter(Boolean);
+      // B. 🌟 ಹಳೆಯ ಪದ್ಯ ಒಂದೇ ಸಾಲಿನಲ್ಲಿದ್ದು ಡ್ಯಾಶ್ (---) ಅಥವಾ ಡಾಟ್ (....) ಇದ್ದರೆ (ಚಿತ್ರದಲ್ಲಿರುವಂತೆ):
+      // ಉದಾ: "ಬಿಸಿಲ ಝಳಕೆ ಕಡಲ ನೀರು ----------------- ಕಡೆಗೆ --------- ಬಂದಿತು."
+      const parts = clean.split(/[-_.]{3,}/).map(p => p.trim()).filter(Boolean);
+
+      if (parts.length >= 2) {
+        const firstWords = parts[0];
+        const lastWords = parts.slice(1).join(' ').trim();
+
+        // ಅಧಿಕೃತ ಬೋರ್ಡ್ ಮಾದರಿಯ ೪ ಸಾಲುಗಳ ರಚನೆ
+        lines = [
+          `${firstWords} ................................................................`,
+          `${longDottedLine}`,
+          `${longDottedLine}`,
+          `................................................................ ${lastWords}`
+        ];
+      } else {
+        // ಕೇವಲ ಮೊದಲ ಪದಗಳು ಮಾತ್ರ ಇದ್ದಾಗ
+        lines = [
+          `${clean} ................................................................`,
+          `${longDottedLine}`,
+          `${longDottedLine}`,
+          `${longDottedLine}`
+        ];
+      }
     }
 
     return `
-      <div style="margin: 3px 0 3px 12px; padding: 6px 14px; background: #fafafa; border-left: 3px solid #6366f1; border-radius: 6px; font-weight: 700; font-size: 11pt; line-height: 1.85; color: #000;">
+      <div style="margin: 3px 0 4px 10px; padding: 7px 14px; background: #fafafa; border-left: 3.5px solid #4f46e5; border-radius: 6px; font-weight: 700; font-size: 11pt; line-height: 1.85; color: #000;">
         ${lines.map(line => `<div style="margin-bottom: 2px;">${escapeHtml(line)}</div>`).join('')}
       </div>
     `;
@@ -41597,7 +41612,6 @@ function formatPoemToStanzaLines(rawText) {
 
   return `
     <div style="width: 100%; margin-top: 2px;">
-      ${mainInstruction ? `<div style="font-weight: 800; font-size: 10.8pt; margin-bottom: 2px; color: #000;">${escapeHtml(mainInstruction)}</div>` : ''}
       ${renderSingleStanzaBlock(stanzas[0])}
       ${stanzas.length > 1 ? `
         <div style="text-align: center; font-weight: 900; font-size: 11pt; margin: 4px 0; color: #475569;">[ ಅಥವಾ ]</div>
@@ -41607,8 +41621,8 @@ function formatPoemToStanzaLines(rawText) {
   `;
 }
 
-// ೨. 🌟 ಪದ್ಯ ಹಾಗೂ ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಗಳ ಪ್ರದರ್ಶನ ಎಂಜಿನ್ ಅಪ್ಡೇಟ್
-const origBuildQuestionItemWithImagePoem = window.buildQuestionItemWithImage;
+// ೨. 🌟 ಪದ್ಯದ ಪ್ರಶ್ನೆಗಳನ್ನು ಗುರುತಿಸಿ ಪ್ರದರ್ಶಿಸುವ ಎಂಜಿನ್
+const origBuildQuestionItemWithImageMaster = window.buildQuestionItemWithImage;
 window.buildQuestionItemWithImage = function(q, num) {
   const allQuestions = (appState.activeGeneratedQuestions || []);
   const idx = allQuestions.indexOf(q);
@@ -41616,15 +41630,15 @@ window.buildQuestionItemWithImage = function(q, num) {
   const qType = String(q.type || '').toLowerCase();
   const imgSrc = (typeof getAnyQuestionImageSource === 'function') ? getAnyQuestionImageSource(q) : '';
 
-  // 🌟 ಪದ್ಯ ಪೂರ್ಣಗೊಳಿಸಿ (Poem Completion) ಪ್ರಶ್ನೆಯಾಗಿದ್ದರೆ Stanza ರೂಪದಲ್ಲಿ ಪ್ರದರ್ಶನ
+  // 🌟 ಪದ್ಯ ಪೂರ್ಣಗೊಳಿಸಿ ಪ್ರಶ್ನೆಯಾಗಿದ್ದರೆ (ಹಳೆಯ ಪದ್ಯಗಳನ್ನೂ ಆಟೋ-ಡಿಟೆಕ್ಟ್ ಮಾಡುತ್ತದೆ)
   const isPoemQuestion = (
     qType === 'poem_4lines' || 
     qType.includes('ಪದ್ಯ') || 
     qText.includes('ಪದ್ಯಭಾಗ') || 
+    qText.includes('ಪದ್ಯದ ಮುಂದಿನ') ||
     qText.includes('ಪದ್ಯವನ್ನು') ||
     qText.includes('ಕಂಠಪಾಠ') ||
-    (qText.includes('.....') && qText.includes('ಪದ್ಯ')) ||
-    (qText.includes('_____') && qText.includes('ಪದ್ಯ'))
+    (qText.includes('-----') && (qText.includes('ಬಂದಿತು') || qText.includes('ನೀರು') || qText.includes('ಸಾಲು')))
   );
 
   if (isPoemQuestion) {
@@ -41633,6 +41647,7 @@ window.buildQuestionItemWithImage = function(q, num) {
         <div class="board-q-row-fit" style="margin-bottom: 2px;">
           <span class="board-q-num-fit">${num}.</span>
           <div style="flex: 1;">
+            <span style="font-weight: 800; font-size: 10.5pt; color: #475569;">ಪದ್ಯದ ಮುಂದಿನ ಸಾಲುಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿರಿ:</span>
             <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit" style="float: right;"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
           </div>
         </div>
@@ -41646,16 +41661,16 @@ window.buildQuestionItemWithImage = function(q, num) {
     return renderCompoundQuestionBlock(q, num, idx);
   }
 
-  // 🌟 ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಗಳು (ನ್ಯೂ-ಲೈನ್ \n ಇದ್ದರೆ ಲೈನ್ ಬ್ರೇಕ್ ಉಳಿಸಿಕೊಳ್ಳುವುದು)
+  // ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಗಳು
   let cleanQ = cleanQuestionTextForDisplay(qText).replace(/\s*\((?:ಸುಲಭ|ಸಾಧಾರಣ|ಕಠಿಣ)\)\s*$/gi, '').trim();
 
   return `
     <div style="margin-bottom: 3px; break-inside: avoid; page-break-inside: avoid;">
       <div class="board-q-row-fit">
         <span class="board-q-num-fit">${num}.</span>
-        <div class="board-q-text-fit" style="white-space: pre-line !important;">
+        <span class="board-q-text-fit" style="white-space: pre-line !important;">
           ${(typeof renderSafeRichTextWithUnderlines === 'function') ? renderSafeRichTextWithUnderlines(cleanQ) : escapeHtml(cleanQ)}
-        </div>
+        </span>
         <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
       </div>
       ${renderQuestionDiagramImage(imgSrc)}
@@ -41663,23 +41678,22 @@ window.buildQuestionItemWithImage = function(q, num) {
   `;
 };
 
-// ೩. 🌟 ಉತ್ತರ ಪತ್ರಿಕೆಯಲ್ಲೂ ಪದ್ಯದ ಸಾಲುಗಳು ಸಾಲು-ಸಾಲಾಗಿ ಬರುವಂತೆ ಫಿಕ್ಸ್
-const origRenderFullExamPaperForPoemKey = window.renderFullExamPaperWithCustomHeader;
+// ೩. 🌟 ಪದ್ಯದ ಅಂಕಗಳನ್ನು (4x1=04 ಅಥವಾ 1x4=04) ನಿಖರವಾಗಿ ಹೆಡಿಂಗ್‌ನಲ್ಲಿ ಲಾಕ್ ಮಾಡುವ ಫಿಕ್ಸ್
+const origRenderFullExamPaperForPoemMarksFix = window.renderFullExamPaperWithCustomHeader;
 window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
-  if (typeof origRenderFullExamPaperForPoemKey === 'function') {
-    origRenderFullExamPaperForPoemKey(headerHtml);
-  }
-
-  // ಉತ್ತರ ಪತ್ರಿಕೆಯಲ್ಲಿ ಪದ್ಯದ ಸಾಲುಗಳನ್ನು ಸಾಲು-ಸಾಲಾಗಿ ಸುಂದರವಾಗಿ ಅಲೈನ್ ಮಾಡುವುದು
-  const keyContainer = document.getElementById('rendered-key');
-  if (keyContainer) {
-    const keyRows = keyContainer.querySelectorAll('.key-hanging-row-item .key-text-content, .key-answer-hanging-row .key-hanging-text');
-    keyRows.forEach(row => {
-      if (row.innerText.includes('\n') || row.innerText.includes('|')) {
-        row.style.whiteSpace = 'pre-line';
-        row.style.lineHeight = '1.6';
+  // ಪದ್ಯದ ಪ್ರಶ್ನೆಗಳ ಅಂಕ ಕಡ್ಡಾಯವಾಗಿ 4 ಆಗಿರುತ್ತದೆ
+  (appState.activeGeneratedQuestions || []).forEach(q => {
+    if (q) {
+      const qText = String(q.q || '').toLowerCase();
+      const qType = String(q.type || '').toLowerCase();
+      if (qType === 'poem_4lines' || qType.includes('ಪದ್ಯ') || qText.includes('ಪದ್ಯ') || qText.includes('ಕಂಠಪಾಠ')) {
+        q.marks = 4;
       }
-    });
+    }
+  });
+
+  if (typeof origRenderFullExamPaperForPoemMarksFix === 'function') {
+    origRenderFullExamPaperForPoemMarksFix(headerHtml);
   }
 };
 

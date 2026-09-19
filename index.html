@@ -41547,53 +41547,192 @@ renderCustomQuestionList();
 
 
 /* ==========================================================================
-   🎼 AUTO-CONVERT ALL EXISTING OLD POEMS INTO 4-LINE DSERT STANZAS & FIX MARKS
+   🌐 MULTI-MEDIUM TRANSLATOR (KANNADA / ENGLISH / MARATHI) & POEM STANZA FIX
    ========================================================================== */
 
-// ೧. 🌟 ಹಳೆಯ ಯಾವುದೇ ಮಾದರಿಯ ಪದ್ಯವನ್ನು ತಾನಾಗಿಯೇ ೪ ಸಾಲುಗಳ ಪದ್ಯವನ್ನಾಗಿ ಮಾಡುವ ಮಾಸ್ಟರ್ ಪಾರ್ಸರ್
+// =========================================================================
+// ೧. 🌟 ಕೋರ್ ವಿಷಯ ಮತ್ತು ಭಾಷಾ ವಿಷಯಗಳ ವಿಂಗಡಣೆ (Language Filter)
+// =========================================================================
+function isCoreSubjectForTranslation(subjName) {
+  const s = String(subjName || '').toLowerCase();
+  // ಭಾಷಾ ವಿಷಯಗಳನ್ನು ಭಾಷಾಂತರ ಮಾಡಬಾರದು (ಕನ್ನಡ, ಹಿಂದಿ, ಉರ್ದು, ಇಂಗ್ಲಿಷ್ ಲ್ಯಾಂಗ್ವೇಜ್)
+  if (s.includes('ಕನ್ನಡ') || s.includes('kannada')) return false;
+  if (s.includes('ಹಿಂದಿ') || s.includes('hindi')) return false;
+  if (s.includes('ಉರ್ದು') || s.includes('urdu')) return false;
+  if (s === 'english' || s.includes('english (language)') || s.includes('ದ್ವಿತೀಯ ಭಾಷೆ ಇಂಗ್ಲಿಷ್') || s.includes('ತೃತೀಯ ಭಾಷೆ')) return false;
+
+  // ಕೋರ್ ವಿಷಯಗಳು (ಸಮಾಜ, ವಿಜ್ಞಾನ, ಗಣಿತ, ದೈಹಿಕ, ಮೌಲ್ಯಶಿಕ್ಷಣ ಇತ್ಯಾದಿ)
+  return true;
+}
+
+// ಭಾಷಾ ಕೋಡ್ ಡಿಟೆಕ್ಟರ್ (kn / en / mr)
+function getTargetLanguageCode() {
+  const m = String(document.getElementById('cfg-medium')?.value || 'ಕನ್ನಡ').toLowerCase();
+  if (m.includes('marathi') || m.includes('ಮರಾಠಿ')) return 'mr'; // Marathi
+  if (m.includes('english') || m.includes('ಇಂಗ್ಲಿಷ್')) return 'en'; // English
+  return 'kn'; // Kannada
+}
+
+// ಗೂಗಲ್ ಟ್ರಾನ್ಸ್‌ಲೇಟ್ API ಬ್ರಿಡ್ಜ್ (ಕನ್ನಡ ➔ English / Marathi)
+async function translateTextSmart(text, targetLang) {
+  if (!text || !text.trim() || targetLang === 'kn') return text;
+  if (targetLang === 'en' && !containsKannadaText(text)) return text;
+
+  try {
+    const cleanText = text.trim();
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=kn&tl=${targetLang}&dt=t&q=${encodeURIComponent(cleanText)}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data[0]) {
+        return data[0].map(s => s[0]).join('').trim();
+      }
+    }
+  } catch (e) {
+    console.warn('Translation fallback:', e);
+  }
+  return text;
+}
+
+// =========================================================================
+// ೨. 🌟 ಮರಾಠಿ & English ಪರೀಕ್ಷಾ ಹೆಡರ್ಸ್ ಮತ್ತು ವಿಷಯಗಳ ಡಿಕ್ಷನರಿ
+// =========================================================================
+function getLocalizedExamTypeName(rawExamType, targetLang) {
+  const e = String(rawExamType || '').toLowerCase().trim();
+
+  if (targetLang === 'mr') {
+    // 🌟 ಮರಾಠಿ ಪರೀಕ್ಷಾ ಹೆಸರುಗಳು
+    if (e.includes('1ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-1')) return 'आकारिक मूल्यमापन चाचणी - १ (FA-1) 2026-27';
+    if (e.includes('2ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-2')) return 'आकारिक मूल्यमापन चाचणी - २ (FA-2) 2026-27';
+    if (e.includes('3ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-3')) return 'आकारिक मूल्यमापन चाचणी - ३ (FA-3) 2026-27';
+    if (e.includes('4ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-4')) return 'आकारिक मूल्यमापन चाचणी - ४ (FA-4) 2026-27';
+    if (e.includes('sa-1') || e.includes('ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1') || e.includes('ಮಧ್ಯವಾರ್ಷಿಕ')) return 'संकलित मूल्यमापन सत्र - १ (SA-1) 2026-27';
+    if (e.includes('sa-2') || e.includes('ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-2') || e.includes('ವಾರ್ಷಿಕ')) return 'संकलित मूल्यमापन सत्र - २ (SA-2) 2026-27';
+    if (e.includes('lba') || e.includes('ಘಟಕ')) return 'घटक चाचणी (Unit Test) 2026-27';
+    if (e.includes('ಮೌಖಿಕ') || e.includes('oral')) return 'तोंडी परीक्षा (Oral Exam) 2026-27';
+    return rawExamType;
+  }
+
+  if (targetLang === 'en') {
+    // 🌟 ಇಂಗ್ಲಿಷ್ ಪರೀಕ್ಷಾ ಹೆಸರುಗಳು
+    if (e.includes('1ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-1')) return 'Formative Assessment - 1 (FA-1) 2026-27';
+    if (e.includes('2ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-2')) return 'Formative Assessment - 2 (FA-2) 2026-27';
+    if (e.includes('3ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-3')) return 'Formative Assessment - 3 (FA-3) 2026-27';
+    if (e.includes('4ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-4')) return 'Formative Assessment - 4 (FA-4) 2026-27';
+    if (e.includes('sa-1') || e.includes('ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1') || e.includes('ಮಧ್ಯವಾರ್ಷಿಕ')) return 'Summative Assessment - 1 (SA-1) 2026-27';
+    if (e.includes('sa-2') || e.includes('ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-2') || e.includes('ವಾರ್ಷಿಕ')) return 'Summative Assessment - 2 (SA-2) 2026-27';
+    if (e.includes('lba') || e.includes('ಘಟಕ')) return 'Unit Test (LBA) 2026-27';
+    if (e.includes('ಮೌಖಿಕ') || e.includes('oral')) return 'Oral Examination 2026-27';
+    return rawExamType;
+  }
+
+  return rawExamType.replace(/\s*\([^)]*\)/g, '').trim();
+}
+
+function getLocalizedSubjectName(rawSubject, targetLang) {
+  const s = String(rawSubject || '').toLowerCase();
+
+  if (targetLang === 'mr') {
+    if (s.includes('ಸಮಾಜ') || s.includes('social')) return 'समाजशास्त्र (Social Science)';
+    if (s.includes('ವಿಜ್ಞಾನ') || s.includes('science')) return 'सामान्य विज्ञान (Science)';
+    if (s.includes('ಗಣಿತ') || s.includes('math')) return 'गणित (Mathematics)';
+    if (s.includes('ದೈಹಿಕ') || s.includes('physical')) return 'शारीरिक शिक्षण (Physical Education)';
+    if (s.includes('ಮೌಲ್ಯ') || s.includes('value')) return 'मूल्य शिक्षण (Value Education)';
+    return rawSubject;
+  }
+
+  if (targetLang === 'en') {
+    if (s.includes('ಸಮಾಜ') || s.includes('social')) return 'Social Science';
+    if (s.includes('ವಿಜ್ಞಾನ') || s.includes('science')) return 'Science';
+    if (s.includes('ಗಣಿತ') || s.includes('math')) return 'Mathematics';
+    if (s.includes('ದೈಹಿಕ') || s.includes('physical')) return 'Physical Education';
+    if (s.includes('ಮೌಲ್ಯ') || s.includes('value')) return 'Value Education';
+    return rawSubject;
+  }
+
+  return rawSubject;
+}
+
+// ೩. 🌟 ಕನ್ನಡ / English / ಮರಾಠಿ ಮೂರೂ ಭಾಷೆಗಳ ವಿಭಾಗ ಹೆಡಿಂಗ್ಸ್ ಡಿಕ್ಷನರಿ
+function getCleanSectionHeadingMultiLang(typeKey, targetLang) {
+  const raw = String(typeKey || '').toLowerCase().trim();
+
+  // 🌟 ಮರಾಠಿ ಹೆಡಿಂಗ್ಸ್ (Marathi Headings)
+  if (targetLang === 'mr') {
+    if (raw === 'mcq') return "खालील प्रत्येक प्रश्नाला चार पर्याय दिले आहेत, योग्य पर्याय निवडून लिहा:";
+    if (raw === 'blanks' || raw === 'fill_ups' || raw === 'fib') return "रिकाम्या जागी योग्य शब्द भरा:";
+    if (raw === 'true_false') return "खालील विधाने चूक की बरोबर ते लिहा:";
+    if (raw === 'analogy') return "पहिल्या जोडीतील संबंध ओळखून दुसरी जोडी पूर्ण करा:";
+    if (raw === 'odd_one_out') return "खालीलपैकी गटात न बसणारा शब्द ओळखा:";
+    if (raw === 'match') return "'अ' गट आणि 'ब' गट यांच्या योग्य जोड्या जुळवा:";
+    if (raw === 'vsa_1m') return "खालील प्रश्नांची एका वाक्यात उत्तरे लिहा:";
+    if (raw === 'sa_2m') return "खालील प्रश्नांची दोन ते तीन वाक्यात उत्तरे लिहा:";
+    if (raw === 'sa_3m') return "खालील प्रश्नांची चार ते पाच वाक्यात उत्तरे लिहा:";
+    if (raw === 'la_4m') return "खालील प्रश्नांची सविस्तर उत्तरे लिहा / आकृती काढा / नकाशा भरा:";
+    return "पुढील प्रश्नांची उत्तरे लिहा:";
+  }
+
+  // 🌟 ಇಂಗ್ಲಿಷ್ ಹೆಡಿಂಗ್ಸ್ (English Headings)
+  if (targetLang === 'en') {
+    if (raw === 'mcq') return "Four alternatives are given for each question. Choose the correct answer:";
+    if (raw === 'blanks' || raw === 'fill_ups' || raw === 'fib') return "Fill in the blanks with suitable words:";
+    if (raw === 'true_false') return "State whether the following statements are True or False:";
+    if (raw === 'analogy') return "Complete the analogy based on the first pair:";
+    if (raw === 'odd_one_out') return "Pick out the odd word from the following:";
+    if (raw === 'match') return "Match the items in Column 'A' with Column 'B':";
+    if (raw === 'vsa_1m') return "Answer the following questions in a sentence each:";
+    if (raw === 'sa_2m') return "Answer the following questions in two or three sentences each:";
+    if (raw === 'sa_3m') return "Answer the following questions in five or six sentences each:";
+    if (raw === 'la_4m') return "Answer the following questions in detail / Diagram / Map:";
+    return "Answer the following as directed:";
+  }
+
+  // 🌟 ಕನ್ನಡ ಹೆಡಿಂಗ್ಸ್ (Kannada Headings)
+  if (raw === 'mcq') return "ಈ ಕೆಳಗಿನ ಪ್ರಶ್ನೆಗಳಿಗೆ ಸರಿಯಾದ ಆಯ್ಕೆಯನ್ನು ಆರಿಸಿ ಬರೆಯಿರಿ:";
+  if (raw === 'blanks' || raw === 'fill_ups' || raw === 'fib') return "ಖಾಲಿ ಬಿಟ್ಟಿರುವ ಜಾಗಗಳನ್ನು ಸೂಕ್ತ ಉತ್ತರಗಳಿಂದ ಭರ್ತಿ ಮಾಡಿ:";
+  if (raw === 'true_false') return "ಈ ಕೆಳಗಿನ ಹೇಳಿಕೆ ಸರಿ ಇದ್ದರೆ 'ಸರಿ' ತಪ್ಪು ಇದ್ದರೆ 'ತಪ್ಪು' ಎಂದು ಬರೆಯಿರಿ:";
+  if (raw === 'analogy') return "ಮೊದಲೆರೆಡು ಪದಗಳಿಗಿರುವ ಸಂಬಂಧದಂತೆ ಮೂರನೇ ಪದಕ್ಕೆ ಸಂಬಂಧ ಕಲ್ಪಿಸಿ ಬರೆಯಿರಿ:";
+  if (raw === 'odd_one_out') return "ಈ ಕೆಳಗಿನವುಗಳಲ್ಲಿ ಗುಂಪಿಗೆ ಸೇರದ ಪದವನ್ನು ಆರಿಸಿ ಬರೆಯಿರಿ:";
+  if (raw === 'match') return "ಹೊಂದಿಸಿ ಬರೆಯಿರಿ:";
+  if (raw === 'vsa_1m') return "ಈ ಕೆಳಗಿನ ಪ್ರಶ್ನೆಗಳಿಗೆ ಒಂದು ಪದ ಅಥವಾ ಒಂದು ವಾಕ್ಯದಲ್ಲಿ ಉತ್ತರಿಸಿ:";
+  if (raw === 'sa_2m') return "ಈ ಕೆಳಗಿನ ಪ್ರಶ್ನೆಗಳಿಗೆ ಒಂದು ಅಥವಾ ಎರಡು ವಾಕ್ಯದಲ್ಲಿ ಉತ್ತರಿಸಿ:";
+  if (raw === 'sa_3m') return "ಈ ಕೆಳಗಿನ ಪ್ರಶ್ನೆಗಳಿಗೆ ಎರಡು ಅಥವಾ ಮೂರು ವಾಕ್ಯದಲ್ಲಿ ಉತ್ತರಿಸಿ:";
+  if (raw === 'la_4m') return "ಈ ಕೆಳಗಿನ ಪ್ರಶ್ನೆಗಳಿಗೆ ಮೂರು ಅಥವಾ ನಾಲ್ಕು ವಾಕ್ಯದಲ್ಲಿ ಉತ್ತರಿಸಿ / ಚಿತ್ರ / ನಕ್ಷೆ:";
+  if (raw === 'poem_4lines' || raw.includes('ಪದ್ಯ')) return "ಕೆಳಗಿನ ಪದ್ಯಭಾಗದ ಸಾಲುಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ ಬರೆಯಿರಿ:";
+  return `${typeKey}:`;
+}
+
+// =========================================================================
+// ೪. 🌟 ಪದ್ಯದ ೪ ಸಾಲುಗಳ ಬೋರ್ಡ್ ವಿನ್ಯಾಸ & ಅಂಕಗಳ ಫಿಕ್ಸ್ (4 Lines Poem Stanza)
+// =========================================================================
 function formatPoemToStanzaLines(rawText) {
   if (!rawText) return '';
   let text = String(rawText).trim();
 
-  // ಪ್ರಶ್ನೆಯ ಮುಂಚೂಣಿ ಸೂಚನೆಗಳನ್ನು ತೆಗೆದುಹಾಕುವುದು
   text = text.replace(/^(?:ಪದ್ಯದ\s*ಮುಂದಿನ\s*ಸಾಲುಗಳನ್ನು\s*ಪೂರ್ಣಗೊಳಿಸಿರಿ|ಕೆಳಗಿನ\s*ಪದ್ಯಭಾಗದ\s*ಸಾಲುಗಳನ್ನು\s*ಪೂರ್ಣಗೊಳಿಸಿರಿ|ಕೆಳಗಿನ\s*ಪದ್ಯಭಾಗವನ್ನು\s*ಪೂರ್ಣಗೊಳಿಸಿ|ಪದ್ಯಭಾಗವನ್ನು\s*ಪೂರ್ಣಗೊಳಿಸಿ\s*ಬರೆಯಿರಿ|ಕಂಠಪಾಠದ\s*ಪದ್ಯವನ್ನು\s*ಬರೆಯಿರಿ)[\:\.\s]*/is, '').trim();
 
-  // 'ಅಥವಾ' / '[ ಅಥವಾ ]' / 'OR' ಇದ್ದರೆ ೨ ಪದ್ಯಗಳನ್ನಾಗಿ ವಿಭಜಿಸುವುದು
   const stanzas = text.split(/\s*(?:\[\s*ಅಥವಾ\s*\]|\(\s*ಅಥವಾ\s*\)|\bಅಥವಾ\b|\bOR\b)\s*/i);
 
   const renderSingleStanzaBlock = (stanzaText) => {
     let clean = stanzaText.trim();
-    
-    // ಡಾಟ್ / ಡ್ಯಾಶ್ / ಅಂಡರ್‌ಸ್ಕೋರ್ ಎಲ್ಲವನ್ನೂ ಪ್ರಮಾಣಿತ ಗೆರೆಗಳನ್ನಾಗಿ ಮಾಡುವುದು
     const longDottedLine = '....................................................................................................';
-    
     let lines = [];
 
-    // A. ಈಗಾಗಲೇ \n (ನ್ಯೂ ಲೈನ್) ಅಥವಾ | (ಪೈಪ್) ಇದ್ದರೆ
     if (clean.includes('\n')) {
       lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
     } else if (clean.includes('|')) {
       lines = clean.split('|').map(l => l.trim()).filter(Boolean);
-    } else if (clean.includes('/')) {
-      lines = clean.split('/').map(l => l.trim()).filter(Boolean);
     } else {
-      // B. 🌟 ಹಳೆಯ ಪದ್ಯ ಒಂದೇ ಸಾಲಿನಲ್ಲಿದ್ದು ಡ್ಯಾಶ್ (---) ಅಥವಾ ಡಾಟ್ (....) ಇದ್ದರೆ (ಚಿತ್ರದಲ್ಲಿರುವಂತೆ):
-      // ಉದಾ: "ಬಿಸಿಲ ಝಳಕೆ ಕಡಲ ನೀರು ----------------- ಕಡೆಗೆ --------- ಬಂದಿತು."
+      // ಡ್ಯಾಶ್ (---) ಅಥವಾ ಡಾಟ್ (....) ಇದ್ದರೆ ೪ ಸಾಲುಗಳ ವಿಭಜನೆ
       const parts = clean.split(/[-_.]{3,}/).map(p => p.trim()).filter(Boolean);
-
       if (parts.length >= 2) {
-        const firstWords = parts[0];
-        const lastWords = parts.slice(1).join(' ').trim();
-
-        // ಅಧಿಕೃತ ಬೋರ್ಡ್ ಮಾದರಿಯ ೪ ಸಾಲುಗಳ ರಚನೆ
         lines = [
-          `${firstWords} ................................................................`,
+          `${parts[0]} ................................................................`,
           `${longDottedLine}`,
           `${longDottedLine}`,
-          `................................................................ ${lastWords}`
+          `................................................................ ${parts.slice(1).join(' ')}`
         ];
       } else {
-        // ಕೇವಲ ಮೊದಲ ಪದಗಳು ಮಾತ್ರ ಇದ್ದಾಗ
         lines = [
           `${clean} ................................................................`,
           `${longDottedLine}`,
@@ -41604,7 +41743,7 @@ function formatPoemToStanzaLines(rawText) {
     }
 
     return `
-      <div style="margin: 3px 0 4px 10px; padding: 7px 14px; background: #fafafa; border-left: 3.5px solid #4f46e5; border-radius: 6px; font-weight: 700; font-size: 11pt; line-height: 1.85; color: #000;">
+      <div style="margin: 3px 0 4px 12px; padding: 7px 14px; background: #fafafa; border-left: 3.5px solid #4f46e5; border-radius: 6px; font-weight: 700; font-size: 11pt; line-height: 1.85; color: #000;">
         ${lines.map(line => `<div style="margin-bottom: 2px;">${escapeHtml(line)}</div>`).join('')}
       </div>
     `;
@@ -41621,8 +41760,7 @@ function formatPoemToStanzaLines(rawText) {
   `;
 }
 
-// ೨. 🌟 ಪದ್ಯದ ಪ್ರಶ್ನೆಗಳನ್ನು ಗುರುತಿಸಿ ಪ್ರದರ್ಶಿಸುವ ಎಂಜಿನ್
-const origBuildQuestionItemWithImageMaster = window.buildQuestionItemWithImage;
+// ೫. 🌟 ಪ್ರಶ್ನೆ ಐಟಂ ಬಿಲ್ಡರ್
 window.buildQuestionItemWithImage = function(q, num) {
   const allQuestions = (appState.activeGeneratedQuestions || []);
   const idx = allQuestions.indexOf(q);
@@ -41630,24 +41768,13 @@ window.buildQuestionItemWithImage = function(q, num) {
   const qType = String(q.type || '').toLowerCase();
   const imgSrc = (typeof getAnyQuestionImageSource === 'function') ? getAnyQuestionImageSource(q) : '';
 
-  // 🌟 ಪದ್ಯ ಪೂರ್ಣಗೊಳಿಸಿ ಪ್ರಶ್ನೆಯಾಗಿದ್ದರೆ (ಹಳೆಯ ಪದ್ಯಗಳನ್ನೂ ಆಟೋ-ಡಿಟೆಕ್ಟ್ ಮಾಡುತ್ತದೆ)
-  const isPoemQuestion = (
-    qType === 'poem_4lines' || 
-    qType.includes('ಪದ್ಯ') || 
-    qText.includes('ಪದ್ಯಭಾಗ') || 
-    qText.includes('ಪದ್ಯದ ಮುಂದಿನ') ||
-    qText.includes('ಪದ್ಯವನ್ನು') ||
-    qText.includes('ಕಂಠಪಾಠ') ||
-    (qText.includes('-----') && (qText.includes('ಬಂದಿತು') || qText.includes('ನೀರು') || qText.includes('ಸಾಲು')))
-  );
-
-  if (isPoemQuestion) {
+  // 🌟 ಪದ್ಯದ ಪ್ರಶ್ನೆ
+  if (qType === 'poem_4lines' || qType.includes('ಪದ್ಯ') || qText.includes('ಪದ್ಯ') || qText.includes('ಕಡಲ ನೀರು') || qText.includes('ಕಂಠಪಾಠ')) {
     return `
       <div style="margin-bottom: 6px; break-inside: avoid; page-break-inside: avoid; width: 100%;">
         <div class="board-q-row-fit" style="margin-bottom: 2px;">
           <span class="board-q-num-fit">${num}.</span>
           <div style="flex: 1;">
-            <span style="font-weight: 800; font-size: 10.5pt; color: #475569;">ಪದ್ಯದ ಮುಂದಿನ ಸಾಲುಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿರಿ:</span>
             <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit" style="float: right;"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
           </div>
         </div>
@@ -41656,12 +41783,12 @@ window.buildQuestionItemWithImage = function(q, num) {
     `;
   }
 
-  // ಗದ್ಯ ಗ್ರಹಣ / ಚಿತ್ರ ಗ್ರಹಣ ಪ್ರಶ್ನೆಗಳಾಗಿದ್ದರೆ
+  // ಗದ್ಯ / ಚಿತ್ರ ಗ್ರಹಣ
   if (typeof renderCompoundQuestionBlock === 'function' && (qType.includes('ಗದ್ಯ') || qType.includes('ಚಿತ್ರ') || qText.includes('ಗದ್ಯಭಾಗ'))) {
     return renderCompoundQuestionBlock(q, num, idx);
   }
 
-  // ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆಗಳು
+  // ಸಾಮಾನ್ಯ ಪ್ರಶ್ನೆ
   let cleanQ = cleanQuestionTextForDisplay(qText).replace(/\s*\((?:ಸುಲಭ|ಸಾಧಾರಣ|ಕಠಿಣ)\)\s*$/gi, '').trim();
 
   return `
@@ -41678,22 +41805,527 @@ window.buildQuestionItemWithImage = function(q, num) {
   `;
 };
 
-// ೩. 🌟 ಪದ್ಯದ ಅಂಕಗಳನ್ನು (4x1=04 ಅಥವಾ 1x4=04) ನಿಖರವಾಗಿ ಹೆಡಿಂಗ್‌ನಲ್ಲಿ ಲಾಕ್ ಮಾಡುವ ಫಿಕ್ಸ್
-const origRenderFullExamPaperForPoemMarksFix = window.renderFullExamPaperWithCustomHeader;
+// =========================================================================
+// ೬. 🌟 ಅಧಿಕೃತ ತ್ರಿಭಾಷಾ ಹೆಡರ್ ಬಿಲ್ಡರ್ (Kannada / English / Marathi)
+// =========================================================================
+function generateOfficialBoardHeader(schoolName, subject, grade, examType, marks, examDate = "") {
+  const targetLang = getTargetLanguageCode();
+  const cleanDate = examDate && examDate.trim() !== '' ? escapeHtml(examDate.trim()) : '_____________';
+  
+  const displayExamType = getLocalizedExamTypeName(examType, targetLang);
+  const displaySubject = getLocalizedSubjectName(subject, targetLang);
+
+  const labels = {
+    mr: { subj: 'विषय', cls: 'इयत्ता', dt: 'दिनांक', marks: 'एकूण गुण', clsSuf: 'वी' },
+    en: { subj: 'Subject', cls: 'Class', dt: 'Date', marks: 'Max. Marks', clsSuf: 'th' },
+    kn: { subj: 'ವಿಷಯ', cls: 'ತರಗತಿ', dt: 'ದಿನಾಂಕ', marks: 'ಗರಿಷ್ಠ ಅಂಕಗಳು', clsSuf: 'ನೇ ತರಗತಿ' }
+  }[targetLang] || { subj: 'ವಿಷಯ', cls: 'ತರಗತಿ', dt: 'ದಿನಾಂಕ', marks: 'ಗರಿಷ್ಠ ಅಂಕಗಳು', clsSuf: 'ನೇ ತರಗತಿ' };
+
+  return `
+    <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 6px;">
+      <div style="text-align: center; margin-bottom: 2px;">
+        <h1 style="font-size: 14.5pt; font-weight: 900; color: #000; text-transform: uppercase; margin: 0; line-height: 1.15;">
+          ${escapeHtml(schoolName)}
+        </h1>
+        <div style="font-size: 11pt; font-weight: 900; color: #000; margin-top: 1px; line-height: 1.2;">
+          ${escapeHtml(displayExamType)}
+        </div>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
+        <tr>
+          <td style="width: 32%; text-align: left; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+            ${labels.subj} : <b>${escapeHtml(displaySubject)}</b>
+          </td>
+          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+            ${labels.cls} : <b>${grade}${labels.clsSuf}</b>
+          </td>
+          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+            ${labels.dt} : <b>${cleanDate}</b>
+          </td>
+          <td style="width: 20%; text-align: right; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+            ${labels.marks} : <b>${marks}</b>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+}
+
+// =========================================================================
+// ೭. 🌟 ತ್ರಿಭಾಷಾ ನೀಲನಕ್ಷೆ (ಕನ್ನಡ / English / Marathi Blueprints)
+// =========================================================================
+function renderCompleteOfficialDSERTBlueprintPackage(questions, totalMarks, subject, grade) {
+  const container = document.getElementById('rendered-blueprint');
+  if (!container) return;
+
+  const targetLang = getTargetLanguageCode();
+  const displaySubject = getLocalizedSubjectName(subject, targetLang);
+  const totalQ = questions.length;
+
+  const kMarks = Math.round(totalMarks * 0.25);
+  const uMarks = Math.round(totalMarks * 0.45);
+  const aMarks = Math.round(totalMarks * 0.20);
+  const sMarks = totalMarks - (kMarks + uMarks + aMarks);
+
+  const easyMarks = Math.round(totalMarks * 0.30);
+  const avgMarks = Math.round(totalMarks * 0.50);
+  const diffMarks = totalMarks - (easyMarks + avgMarks);
+
+  // ಪಾಠವಾರು ಗ್ರೂಪಿಂಗ್
+  const chapterGroupMap = new Map();
+  questions.forEach(q => {
+    const ch = (q.chapter || 'ಘಟಕ').trim();
+    if (!chapterGroupMap.has(ch)) chapterGroupMap.set(ch, { count: 0, marks: 0 });
+    chapterGroupMap.get(ch).count += 1;
+    chapterGroupMap.get(ch).marks += getExactQuestionMarks(q);
+  });
+  const sortedChapters = Array.from(chapterGroupMap.entries());
+
+  const T = {
+    mr: {
+      title: `इयत्ता ${grade}वी ${displaySubject} - अधिकृत आराखडा (Blue Print)`,
+      s1: 'टप्पा १: उद्दिष्टानुसार गुणविभागणी (Weightage to Objectives)',
+      s2: 'टप्पा २: काठिण्य पातळीनुसार गुणविभागणी (Difficulty Level)',
+      s3: 'टप्पा ३: घटकानुसार गुणविभागणी (Unit-wise Weightage)',
+      sr: 'अ.क्र.', obj: 'उद्दिष्टे', marks: 'गुण', qCount: 'प्रश्नांची संख्या', pct: 'टक्केवारी',
+      k: 'ज्ञान (Knowledge)', u: 'आकलन (Understanding)', a: 'उपयोजन (Application)', s: 'कौशल्य / नकाशा / आकृती (Skill)',
+      lvl: 'पातळी', easy: 'सोपे (Easy)', avg: 'मध्यम (Average)', diff: 'कठीण (Difficult)',
+      chName: 'घटकाचे नाव', tot: 'एकूण'
+    },
+    en: {
+      title: `Class ${grade}th ${displaySubject} - Official Blue Print`,
+      s1: 'Step 1: Weightage to Objectives',
+      s2: 'Step 2: Weightage to Difficulty Level',
+      s3: 'Step 3: Unit-wise / Chapter-wise Weightage',
+      sr: 'Sl. No.', obj: 'Objectives', marks: 'Marks', qCount: 'No. of Questions', pct: 'Percentage',
+      k: 'Knowledge', u: 'Understanding', a: 'Application', s: 'Skill / Map / Diagram',
+      lvl: 'Level', easy: 'Easy', avg: 'Average', diff: 'Difficult',
+      chName: 'Unit / Chapter Name', tot: 'Total'
+    },
+    kn: {
+      title: `${grade}ನೇ ತರಗತಿ ${displaySubject} - ಅಧಿಕೃತ ನೀಲನಕ್ಷೆ (Blue Print)`,
+      s1: 'ಹಂತ 1: ಉದ್ದೇಶವಾರು ಅಂಕ ಹಂಚಿಕೆ (Weightage to Objectives)',
+      s2: 'ಹಂತ 2: ಕ್ಲಿಷ್ಟತೆಯ ಮಟ್ಟದ ಹಂಚಿಕೆ (Difficulty Level)',
+      s3: 'ಹಂತ 3: ಘಟಕವಾರು (ಪಾಠವಾರು) ಅಂಕ ಹಂಚಿಕೆ (Unit-wise Weightage)',
+      sr: 'ಕ್ರ.ಸಂ.', obj: 'ಉದ್ದೇಶಗಳು', marks: 'ಅಂಕಗಳು', qCount: 'ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ', pct: 'ಶೇಕಡಾವಾರು',
+      k: 'ಜ್ಞಾನ (Knowledge)', u: 'ತಿಳುವಳಿಕೆ (Understanding)', a: 'ಅನ್ವಯ (Application)', s: 'ಕೌಶಲ / ನಕ್ಷೆ / ಚಿತ್ರ (Skill)',
+      lvl: 'ಮಟ್ಟ', easy: 'ಸುಲಭ (Easy)', avg: 'ಸಾಧಾರಣ (Average)', diff: 'ಕಠಿಣ (Difficult)',
+      chName: 'ಘಟಕದ / ಪಾಠದ ಹೆಸರು', tot: 'ಒಟ್ಟು'
+    }
+  }[targetLang] || {
+    title: `${grade}ನೇ ತರಗತಿ ${displaySubject} - ಅಧಿಕೃತ ನೀಲನಕ್ಷೆ`,
+    s1: 'ಹಂತ 1: ಉದ್ದೇಶವಾರು ಅಂಕ ಹಂಚಿಕೆ', s2: 'ಹಂತ 2: ಕ್ಲಿಷ್ಟತೆಯ ಮಟ್ಟದ ಹಂಚಿಕೆ', s3: 'ಹಂತ 3: ಘಟಕವಾರು ಅಂಕ ಹಂಚಿಕೆ',
+    sr: 'ಕ್ರ.ಸಂ.', obj: 'ಉದ್ದೇಶಗಳು', marks: 'ಅಂಕಗಳು', qCount: 'ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ', pct: 'ಶೇಕಡಾವಾರು',
+    k: 'ಜ್ಞಾನ', u: 'ತಿಳುವಳಿಕೆ', a: 'ಅನ್ವಯ', s: 'ಕೌಶಲ', lvl: 'ಮಟ್ಟ', easy: 'ಸುಲಭ', avg: 'ಸಾಧಾರಣ', diff: 'ಕಠಿಣ',
+    chName: 'ಘಟಕದ ಹೆಸರು', tot: 'ಒಟ್ಟು'
+  };
+
+  container.innerHTML = `
+    <div class="a4-board-sheet">
+      <h2 style="text-align: center; font-size: 14pt; font-weight: 900; color: #000; margin-bottom: 8px; border-bottom: 2px solid #000; padding-bottom: 4px;">
+        ${escapeHtml(T.title)}
+      </h2>
+
+      <!-- Table 1: Objectives -->
+      <div style="margin-bottom: 10px;">
+        <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">${escapeHtml(T.s1)}</h4>
+        <table class="blueprint-official-table">
+          <thead>
+            <tr>
+              <th style="width: 8%;">${T.sr}</th>
+              <th style="width: 36%; text-align: left;">${T.obj}</th>
+              <th style="width: 18%;">${T.marks}</th>
+              <th style="width: 18%;">${T.qCount}</th>
+              <th style="width: 20%;">${T.pct}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td style="text-align: left;">${T.k}</td><td>${kMarks}</td><td>${Math.round(totalQ * 0.3)}</td><td>25%</td></tr>
+            <tr><td>2</td><td style="text-align: left;">${T.u}</td><td>${uMarks}</td><td>${Math.round(totalQ * 0.45)}</td><td>45%</td></tr>
+            <tr><td>3</td><td style="text-align: left;">${T.a}</td><td>${aMarks}</td><td>${Math.round(totalQ * 0.15)}</td><td>20%</td></tr>
+            <tr><td>4</td><td style="text-align: left;">${T.s}</td><td>${sMarks}</td><td>${Math.max(1, totalQ - (Math.round(totalQ * 0.3) + Math.round(totalQ * 0.45) + Math.round(totalQ * 0.15)))}</td><td>10%</td></tr>
+            <tr style="font-weight: 900; background: #f1f5f9;"><td></td><td style="text-align: left;">${T.tot}</td><td>${totalMarks}</td><td>${totalQ}</td><td>100%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table 2: Difficulty -->
+      <div style="margin-bottom: 10px;">
+        <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">${escapeHtml(T.s2)}</h4>
+        <table class="blueprint-official-table">
+          <thead>
+            <tr>
+              <th style="width: 8%;">${T.sr}</th>
+              <th style="width: 36%; text-align: left;">${T.lvl}</th>
+              <th style="width: 18%;">${T.marks}</th>
+              <th style="width: 18%;">${T.qCount}</th>
+              <th style="width: 20%;">${T.pct}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td style="text-align: left;">${T.easy}</td><td>${easyMarks}</td><td>${Math.round(totalQ * 0.35)}</td><td>30%</td></tr>
+            <tr><td>2</td><td style="text-align: left;">${T.avg}</td><td>${avgMarks}</td><td>${Math.round(totalQ * 0.50)}</td><td>50%</td></tr>
+            <tr><td>3</td><td style="text-align: left;">${T.diff}</td><td>${diffMarks}</td><td>${Math.max(1, totalQ - (Math.round(totalQ * 0.35) + Math.round(totalQ * 0.50)))}</td><td>20%</td></tr>
+            <tr style="font-weight: 900; background: #f1f5f9;"><td></td><td style="text-align: left;">${T.tot}</td><td>${totalMarks}</td><td>${totalQ}</td><td>100%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Table 3: Units -->
+      <div>
+        <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">${escapeHtml(T.s3)}</h4>
+        <table class="blueprint-official-table">
+          <thead>
+            <tr>
+              <th style="width: 8%;">${T.sr}</th>
+              <th style="width: 54%; text-align: left;">${T.chName}</th>
+              <th style="width: 18%;">${T.qCount}</th>
+              <th style="width: 20%;">${T.marks}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${sortedChapters.map(([chName, stats], i) => `
+              <tr>
+                <td>${i + 1}</td>
+                <td style="text-align: left; font-weight: 700;">${escapeHtml(chName)}</td>
+                <td style="font-weight: 900;">${stats.count}</td>
+                <td style="font-weight: 900; color: #0f172a;">${stats.marks}</td>
+              </tr>
+            `).join('')}
+            <tr style="font-weight: 900; background: #f1f5f9;">
+              <td colspan="2" style="text-align: right; padding-right: 12px;">${T.tot}</td>
+              <td style="font-size: 11pt;">${totalQ}</td>
+              <td style="font-size: 11pt;">${totalMarks}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// =========================================================================
+// ೮. 🌟 ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ & ಉತ್ತರ ಪತ್ರಿಕೆ ರೆಂಡರರ್ (Multi-Medium Full Support)
+// =========================================================================
 window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
-  // ಪದ್ಯದ ಪ್ರಶ್ನೆಗಳ ಅಂಕ ಕಡ್ಡಾಯವಾಗಿ 4 ಆಗಿರುತ್ತದೆ
-  (appState.activeGeneratedQuestions || []).forEach(q => {
-    if (q) {
-      const qText = String(q.q || '').toLowerCase();
-      const qType = String(q.type || '').toLowerCase();
-      if (qType === 'poem_4lines' || qType.includes('ಪದ್ಯ') || qText.includes('ಪದ್ಯ') || qText.includes('ಕಂಠಪಾಠ')) {
-        q.marks = 4;
-      }
+  const allQuestions = (appState.activeGeneratedQuestions || []).filter(Boolean);
+  const targetLang = getTargetLanguageCode();
+  const currentSubject = document.getElementById('cfg-subject')?.value || 'ವಿಜ್ಞಾನ';
+
+  const isShortPaper = (allQuestions.length <= 16);
+  const sheetModeClass = isShortPaper ? 'sheet-mode-20m' : 'sheet-mode-40m';
+
+  const typeGroups = new Map();
+  allQuestions.forEach(q => {
+    let t = getCanonicalQuestionType(q);
+    if (!typeGroups.has(t)) typeGroups.set(t, []);
+    typeGroups.get(t).push(q);
+  });
+
+  const order = ['mcq', 'blanks', 'true_false', 'analogy', 'odd_one_out', 'match', 'vsa_1m', 'sa_2m', 'sa_3m', 'la_4m', 'poem_4lines'];
+  const sortedKeys = Array.from(typeGroups.keys()).sort((a, b) => {
+    const iA = order.indexOf(a) >= 0 ? order.indexOf(a) : 99;
+    const iB = order.indexOf(b) >= 0 ? order.indexOf(b) : 99;
+    return iA - iB;
+  });
+
+  let paperSectionsHtml = [];
+  let keySectionsHtml = [];
+  
+  let qNum = 1;
+  let kNum = 1;
+  let romanIndex = 1;
+  const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV"];
+
+  sortedKeys.forEach(tKey => {
+    const qList = typeGroups.get(tKey);
+    if (!qList || qList.length === 0) return;
+
+    const r = romanNumerals[romanIndex++ - 1];
+    const headingText = getCleanSectionHeadingMultiLang(tKey, targetLang);
+    const marksPerQ = (tKey === 'match') ? 4 : getExactQuestionMarks(qList[0]);
+    const totalMarks = (tKey === 'match') ? 4 : (marksPerQ * qList.length);
+
+    const headerTableHtml = `
+      <table class="board-heading-row-table">
+        <tr>
+          <td class="heading-left-title">
+            <b>${r}.</b> <span id="live-head-${r}" contenteditable="true" style="outline:none;">${escapeHtml(headingText)}</span>
+          </td>
+          <td class="heading-right-marks">
+            <b>${marksPerQ}x${tKey === 'match' ? 1 : qList.length}=${String(totalMarks).padStart(2, '0')}</b>
+          </td>
+        </tr>
+      </table>
+    `;
+
+    if (tKey === 'match') {
+      const mItem = qList[0];
+      const idx = allQuestions.indexOf(mItem);
+      let pairs = mItem.matchPairs || [{ a: 'ಅಂಶ 1', b: 'ಉತ್ತರ 1' }, { a: 'ಅಂಶ 2', b: 'ಉತ್ತರ 2' }, { a: 'ಅಂಶ 3', b: 'ಉತ್ತರ 3' }, { a: 'ಅಂಶ 4', b: 'ಉತ್ತರ 4' }];
+      if (pairs.length > 4) pairs = pairs.slice(0, 4);
+
+      const colA = pairs.map((p, i) => ({ text: String(p.a || '').replace(/^[\(\[]?\d+[\)\]\.\s]+/, '').trim(), origIdx: i }));
+      let colB = pairs.map((p, i) => ({ text: String(p.b || '').replace(/^[\(\[]?[A-Za-z\u0C80-\u0CFF][\)\]\.\s]+/, '').trim(), origIdx: i }));
+      for (let i = colB.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [colB[i], colB[j]] = [colB[j], colB[i]]; }
+
+      const matchQNum = qNum++;
+      const matchKNum = kNum++;
+
+      const colLabels = {
+        mr: { q: "'अ' गट आणि 'ब' गट जोड्या जुळवा:", a: "'अ' गट", b: "'ब' गट", key: "जोड्यांची योग्य उत्तरे:" },
+        en: { q: "Match the items in Column 'A' with Column 'B':", a: "Column 'A'", b: "Column 'B'", key: "Match the Following Key Answers:" },
+        kn: { q: "'ಅ' ಗುಂಪಿನಲ್ಲಿರುವ ಅಂಶಗಳನ್ನು 'ಬ' ಗುಂಪಿನೊಂದಿಗೆ ಹೊಂದಿಸಿ ಬರೆಯಿರಿ:", a: "'ಅ' ಗುಂಪು", b: "'ಬ' ಗುಂಪು", key: "ಹೊಂದಿಸಿ ಬರೆದ ಸರಿಯಾದ ಉತ್ತರಗಳು:" }
+      }[targetLang] || { q: "ಹೊಂದಿಸಿ ಬರೆಯಿರಿ:", a: "'ಅ' ಗುಂಪು", b: "'ಬ' ಗುಂಪು", key: "ಹೊಂದಿಸಿ ಬರೆದ ಉತ್ತರಗಳು:" };
+
+      paperSectionsHtml.push(`
+        <div class="section-wrapper-box">
+          ${headerTableHtml}
+          <div class="board-q-row-fit" style="margin-bottom: 2px;">
+            <span class="board-q-num-fit">${matchQNum}.</span>
+            <span class="board-q-text-fit">${colLabels.q}</span>
+            <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+          </div>
+          <table style="width: 100%; max-width: 580px; margin: 2px auto; border-collapse: collapse; font-size: ${isShortPaper ? '10.5pt' : '9.5pt'};">
+            <tr>
+              <td style="width: 50%; text-decoration: underline; font-weight: 800; padding: 1px 8px;">${colLabels.a}</td>
+              <td style="width: 50%; text-decoration: underline; font-weight: 800; padding: 1px 8px;">${colLabels.b}</td>
+            </tr>
+            ${colA.map((a, i) => `
+              <tr>
+                <td style="padding: 1.5px 8px; font-weight: 500;">(${i + 1}) ${escapeHtml(a.text)}</td>
+                <td style="padding: 1.5px 8px; font-weight: 500;">(${String.fromCharCode(65 + i)}) ${escapeHtml(colB[i].text)}</td>
+              </tr>
+            `).join('')}
+          </table>
+        </div>
+      `);
+
+      keySectionsHtml.push(`
+        <div class="section-wrapper-box">
+          <table class="board-heading-row-table">
+            <tr><td class="heading-left-title"><b>${r}. ${colLabels.key}</b></td></tr>
+          </table>
+          <div class="key-hanging-row-item">
+            <span class="key-num-label">${matchKNum}.</span>
+            <div class="key-text-content" style="font-weight: 700;">
+              ${colA.map((a, i) => {
+                const bIdx = colB.findIndex(b => b.origIdx === a.origIdx);
+                return `(${i + 1}) ➔ <b>(${String.fromCharCode(65 + bIdx)}) ${escapeHtml(colB[bIdx].text)}</b>`;
+              }).join(' &nbsp;|&nbsp; ')}
+            </div>
+          </div>
+        </div>
+      `);
+    } else if (tKey === 'mcq') {
+      paperSectionsHtml.push(`
+        <div class="section-wrapper-box">
+          ${headerTableHtml}
+          <div>${qList.map(m => {
+            const idx = allQuestions.indexOf(m);
+            return `
+              <div style="margin-bottom: 2px;">
+                <div class="board-q-row-fit">
+                  <span class="board-q-num-fit">${qNum++}.</span>
+                  <span class="board-q-text-fit">${escapeHtml(cleanQuestionTextForDisplay(m.q))}</span>
+                  <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                </div>
+                ${window.renderMCQOptionsGridBlock(m)}
+              </div>`;
+          }).join('')}</div>
+        </div>
+      `);
+
+      keySectionsHtml.push(`
+        <div class="section-wrapper-box">
+          <table class="board-heading-row-table">
+            <tr><td class="heading-left-title"><b>${r}. ${targetLang==='mr'?'बहुपर्यायी प्रश्नांची उत्तरे:':(targetLang==='en'?'Multiple Choice Key Answers:':'ಬಹು ಆಯ್ಕೆಯ ಪ್ರಶ್ನೆಗಳ ಉತ್ತರಗಳು:')}</b></td></tr>
+          </table>
+          <div>${qList.map(m => `
+            <div class="key-hanging-row-item">
+              <span class="key-num-label">${kNum++}.</span>
+              <span class="key-text-content"><b>${escapeHtml(m.ans || '')}</b></span>
+            </div>
+          `).join('')}</div>
+        </div>
+      `);
+    } else {
+      paperSectionsHtml.push(`
+        <div class="section-wrapper-box">
+          ${headerTableHtml}
+          <div>${qList.map(item => buildQuestionItemWithImage(item, qNum++)).join('')}</div>
+        </div>
+      `);
+
+      keySectionsHtml.push(`
+        <div class="section-wrapper-box">
+          <table class="board-heading-row-table">
+            <tr><td class="heading-left-title"><b>${r}. ${escapeHtml(headingText)}</b></td></tr>
+          </table>
+          <div>${qList.map(item => `
+            <div class="key-hanging-row-item">
+              <span class="key-num-label">${kNum++}.</span>
+              <span class="key-text-content">${escapeHtml(item.ans || '')}</span>
+            </div>
+          `).join('')}</div>
+        </div>
+      `);
     }
   });
 
-  if (typeof origRenderFullExamPaperForPoemMarksFix === 'function') {
-    origRenderFullExamPaperForPoemMarksFix(headerHtml);
+  const totalCalculatedMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+  // ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರೆಂಡರ್
+  document.getElementById('rendered-paper').innerHTML = `
+    <div class="a4-board-sheet ${sheetModeClass}">
+      ${headerHtml}
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-start;">
+        ${paperSectionsHtml.join('')}
+      </div>
+    </div>
+  `;
+
+  // ಉತ್ತರ ಪತ್ರಿಕೆ ರೆಂಡರ್
+  const keyTitle = {
+    mr: 'उत्तरपत्रिका आणि मूल्यमापन योजना (Scheme of Valuation)',
+    en: 'Model Answer Key & Scheme of Valuation',
+    kn: 'ಮಾದರಿ ಉತ್ತರ ಸೂಚಿ & ಮೌಲ್ಯಮಾಪನ ಯೋಜನೆ (Scheme of Valuation)'
+  }[targetLang] || 'ಮಾದರಿ ಉತ್ತರ ಸೂಚಿ & ಮೌಲ್ಯಮಾಪನ ಯೋಜನೆ';
+
+  document.getElementById('rendered-key').innerHTML = `
+    <div class="a4-board-sheet ${sheetModeClass}">
+      ${headerHtml}
+      <div style="text-align: center; margin-bottom: 6px; border-bottom: 2px solid #000; padding-bottom: 2px;">
+        <h3 style="font-size: 12.5pt; font-weight: 900; margin: 0; text-transform: uppercase;">
+          ${escapeHtml(keyTitle)}
+        </h3>
+      </div>
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-start;">
+        ${keySectionsHtml.join('')}
+      </div>
+    </div>
+  `;
+
+  const grade = document.getElementById('cfg-class')?.value || '6';
+  renderCompleteOfficialDSERTBlueprintPackage(allQuestions, totalCalculatedMarks, currentSubject, grade);
+};
+
+// =========================================================================
+// ೯. 🌟 ಜನರೇಟರ್ ಎಂಜಿನ್ (ಕೋರ್ ವಿಷಯಗಳಿಗೆ ಮಾತ್ರ ಮರಾಠಿ / English ಆಟೋ-ಟ್ರಾನ್ಸ್‌ಲೇಟ್)
+// =========================================================================
+window.generateExamPackageFromBank = window.generateExamPackage = async function() {
+  const startTime = performance.now();
+
+  try {
+    const isOwnerAdmin = (isAdminLoggedIn || appState.currentUserType === 'admin');
+    const isTeacherPro = (appState.currentUserType === 'teacher' || localStorage.getItem('withyou_logged_teacher') !== null);
+    const isSchoolPro = (appState.currentUserType === 'school' || localStorage.getItem('withyou_logged_school') !== null);
+    const isDemo = (!isOwnerAdmin && !isTeacherPro && !isSchoolPro);
+
+    const targetLang = getTargetLanguageCode(); // 'kn', 'en', 'mr'
+    const schoolName = isDemo ? 'ಸರ್ಕಾರಿ ಕನ್ನಡ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ (ಡೆಮೋ)' : (document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ');
+    const grade = document.getElementById('cfg-class')?.value || '6';
+    let rawSubject = document.getElementById('cfg-subject')?.value || 'ಸಮಾಜ ವಿಜ್ಞಾನ';
+    const part = document.getElementById('cfg-part')?.value || 'all';
+    let rawExamType = document.getElementById('cfg-exam-type')?.value || '2ನೇ ರೂಪಣಾತ್ಮಕ ಪರೀಕ್ಷೆ 2026-27';
+    
+    const targetTotalMarks = parseInt(document.getElementById('cfg-total-marks')?.value) || 20;
+    const targetTotalQuestions = parseInt(document.getElementById('cfg-total-questions')?.value) || 15;
+    const examDate = document.getElementById('cfg-exam-date')?.value || '';
+
+    // ಕೋರ್ ವಿಷಯವೇ ಎಂದು ಪರಿಶೀಲನೆ (ಕನ್ನಡ, ಹಿಂದಿ, ಇಂಗ್ಲಿಷ್ ಭಾಷೆಗಳಿಗೆ ಟ್ರಾನ್ಸ್‌ಲೇಷನ್ ಆಗುವುದಿಲ್ಲ)
+    const isCore = isCoreSubjectForTranslation(rawSubject);
+    const shouldTranslate = isCore && (targetLang === 'en' || targetLang === 'mr');
+
+    const checkedTypeNodes = document.querySelectorAll('input[name="qtype_opt"]:checked');
+    const selectedTypes = Array.from(checkedTypeNodes).map(cb => cb.value);
+
+    if (selectedTypes.length === 0) {
+      alert('⚠️ ದಯವಿಟ್ಟು Step 3 ರಲ್ಲಿ ಕನಿಷ್ಠ ಒಂದು ಪ್ರಶ್ನೆ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+      return;
+    }
+
+    let selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+    let selectedChapters = Array.from(selectedBoxes).map(b => b.value);
+
+    const qbank = appState.qbank || [];
+    if (qbank.length === 0) return alert('⚠️ ಪ್ರಶ್ನೆ ಭಂಡಾರ ಖಾಲಿಯಾಗಿದೆ.');
+
+    const normGrade = String(grade).replace(/\D/g, '');
+    const normSubjKey = (typeof getNormalizedSubjectKey === 'function') ? getNormalizedSubjectKey(rawSubject) : '';
+    const hasAllChapters = (selectedChapters.length === 0);
+    const chapSet = new Set(selectedChapters.map(c => String(c).toLowerCase().replace(/[\(\)\s\-\.\:\d\/\,]/g, '')));
+
+    const pool = [];
+    for (let i = 0; i < qbank.length; i++) {
+      const q = qbank[i];
+      if (!q) continue;
+      if (String(q.grade || '').replace(/\D/g, '') !== normGrade) continue;
+      if (normSubjKey && getNormalizedSubjectKey(q.subject) !== normSubjKey) continue;
+      if (part !== 'all' && q.part && q.part !== part) continue;
+      if (!hasAllChapters && !chapSet.has(String(q.chapter || '').toLowerCase().replace(/[\(\)\s\-\.\:\d\/\,]/g, ''))) continue;
+
+      if (!isTypeStrictlyAllowed(q, selectedTypes)) continue;
+
+      pool.push(q);
+    }
+
+    if (pool.length === 0) {
+      alert('⚠️ ನೀವು ಆಯ್ಕೆಮಾಡಿದ ಅಧ್ಯಾಯ ಮತ್ತು ಪ್ರಕಾರಗಳಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ.');
+      return;
+    }
+
+    let chosenQuestions = solveExactBoardExamMathGuaranteed(pool, targetTotalMarks, targetTotalQuestions, []);
+
+    if (chosenQuestions.length === 0) {
+      chosenQuestions = pool.slice(0, Math.min(pool.length, targetTotalQuestions));
+    }
+
+    // 🌟 ಕೇವಲ ಕೋರ್ ವಿಷಯಗಳಿಗೆ ಮಾತ್ರ ಮರಾಠಿ / English ಆಟೋ-ಟ್ರಾನ್ಸ್‌ಲೇಟ್
+    if (shouldTranslate) {
+      const langName = targetLang === 'mr' ? 'मराठी' : 'English';
+      showToast(`🌐 ಪ್ರಶ್ನೆಗಳನ್ನು ${langName} ಗೆ ಬದಲಿಸಲಾಗುತ್ತಿದೆ...`, 'info');
+      
+      chosenQuestions = await Promise.all(chosenQuestions.map(async (q) => {
+        let transQ = { ...q };
+        transQ.q = await translateTextSmart(q.q, targetLang);
+        if (q.ans) transQ.ans = await translateTextSmart(q.ans, targetLang);
+        if (q.a) transQ.a = await translateTextSmart(q.a, targetLang);
+        if (q.b) transQ.b = await translateTextSmart(q.b, targetLang);
+        if (q.c) transQ.c = await translateTextSmart(q.c, targetLang);
+        if (q.d) transQ.d = await translateTextSmart(q.d, targetLang);
+        if (q.chapter) transQ.chapter = await translateTextSmart(q.chapter, targetLang);
+        if (q.matchPairs && Array.isArray(q.matchPairs)) {
+          transQ.matchPairs = await Promise.all(q.matchPairs.map(async p => ({
+            a: await translateTextSmart(p.a, targetLang),
+            b: await translateTextSmart(p.b, targetLang)
+          })));
+        }
+        return transQ;
+      }));
+    }
+
+    appState.activeGeneratedQuestions = chosenQuestions;
+    const actualCalculatedMarks = chosenQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+    const officialHeader = generateOfficialBoardHeader(schoolName, rawSubject, grade, rawExamType, actualCalculatedMarks, examDate);
+
+    renderFullExamPaperWithCustomHeader(officialHeader);
+
+    const outSec = document.getElementById('output-section');
+    if (outSec) {
+      outSec.classList.remove('hidden');
+      if (typeof switchOutputTab === 'function') switchOutputTab('paper');
+      outSec.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    const endTime = performance.now();
+    const secondsTaken = ((endTime - startTime) / 1000).toFixed(2);
+    showToast(`⚡ ನಿಖರ ${actualCalculatedMarks} ಅಂಕ & ${chosenQuestions.length} ಪ್ರಶ್ನೆಗಳು ಸಿದ್ಧವಾಗಿವೆ!`, 'success');
+
+  } catch (err) {
+    console.error("Gen error:", err);
   }
 };
 

@@ -43255,6 +43255,507 @@ window.sendKeyToSchoolWhatsApp = function(phone, schoolName, key) {
   window.open(`https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(msg)}`, '_blank');
 };
 
+/* ==========================================================================
+   🔒 100% REAL-TIME CLOUD DUPLICATE SHIELD & PERMANENT NOTIFICATION PURGE
+   ========================================================================== */
+
+// ೧. 🌟 ವೆಬ್‌ಸೈಟ್ ವಿಳಾಸ ಪಡೆಯುವ ಹೆಲ್ಪರ್
+function getLiveAppWebsiteUrl() {
+  try {
+    if (window.location && window.location.href && window.location.href.startsWith('http')) {
+      return window.location.href.split('#')[0].split('?')[0];
+    }
+  } catch (e) {}
+  return "https://withyouqp-default-rtdb.firebaseio.com";
+}
+
+// ೨. 🌟 ಶಿಕ್ಷಕರ ನೋಂದಣಿ - ಲೈವ್ Firebase Duplicate Check (ಫಾರ್ಮ್ ಸಬ್ಮಿಟ್ ಮಾಡುವ ಮುನ್ನವೇ ತಪಾಸಣೆ)
+window.handleTeacherModalRegister = async function(e) {
+  e.preventDefault();
+  const name = document.getElementById('reg-tch-name').value.trim();
+  const school = document.getElementById('reg-tch-school').value.trim();
+  const schoolEn = document.getElementById('reg-tch-school-en')?.value.trim() || school;
+  const phone = document.getElementById('reg-tch-phone').value.trim();
+  const grades = Array.from(document.querySelectorAll('input[name="modal_tch_class"]:checked')).map(cb => cb.value);
+  const subjects = Array.from(document.querySelectorAll('input[name="modal_tch_subj"]:checked')).map(cb => cb.value);
+
+  if (subjects.length === 0) return alert('ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ವಿಷಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+
+  const cleanPhone = cleanPhoneDigits(phone);
+  const submitBtn = document.getElementById('modal-tch-submit-btn');
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...`;
+  }
+
+  try {
+    // 🌟 Firebase ನಿಂದ ಲೈವ್ ಶಿಕ್ಷಕರ ಪಟ್ಟಿ ತಂದು ಚೆಕ್ ಮಾಡುವುದು
+    let cloudTeachers = [];
+    try {
+      const res = await fetch(`${FIREBASE_REST_BASE}/withyou_teachers.json`);
+      if (res.ok) {
+        const data = await res.json();
+        cloudTeachers = data ? (Array.isArray(data) ? data.filter(Boolean) : Object.values(data)) : [];
+      }
+    } catch (err) {
+      cloudTeachers = appState.teachers || [];
+    }
+
+    // 🌟 ಪರಿಶೀಲನೆ: ಮೊಬೈಲ್ ನಂಬರ್ ಈಗಾಗಲೇ ಇದ್ದರೆ ತಕ್ಷಣ ಅಲರ್ಟ್ ನೀಡಿ ಲಾಗಿನ್‌ಗೆ ಹಾಕಿ
+    const existingTeacher = cloudTeachers.find(t => t && cleanPhoneDigits(t.phone) === cleanPhone);
+
+    if (existingTeacher) {
+      const expDate = getUserExactDynamicExpiry(existingTeacher);
+      alert(`⚠️ ನಮಸ್ಕಾರ ${existingTeacher.name} ಸರ್/ಮೇಡಂ,\n\nನಿಮ್ಮ ಮೊಬೈಲ್ ನಂಬರ್ (${phone}) ಈಗಾಗಲೇ ನೋಂದಾಯಿತವಾಗಿದೆ!\n\n🔑 ನಿಮ್ಮ Access Key: ${existingTeacher.accessKey}\n🗓️ ವ್ಯಾಲಿಡಿಟಿ: ${expDate} ರವರೆಗೆ\n🏫 ಶಾಲೆ: ${existingTeacher.school}\n\nದಯವಿಟ್ಟು ನೇರವಾಗಿ ಲಾಗಿನ್ ಆಗಿ.`);
+      
+      // ಲಾಗಿನ್ ಫಾರ್ಮ್‌ಗೆ ಡೇಟಾ ತುಂಬಿ ಸ್ವಿಚ್ ಮಾಡುವುದು
+      switchTeacherModalTab('login');
+      const pInput = document.getElementById('modal-tch-phone');
+      const kInput = document.getElementById('modal-tch-key');
+      if (pInput) pInput.value = cleanPhone;
+      if (kInput) kInput.value = existingTeacher.accessKey;
+      return;
+    }
+
+    // ಹೊಸ ನೋಂದಣಿ ಕೋರಿಕೆ (ಪ್ರತ್ಯೇಕ ಕಸ್ಟಮ್ ಐಡಿಯೊಂದಿಗೆ ಸೇವ್)
+    const reqId = 'REQ_' + cleanPhone;
+    const totalFee = `₹${subjects.length * 100}`;
+    const regDate = getTodayFormattedDate();
+
+    const newRequest = {
+      id: reqId,
+      type: 'teacher',
+      name,
+      school,
+      schoolEn,
+      phone: cleanPhone,
+      grades: grades.length > 0 ? grades : ['6', '7', '8'],
+      subjects: subjects,
+      fee: totalFee,
+      requestedDate: regDate,
+      status: 'pending'
+    };
+
+    // 🌟 Firebase ನಲ್ಲಿ ಕೇವಲ ಈ ಸಿಂಗಲ್ ರಿಕ್ವೆಸ್ಟ್ ಅನ್ನು ಮಾತ್ರ PUT ಮಾಡುವುದು (ಯಾವುದೇ ಹಳೆಯ ಡೇಟಾ ಓವರ್‌ರೈಟ್ ಆಗಲ್ಲ!)
+    await fetch(`${FIREBASE_REST_BASE}/withyou_pending_requests/${reqId}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newRequest)
+    });
+
+    const cleanSubjNames = subjects.map(s => s.split('(')[0].trim()).join(', ');
+    const webLink = getLiveAppWebsiteUrl();
+
+    const msg = `*With You QP Generator - ಹೊಸ ಶಿಕ್ಷಕರ ನೋಂದಣಿ ಕೋರಿಕೆ*\n\n` +
+                `👤 *ಶಿಕ್ಷಕರ ಹೆಸರು:* ${name}\n` +
+                `🏫 *ಶಾಲೆಯ ಹೆಸರು:* ${school}\n` +
+                `📱 *ಮೊಬೈಲ್ ನಂಬರ್:* ${cleanPhone}\n` +
+                `📚 *ತರಗತಿಗಳು:* ${grades.join(', ') || '6, 7, 8'}\n` +
+                `📖 *ವಿಷಯಗಳು (${subjects.length}):* ${cleanSubjNames}\n` +
+                `💰 *ನಿಗದಿತ ಶುಲ್ಕ:* *${totalFee}*\n\n` +
+                `🌐 *ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್:*\n${webLink}\n\n` +
+                `ನಮಸ್ಕಾರ ಸರ್, ನಾನು ನೋಂದಣಿ ಮಾಡಿದ್ದೇನೆ. ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ ನನ್ನ *Access Key* ನೀಡಿ.`;
+
+    window.open(`https://api.whatsapp.com/send?phone=91${ADMIN_PHONE_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
+    document.getElementById('teacher-auth-modal')?.classList.add('hidden');
+    alert(`✅ ನಿಮ್ಮ ವಿವರಗಳು ಅಡ್ಮಿನ್ ಪ್ಯಾನೆಲ್‌ಗೆ ತಲುಪಿವೆ!\nಶುಲ್ಕ: ${totalFee} (${subjects.length} ವಿಷಯಗಳಿಗೆ).\nಅಡ್ಮಿನ್ ಪರಿಶೀಲಿಸಿದ ನಂತರ ನಿಮ್ಮ WhatsApp ಗೆ Access Key ಬರುತ್ತದೆ.`);
+
+  } catch (err) {
+    console.error("Registration error:", err);
+    alert("ನೋಂದಣಿ ಮಾಡುವಾಗ ದೋಷವಾಗಿದೆ: " + err.message);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = `ಅಡ್ಮಿನ್‌ಗೆ ವಿವರ ಕಳುಹಿಸಿ & Key ಪಡೆಯಿರಿ`;
+    }
+  }
+};
+
+// ೩. 🌟 ಶಾಲಾ ನೋಂದಣಿ - ಲೈವ್ Firebase Duplicate Check
+window.handleSchoolModalRegister = async function(e) {
+  e.preventDefault();
+  const name = document.getElementById('reg-sch-name').value.trim();
+  const dise = document.getElementById('reg-sch-dise').value.trim();
+  const hm = document.getElementById('reg-sch-hm').value.trim();
+  const hmPhone = document.getElementById('reg-sch-phone').value.trim();
+
+  const cleanDise = cleanKeyString(dise);
+  const cleanPhone = cleanPhoneDigits(hmPhone);
+
+  try {
+    let cloudSchools = [];
+    try {
+      const res = await fetch(`${FIREBASE_REST_BASE}/withyou_schools.json`);
+      if (res.ok) {
+        const data = await res.json();
+        cloudSchools = data ? (Array.isArray(data) ? data.filter(Boolean) : Object.values(data)) : [];
+      }
+    } catch (err) {
+      cloudSchools = appState.schools || [];
+    }
+
+    // 🌟 ಪರಿಶೀಲನೆ: ಶಾಲೆ ಈಗಾಗಲೇ ನೋಂದಾಯಿತವಾಗಿದ್ದರೆ
+    const existingSchool = cloudSchools.find(s => s && cleanKeyString(s.dise) === cleanDise);
+    if (existingSchool) {
+      const expDate = getUserExactDynamicExpiry(existingSchool);
+      alert(`⚠️ ಈ DISE ಕೋಡ್ (${dise}) ಹೊಂದಿರುವ ಶಾಲೆ ಈಗಾಗಲೇ ನೋಂದಾಯಿತವಾಗಿದೆ!\n\n🏫 ಶಾಲೆ: ${existingSchool.name}\n🔑 Master Key: ${existingSchool.accessKey}\n🗓️ ವ್ಯಾಲಿಡಿಟಿ: ${expDate} ರವರೆಗೆ\n\nದಯವಿಟ್ಟು ನೇರವಾಗಿ ಲಾಗಿನ್ ಆಗಿ.`);
+      switchSchoolModalTab('login');
+      const dInp = document.getElementById('modal-sch-dise');
+      const kInp = document.getElementById('modal-sch-key');
+      if (dInp) dInp.value = cleanDise;
+      if (kInp) kInp.value = existingSchool.accessKey;
+      return;
+    }
+
+    const reqId = 'REQ_SCH_' + cleanDise;
+    const regDate = getTodayFormattedDate();
+    const newRequest = {
+      id: reqId,
+      type: 'school',
+      name,
+      dise: cleanDise,
+      hm,
+      hmPhone: cleanPhone,
+      fee: FEE_SCHOOL_YEARLY,
+      requestedDate: regDate,
+      status: 'pending'
+    };
+
+    await fetch(`${FIREBASE_REST_BASE}/withyou_pending_requests/${reqId}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newRequest)
+    });
+
+    const webLink = getLiveAppWebsiteUrl();
+    const msg = `*With You QP Generator - ಹೊಸ ಶಾಲಾ ನೋಂದಣಿ ಕೋರಿಕೆ*\n\n` +
+                `🏫 *ಶಾಲೆಯ ಹೆಸರು:* ${name}\n` +
+                `🔢 *DISE ಕೋಡ್:* ${cleanDise}\n` +
+                `👤 *HM ಹೆಸರು:* ${hm}\n` +
+                `📱 *HM ಮೊಬೈಲ್:* ${cleanPhone}\n` +
+                `💰 *ಶಾಲಾ ವಾರ್ಷಿಕ ಶುಲ್ಕ:* ${FEE_SCHOOL_YEARLY}\n\n` +
+                `🌐 *ವೆಬ್‌ಸೈಟ್:* ${webLink}\n\n` +
+                `ನಮಸ್ಕಾರ ಸರ್, ದಯವಿಟ್ಟು ನಮ್ಮ ಶಾಲೆಯನ್ನು ಅನುಮೋದಿಸಿ *School Master Key* ನೀಡಿ.`;
+
+    window.open(`https://api.whatsapp.com/send?phone=91${ADMIN_PHONE_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
+    document.getElementById('school-auth-modal')?.classList.add('hidden');
+    alert(`✅ ಶಾಲೆಯ ವಿವರಗಳು ಅಡ್ಮಿನ್ ಪ್ಯಾನೆಲ್‌ಗೆ ತಲುಪಿವೆ! ಪರಿಶೀಲನೆಯ ನಂತರ Master Key ಸಿಗುತ್ತದೆ.`);
+
+  } catch (err) {
+    console.error("School reg error:", err);
+  }
+};
+
+// ೪. 🌟 ಪೆಂಡಿಂಗ್ ಕೋರಿಕೆಗಳನ್ನು Firebase ನಿಂದ ಕ್ಲೀನ್ ಆಗಿ ಫೆಚ್ ಮಾಡುವುದು
+window.fetchPendingRequestsFromCloud = async function() {
+  try {
+    const res = await fetch(`${FIREBASE_REST_BASE}/withyou_pending_requests.json`);
+    if (res.ok) {
+      const data = await res.json();
+      appState.pendingRequests = data ? (Array.isArray(data) ? data.filter(Boolean) : Object.values(data)) : [];
+      localStorage.setItem('withyou_pending_requests', JSON.stringify(appState.pendingRequests));
+    } else {
+      appState.pendingRequests = [];
+    }
+  } catch (e) {
+    appState.pendingRequests = JSON.parse(localStorage.getItem('withyou_pending_requests') || '[]');
+  }
+  renderPendingRequestsInAdmin();
+};
+
+// ೫. 🌟 ಅಡ್ಮಿನ್ ನೋಟಿಫಿಕೇಶನ್ ಲಿಸ್ಟ್ (ಈಗಾಗಲೇ ನೋಂದಾಯಿತರಾಗಿದ್ದರೆ ಹಳದಿ ಬಣ್ಣದಲ್ಲಿ ಪ್ರತ್ಯೇಕ ಎಚ್ಚರಿಕೆ)
+window.renderPendingRequestsInAdmin = function() {
+  const container = document.getElementById('admin-pending-requests-list');
+  const badgeCount = document.getElementById('admin-pending-badge-count');
+  const reqList = appState.pendingRequests || [];
+
+  if (badgeCount) badgeCount.innerText = reqList.length;
+  if (!container) return;
+
+  if (reqList.length === 0) {
+    container.innerHTML = `
+      <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-center text-emerald-900 font-bold text-xs flex items-center justify-center gap-2">
+        <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+        <span>ಯಾವುದೇ ಹೊಸ ನೋಂದಣಿ ಕೋರಿಕೆಗಳು ಬಾಕಿ ಇಲ್ಲ (All Cleared)!</span>
+      </div>
+    `;
+    return;
+  }
+
+  const allTeachers = appState.teachers || JSON.parse(localStorage.getItem('kar_qgen_teachers') || '[]');
+  const allSchools = appState.schools || JSON.parse(localStorage.getItem('kar_qgen_schools') || '[]');
+
+  container.innerHTML = reqList.map(req => {
+    if (!req) return '';
+    const isTeacher = (req.type === 'teacher');
+    const phoneNum = req.phone || req.hmPhone || '';
+    const cleanP = cleanPhoneDigits(phoneNum);
+    const cleanD = cleanKeyString(req.dise || '');
+
+    // 🌟 ಪರಿಶೀಲನೆ: ಇವರು ಈಗಾಗಲೇ ಖಾತೆಯನ್ನು ಹೊಂದಿದ್ದಾರೆಯೇ?
+    const alreadyRegisteredTeacher = isTeacher ? allTeachers.find(t => t && cleanPhoneDigits(t.phone) === cleanP) : null;
+    const alreadyRegisteredSchool = !isTeacher ? allSchools.find(s => s && cleanKeyString(s.dise) === cleanD) : null;
+    const isAlreadyRegistered = Boolean(alreadyRegisteredTeacher || alreadyRegisteredSchool);
+    const existingKey = alreadyRegisteredTeacher ? alreadyRegisteredTeacher.accessKey : (alreadyRegisteredSchool ? alreadyRegisteredSchool.accessKey : '');
+
+    return `
+      <div class="p-4 bg-white border-2 ${isAlreadyRegistered ? 'border-amber-400 bg-amber-50/20' : 'border-emerald-400'} rounded-2xl text-xs space-y-2.5 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center justify-between border-b pb-2">
+          <div class="flex items-center space-x-2">
+            <span class="px-2.5 py-0.5 ${isTeacher ? 'bg-emerald-100 text-emerald-900' : 'bg-indigo-100 text-indigo-900'} font-black rounded-lg text-[10px] uppercase">
+              ${isTeacher ? '👨🏫 ಶಿಕ್ಷಕರ ಕೋರಿಕೆ' : '🏫 ಶಾಲಾ ಕೋರಿಕೆ'}
+            </span>
+            <span class="font-black text-slate-900 text-sm">${escapeHtml(req.name)}</span>
+            ${isAlreadyRegistered ? `
+              <span class="bg-amber-100 text-amber-900 border border-amber-300 font-black text-[10px] px-2 py-0.5 rounded-full animate-pulse">
+                ⚠️ ಈಗಾಗಲೇ ನೋಂದಾಯಿತರು (Key: ${existingKey})
+              </span>
+            ` : ''}
+          </div>
+          <span class="text-[11px] font-black text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300">
+            ಶುಲ್ಕ: ${req.fee || (isTeacher ? '₹100' : '₹500')}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600 font-medium">
+          <div><b>ಶಾಲೆ:</b> ${escapeHtml(req.school || req.name)}</div>
+          <div><b>ಮೊಬೈಲ್:</b> 📱 ${phoneNum}</div>
+          ${isTeacher ? `
+            <div class="col-span-2"><b>ತರಗತಿಗಳು:</b> ${(req.grades || []).join(', ')} ನೇ ತರಗತಿ</div>
+            <div class="col-span-2 text-indigo-950 font-bold"><b>ವಿಷಯಗಳು:</b> ${(req.subjects || []).map(s => s.split('(')[0]).join(', ')} (${(req.subjects || []).length} ವಿಷಯ)</div>
+          ` : `
+            <div><b>DISE ಕೋಡ್:</b> ${req.dise}</div>
+            <div><b>HM ಹೆಸರು:</b> ${escapeHtml(req.hm)}</div>
+          `}
+          <div class="text-[10px] text-slate-400">🗓️ ಕೋರಿಕೆ ಬಂದ ದಿನಾಂಕ: ${req.requestedDate || '-'}</div>
+        </div>
+
+        <div class="pt-2 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100">
+          <button type="button" onclick="window.open('https://api.whatsapp.com/send?phone=91${cleanP}', '_blank')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-brands fa-whatsapp text-emerald-600"></i> <span>Chat</span>
+          </button>
+
+          <!-- ತಿರಸ್ಕರಿಸಿ / ಡಿಲೀಟ್ -->
+          <button type="button" onclick="rejectPendingRequest('${req.id || reqId}')" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold rounded-xl text-xs flex items-center gap-1 border border-red-200 cursor-pointer" title="ಪಟ್ಟಿಯಿಂದ ತೆಗೆದುಹಾಕಿ">
+            <i class="fa-solid fa-trash-can"></i> <span>ತೆರವುಗೊಳಿಸಿ</span>
+          </button>
+
+          <!-- 🌟 APPROVE ಅಥವಾ RESEND EXISTING KEY -->
+          ${isAlreadyRegistered ? `
+            <button type="button" onclick="resendExistingKeyAndDismiss('${req.id}', '${isTeacher ? 'teacher' : 'school'}', '${existingKey}', '${cleanP}', '${escapeHtml(req.name)}')" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs shadow flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-paper-plane"></i>
+              <span>ಹಾಲಿ Key (${existingKey}) ಮರುಕಳುಹಿಸಿ & ಕ್ಲಿಯರ್ ಮಾಡಿ</span>
+            </button>
+          ` : `
+            <button type="button" onclick="approvePendingRequest('${req.id}')" class="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold rounded-xl text-xs shadow flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-circle-check text-amber-300"></i>
+              <span>✅ 1-Click Approve (ಖಾತೆ ರಚಿಸಿ & Key ಕಳುಹಿಸಿ)</span>
+            </button>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
+// ೬. 🌟 1-Click Approve (ಹೊಸ ಕೀ ಸೃಷ್ಟಿ + Firebase ನಿಂದ ಶಾಶ್ವತ DELETE)
+window.approvePendingRequest = async function(reqId) {
+  const reqList = appState.pendingRequests || [];
+  const req = reqList.find(r => r && (r.id === reqId || r.phone === reqId || 'REQ_' + r.phone === reqId));
+  if (!req) return;
+
+  const isTeacher = (req.type === 'teacher');
+  const regDate = getTodayFormattedDate();
+  const expDate = calculateExact1YearExpiry(regDate);
+
+  if (isTeacher) {
+    const cleanPhone = cleanPhoneDigits(req.phone);
+    let allTeachers = appState.teachers || JSON.parse(localStorage.getItem('kar_qgen_teachers') || '[]');
+    
+    // ಡೂಪ್ಲಿಕೇಟ್ ತಪಾಸಣೆ
+    const existingTeacher = allTeachers.find(t => t && cleanPhoneDigits(t.phone) === cleanPhone);
+
+    if (existingTeacher) {
+      existingTeacher.name = req.name;
+      existingTeacher.school = req.school;
+      existingTeacher.schoolEn = req.schoolEn || existingTeacher.schoolEn;
+      existingTeacher.expiryDate = expDate;
+      existingTeacher.fee = req.fee || existingTeacher.fee;
+      
+      localStorage.setItem('kar_qgen_teachers', JSON.stringify(allTeachers));
+      await pushAuthDataToFirebase();
+      renderRegisteredTeachers();
+
+      sendKeyToTeacherWhatsApp(existingTeacher.phone, existingTeacher.name, existingTeacher.accessKey);
+      showToast(`🔄 ${existingTeacher.name} ಖಾತೆ ನವೀಕರಿಸಿ ಹಳೆಯ Key (${existingTeacher.accessKey}) ಕಳುಹಿಸಲಾಗಿದೆ!`, 'success');
+    } else {
+      const accessKey = generateGuaranteedUniqueKey('TCH');
+      const newTeacher = {
+        id: 'T_' + Date.now(),
+        name: req.name,
+        school: req.school,
+        schoolEn: req.schoolEn || req.school,
+        phone: cleanPhone,
+        grades: req.grades || ['6', '7', '8'],
+        subjects: req.subjects || ['ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)'],
+        accessKey: accessKey,
+        registeredDate: regDate,
+        expiryDate: expDate,
+        fee: req.fee || `₹${(req.subjects || []).length * 100}`
+      };
+
+      if (!Array.isArray(appState.teachers)) appState.teachers = [];
+      appState.teachers.unshift(newTeacher);
+      localStorage.setItem('kar_qgen_teachers', JSON.stringify(appState.teachers));
+      await pushAuthDataToFirebase();
+      renderRegisteredTeachers();
+
+      sendKeyToTeacherWhatsApp(newTeacher.phone, newTeacher.name, accessKey);
+      showToast(`🎉 ${req.name} ಅವರ ನೋಂದಣಿ ಅನುಮೋದನೆಗೊಂಡಿದೆ!`, 'success');
+    }
+  } else {
+    // ಶಾಲೆ
+    const cleanDise = cleanKeyString(req.dise);
+    let allSchools = appState.schools || JSON.parse(localStorage.getItem('kar_qgen_schools') || '[]');
+    const existingSchool = allSchools.find(s => s && cleanKeyString(s.dise) === cleanDise);
+
+    if (existingSchool) {
+      existingSchool.name = req.name;
+      existingSchool.hm = req.hm;
+      existingSchool.hmPhone = req.hmPhone;
+      existingSchool.expiryDate = expDate;
+
+      localStorage.setItem('kar_qgen_schools', JSON.stringify(allSchools));
+      await pushAuthDataToFirebase();
+      renderRegisteredSchools();
+
+      sendKeyToSchoolWhatsApp(existingSchool.hmPhone, existingSchool.name, existingSchool.accessKey);
+      showToast(`🔄 ಶಾಲೆ: ${existingSchool.name} ನವೀಕರಿಸಿ Master Key (${existingSchool.accessKey}) ಕಳುಹಿಸಲಾಗಿದೆ!`, 'success');
+    } else {
+      const accessKey = generateGuaranteedUniqueKey('SCH');
+      const newSchool = {
+        id: 'SCH_' + Date.now(),
+        name: req.name,
+        dise: cleanDise,
+        hm: req.hm,
+        hmPhone: req.hmPhone,
+        accessKey: accessKey,
+        registeredDate: regDate,
+        expiryDate: expDate,
+        fee: req.fee || FEE_SCHOOL_YEARLY
+      };
+
+      if (!Array.isArray(appState.schools)) appState.schools = [];
+      appState.schools.unshift(newSchool);
+      localStorage.setItem('kar_qgen_schools', JSON.stringify(appState.schools));
+      await pushAuthDataToFirebase();
+      renderRegisteredSchools();
+
+      sendKeyToSchoolWhatsApp(req.hmPhone, req.name, accessKey);
+      showToast(`🎉 ಶಾಲೆ: ${req.name} ಅನುಮೋದನೆಗೊಂಡಿದೆ!`, 'success');
+    }
+  }
+
+  // 🌟 Firebase ನಿಂದ ಈ ಪೆಂಡಿಂಗ್ ರಿಕ್ವೆಸ್ಟ್ ಅನ್ನು ಶಾಶ್ವತವಾಗಿ DELETE ಮಾಡುವುದು (ಮತ್ತೆ ಮರಳಿ ಬರಲ್ಲ!)
+  const targetId = req.id || reqId;
+  try {
+    await fetch(`${FIREBASE_REST_BASE}/withyou_pending_requests/${targetId}.json`, {
+      method: 'DELETE'
+    });
+  } catch (e) {}
+
+  appState.pendingRequests = (appState.pendingRequests || []).filter(r => r && r.id !== targetId && r.id !== reqId);
+  localStorage.setItem('withyou_pending_requests', JSON.stringify(appState.pendingRequests));
+  renderPendingRequestsInAdmin();
+};
+
+// ೭. 🌟 ಈಗಾಗಲೇ ನೋಂದಾಯಿತರಾಗಿರುವವರಿಗೆ ಹಾಲಿ ಕೀ ಮರುಕಳುಹಿಸಿ ಪೆಂಡಿಂಗ್ ಪಟ್ಟಿಯಿಂದ ತೆರವುಗೊಳಿಸುವುದು
+window.resendExistingKeyAndDismiss = async function(reqId, type, key, phone, name) {
+  if (type === 'teacher') {
+    sendKeyToTeacherWhatsApp(phone, name, key);
+  } else {
+    sendKeyToSchoolWhatsApp(phone, name, key);
+  }
+
+  // Firebase ನಿಂದ ಡಿಲೀಟ್
+  try {
+    await fetch(`${FIREBASE_REST_BASE}/withyou_pending_requests/${reqId}.json`, {
+      method: 'DELETE'
+    });
+  } catch (e) {}
+
+  appState.pendingRequests = (appState.pendingRequests || []).filter(r => r && r.id !== reqId);
+  localStorage.setItem('withyou_pending_requests', JSON.stringify(appState.pendingRequests));
+  renderPendingRequestsInAdmin();
+  showToast(`✅ ಹಾಲಿ Key (${key}) ಕಳುಹಿಸಲಾಗಿದೆ & ನೋಟಿಫಿಕೇಶನ್ ತೆರವುಗೊಳಿಸಲಾಗಿದೆ!`, 'success');
+};
+
+// ೮. 🌟 ತಿರಸ್ಕರಿಸಿ / ಶಾಶ್ವತ DELETE ಫಂಕ್ಷನ್
+window.rejectPendingRequest = async function(reqId) {
+  if (!confirm('ಈ ನೋಂದಣಿ ಕೋರಿಕೆಯನ್ನು ಶಾಶ್ವತವಾಗಿ ತೆಗೆದುಹಾಕಬೇಕೇ?')) return;
+
+  try {
+    await fetch(`${FIREBASE_REST_BASE}/withyou_pending_requests/${reqId}.json`, {
+      method: 'DELETE'
+    });
+  } catch (e) {}
+
+  appState.pendingRequests = (appState.pendingRequests || []).filter(r => r && r.id !== reqId);
+  localStorage.setItem('withyou_pending_requests', JSON.stringify(appState.pendingRequests));
+  renderPendingRequestsInAdmin();
+  showToast('ಕೋರಿಕೆಯನ್ನು ಶಾಶ್ವತವಾಗಿ ತೆರವುಗೊಳಿಸಲಾಗಿದೆ.', 'info');
+};
+
+// ೯. 🌟 WhatsApp ನಲ್ಲಿ Access Key & Website Link ಕಳುಹಿಸುವಿಕೆ (ಶಿಕ್ಷಕರಿಗೆ)
+window.sendKeyToTeacherWhatsApp = function(phone, name, key) {
+  const cleanPhone = cleanPhoneDigits(phone);
+  const allTeachers = appState.teachers || JSON.parse(localStorage.getItem('kar_qgen_teachers') || '[]');
+  const t = allTeachers.find(item => item && (item.accessKey === key || cleanPhoneDigits(item.phone) === cleanPhone));
+  const expDate = t ? getUserExactDynamicExpiry(t) : calculateExact1YearExpiry(getTodayFormattedDate());
+  const feeText = t && t.fee ? t.fee : `₹${(t && t.subjects ? t.subjects.length : 1) * 100}`;
+  const subjectsText = t && t.subjects ? (Array.isArray(t.subjects) ? t.subjects.map(s => s.split('(')[0].trim()).join(', ') : t.subjects) : 'ಸಮಾಜ ವಿಜ್ಞಾನ';
+  const webLink = getLiveAppWebsiteUrl();
+
+  const msg = `*With You QP Generator - ಅಧಿಕೃತ Access Key*\n\n` +
+              `ನಮಸ್ಕಾರ ${name} ಸರ್/ಮೇಡಂ,\n` +
+              `ನಿಮ್ಮ ವಾರ್ಷಿಕ ಚಂದಾದಾರಿಕೆ ಖಾತೆಯನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ.\n\n` +
+              `🔑 *Teacher Access Key:* *${key}*\n` +
+              `📱 *ಲಾಗಿನ್ ಮೊಬೈಲ್:* ${cleanPhone}\n` +
+              `🏫 *ಶಾಲೆ:* ${t ? t.school : '-'}\n` +
+              `📖 *ಅನುಮೋದಿತ ವಿಷಯಗಳು:* *${subjectsText}*\n` +
+              `💰 *ಪಾವತಿಸಿದ ಶುಲ್ಕ:* ${feeText}\n` +
+              `🗓️ *ವ್ಯಾಲಿಡಿಟಿ:* *${expDate} ರವರೆಗೆ (1 ಪೂರ್ಣ ವರ್ಷ)*\n\n` +
+              `🌐 *ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ (ಲಾಗಿನ್ ಮಾಡಲು ಈ ಕೆಳಗಿನ ಲಿಂಕ್ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ):*\n${webLink}\n\n` +
+              `ಧನ್ಯವಾದಗಳು!`;
+
+  window.open(`https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+};
+
+// ೧೦. 🌟 WhatsApp ನಲ್ಲಿ Master Key & Website Link ಕಳುಹಿಸುವಿಕೆ (ಶಾಲೆಗೆ)
+window.sendKeyToSchoolWhatsApp = function(phone, schoolName, key) {
+  const cleanPhone = cleanPhoneDigits(phone);
+  const allSchools = appState.schools || JSON.parse(localStorage.getItem('kar_qgen_schools') || '[]');
+  const s = allSchools.find(item => item && (item.accessKey === key || cleanPhoneDigits(item.hmPhone) === cleanPhone));
+  const expDate = s ? getUserExactDynamicExpiry(s) : calculateExact1YearExpiry(getTodayFormattedDate());
+  const webLink = getLiveAppWebsiteUrl();
+
+  const msg = `*With You QP Generator - ಶಾಲಾ Master Access Key*\n\n` +
+              `ನಮಸ್ಕಾರ ಮುಖ್ಯಶಿಕ್ಷಕರೇ,\n` +
+              `*${schoolName}* ಶಾಲೆಯ ವಾರ್ಷಿಕ ಚಂದಾದಾರಿಕೆ ಖಾತೆಯನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ.\n\n` +
+              `🔑 *ಶಾಲಾ Master Key:* *${key}*\n` +
+              `🔢 *DISE ಕೋಡ್:* ${s ? s.dise : '-'}\n` +
+              `🗓️ *ಶಾಲಾ ವ್ಯಾಲಿಡಿಟಿ:* *${expDate} ರವರೆಗೆ (1 ಪೂರ್ಣ ವರ್ಷ)*\n` +
+              `💰 *ಶಾಲಾ ವಾರ್ಷಿಕ ಶುಲ್ಕ:* ${FEE_SCHOOL_YEARLY}\n\n` +
+              `🌐 *ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ (ಲಾಗಿನ್ ಮಾಡಲು ಈ ಕೆಳಗಿನ ಲಿಂಕ್ ಮೇಲೆ ಕ್ಲಿಕ್ ಮಾಡಿ):*\n${webLink}\n\n` +
+              `ಧನ್ಯವಾದಗಳು!`;
+
+  window.open(`https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+};
+
+// ತಕ್ಷಣವೇ ಕ್ಲೌಡ್‌ನಿಂದ ಸಿಂಕ್ ಮಾಡಿ ಪೆಂಡಿಂಗ್ ಲಿಸ್ಟ್ ಅಪ್ಡೇಟ್ ಮಾಡುವುದು
+fetchPendingRequestsFromCloud();
+
   </script>
 </body>
 </html>

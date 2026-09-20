@@ -42889,6 +42889,372 @@ window.generateExamPackageFromBank = window.generateExamPackage = async function
   }
 };
 
+
+/* ==========================================================================
+   🔒 ANTI-DUPLICATE REGISTRATION SHIELD & AUTO WEBSITE LINK IN WHATSAPP
+   ========================================================================== */
+
+// ೧. 🌟 ಲೈವ್ ವೆಬ್‌ಸೈಟ್ ವಿಳಾಸ ಪಡೆಯುವ ಹೆಲ್ಪರ್
+function getLiveAppWebsiteUrl() {
+  try {
+    if (window.location && window.location.href && window.location.href.startsWith('http')) {
+      return window.location.href.split('#')[0].split('?')[0];
+    }
+  } catch (e) {}
+  return "https://withyouqp-default-rtdb.firebaseio.com";
+}
+
+// ೨. 🌟 ಶಿಕ್ಷಕರ ನೋಂದಣಿ ಫಾರ್ಮ್ (Duplicate Check in Public Modal)
+window.handleTeacherModalRegister = async function(e) {
+  e.preventDefault();
+  const name = document.getElementById('reg-tch-name').value.trim();
+  const school = document.getElementById('reg-tch-school').value.trim();
+  const schoolEn = document.getElementById('reg-tch-school-en')?.value.trim() || school;
+  const phone = document.getElementById('reg-tch-phone').value.trim();
+  const grades = Array.from(document.querySelectorAll('input[name="modal_tch_class"]:checked')).map(cb => cb.value);
+  const subjects = Array.from(document.querySelectorAll('input[name="modal_tch_subj"]:checked')).map(cb => cb.value);
+
+  if (subjects.length === 0) return alert('ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ವಿಷಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+
+  const cleanPhone = cleanPhoneDigits(phone);
+  const allTeachers = appState.teachers || JSON.parse(localStorage.getItem('kar_qgen_teachers') || '[]');
+  
+  // 🌟 ಡಬಲ್ ರಿಜಿಸ್ಟ್ರೇಷನ್ ತಪಾಸಣೆ (Check if already registered)
+  const existingTeacher = allTeachers.find(t => cleanPhoneDigits(t.phone) === cleanPhone);
+  
+  if (existingTeacher) {
+    const expDate = getUserExactDynamicExpiry(existingTeacher);
+    alert(`⚠️ ನಮಸ್ಕಾರ ${existingTeacher.name},\n\nನಿಮ್ಮ ಮೊಬೈಲ್ ನಂಬರ್ (${phone}) ಈಗಾಗಲೇ ನೋಂದಾಯಿತವಾಗಿದೆ!\n\n🔑 ನಿಮ್ಮ Access Key: ${existingTeacher.accessKey}\n🗓️ ವ್ಯಾಲಿಡಿಟಿ: ${expDate} ರವರೆಗೆ\n\nದಯವಿಟ್ಟು ನೇರವಾಗಿ ಲಾಗಿನ್ ಆಗಿ ಅಥವಾ ನವೀಕರಣಕ್ಕಾಗಿ ಅಡ್ಮಿನ್ ಸಂಪರ್ಕಿಸಿ.`);
+    
+    // ನೇರವಾಗಿ ಲಾಗಿನ್ ಟ್ಯಾಬ್‌ಗೆ ಕರೆದೊಯ್ಯುವುದು
+    switchTeacherModalTab('login');
+    const pInput = document.getElementById('modal-tch-phone');
+    const kInput = document.getElementById('modal-tch-key');
+    if (pInput) pInput.value = cleanPhone;
+    if (kInput) kInput.value = existingTeacher.accessKey;
+    return;
+  }
+
+  const totalFee = `₹${subjects.length * 100}`;
+  const regDate = getTodayFormattedDate();
+
+  const newRequest = {
+    id: 'REQ_TCH_' + Date.now(),
+    type: 'teacher',
+    name,
+    school,
+    schoolEn,
+    phone,
+    grades: grades.length > 0 ? grades : ['6', '7', '8'],
+    subjects: subjects,
+    fee: totalFee,
+    requestedDate: regDate,
+    status: 'pending'
+  };
+
+  if (!Array.isArray(appState.pendingRequests)) appState.pendingRequests = [];
+  
+  // ಪೆಂಡಿಂಗ್ ಪಟ್ಟಿಯಲ್ಲೂ ಡೂಪ್ಲಿಕೇಟ್ ಇಲ್ಲದಂತೆ ತಡೆಯುವುದು
+  appState.pendingRequests = appState.pendingRequests.filter(r => cleanPhoneDigits(r.phone) !== cleanPhone);
+  appState.pendingRequests.unshift(newRequest);
+  localStorage.setItem('withyou_pending_requests', JSON.stringify(appState.pendingRequests));
+  
+  await pushPendingRequestsToCloud();
+
+  const cleanSubjNames = subjects.map(s => s.split('(')[0].trim()).join(', ');
+  const webLink = getLiveAppWebsiteUrl();
+
+  const msg = `*With You QP Generator - ಹೊಸ ಶಿಕ್ಷಕರ ನೋಂದಣಿ ಕೋರಿಕೆ*\n\n` +
+              `👤 *ಶಿಕ್ಷಕರ ಹೆಸರು:* ${name}\n` +
+              `🏫 *ಶಾಲೆಯ ಹೆಸರು:* ${school}\n` +
+              `📱 *ಮೊಬೈಲ್ ನಂಬರ್:* ${phone}\n` +
+              `📚 *ತರಗತಿಗಳು:* ${grades.join(', ') || '6, 7, 8'}\n` +
+              `📖 *ವಿಷಯಗಳು (${subjects.length}):* ${cleanSubjNames}\n` +
+              `💰 *ನಿಗದಿತ ಶುಲ್ಕ:* *${totalFee}*\n\n` +
+              `🌐 *ವೆಬ್‌ಸೈಟ್:* ${webLink}\n\n` +
+              `ನಮಸ್ಕಾರ ಸರ್, ನಾನು ನೋಂದಣಿ ಮಾಡಿದ್ದೇನೆ. ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ ನನ್ನ *Access Key* ನೀಡಿ.`;
+
+  window.open(`https://api.whatsapp.com/send?phone=91${ADMIN_PHONE_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
+  document.getElementById('teacher-auth-modal')?.classList.add('hidden');
+  alert(`✅ ವಿವರಗಳನ್ನು ಅಡ್ಮಿನ್ ಪ್ಯಾನೆಲ್‌ಗೆ ಕಳುಹಿಸಲಾಗಿದೆ!\nಶುಲ್ಕ: ${totalFee} (${subjects.length} ವಿಷಯಗಳಿಗೆ).`);
+};
+
+// ೩. 🌟 ಶಾಲಾ ನೋಂದಣಿ ಫಾರ್ಮ್ (Duplicate Check in Public School Modal)
+window.handleSchoolModalRegister = async function(e) {
+  e.preventDefault();
+  const name = document.getElementById('reg-sch-name').value.trim();
+  const dise = document.getElementById('reg-sch-dise').value.trim();
+  const hm = document.getElementById('reg-sch-hm').value.trim();
+  const hmPhone = document.getElementById('reg-sch-phone').value.trim();
+
+  const cleanDise = cleanKeyString(dise);
+  const allSchools = appState.schools || JSON.parse(localStorage.getItem('kar_qgen_schools') || '[]');
+
+  // 🌟 ಶಾಲೆ ಈಗಾಗಲೇ ಇದೆಯೇ ಎಂದು ಪರಿಶೀಲನೆ
+  const existingSchool = allSchools.find(s => cleanKeyString(s.dise) === cleanDise);
+  if (existingSchool) {
+    const expDate = getUserExactDynamicExpiry(existingSchool);
+    alert(`⚠️ ಈ DISE ಕೋಡ್ (${dise}) ಹೊಂದಿರುವ ಶಾಲೆ ಈಗಾಗಲೇ ನೋಂದಾಯಿತವಾಗಿದೆ!\n\n🏫 ಶಾಲೆ: ${existingSchool.name}\n🔑 Master Key: ${existingSchool.accessKey}\n🗓️ ವ್ಯಾಲಿಡಿಟಿ: ${expDate} ರವರೆಗೆ\n\nದಯವಿಟ್ಟು ನೇರವಾಗಿ ಲಾಗಿನ್ ಆಗಿ.`);
+    switchSchoolModalTab('login');
+    const dInp = document.getElementById('modal-sch-dise');
+    const kInp = document.getElementById('modal-sch-key');
+    if (dInp) dInp.value = cleanDise;
+    if (kInp) kInp.value = existingSchool.accessKey;
+    return;
+  }
+
+  const regDate = getTodayFormattedDate();
+  const newRequest = {
+    id: 'REQ_SCH_' + Date.now(),
+    type: 'school',
+    name,
+    dise,
+    hm,
+    hmPhone,
+    fee: FEE_SCHOOL_YEARLY,
+    requestedDate: regDate,
+    status: 'pending'
+  };
+
+  if (!Array.isArray(appState.pendingRequests)) appState.pendingRequests = [];
+  appState.pendingRequests = appState.pendingRequests.filter(r => cleanKeyString(r.dise) !== cleanDise);
+  appState.pendingRequests.unshift(newRequest);
+  localStorage.setItem('withyou_pending_requests', JSON.stringify(appState.pendingRequests));
+
+  await pushPendingRequestsToCloud();
+  const webLink = getLiveAppWebsiteUrl();
+
+  const msg = `*With You QP Generator - ಹೊಸ ಶಾಲಾ ನೋಂದಣಿ ಕೋರಿಕೆ*\n\n` +
+              `🏫 *ಶಾಲೆಯ ಹೆಸರು:* ${name}\n` +
+              `🔢 *DISE ಕೋಡ್:* ${dise}\n` +
+              `👤 *HM ಹೆಸರು:* ${hm}\n` +
+              `📱 *HM ಮೊಬೈಲ್:* ${hmPhone}\n` +
+              `💰 *ಶಾಲಾ ಶುಲ್ಕ:* ${FEE_SCHOOL_YEARLY}\n\n` +
+              `🌐 *ವೆಬ್‌ಸೈಟ್:* ${webLink}\n\n` +
+              `ನಮಸ್ಕಾರ ಸರ್, ದಯವಿಟ್ಟು ನಮ್ಮ ಶಾಲೆಯನ್ನು ಅನುಮೋದಿಸಿ *School Master Key* ನೀಡಿ.`;
+
+  window.open(`https://api.whatsapp.com/send?phone=91${ADMIN_PHONE_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
+  document.getElementById('school-auth-modal')?.classList.add('hidden');
+  alert(`✅ ಶಾಲೆಯ ವಿವರಗಳು ಅಡ್ಮಿನ್ ಪ್ಯಾನೆಲ್‌ಗೆ ತಲುಪಿವೆ! ಪರಿಶೀಲನೆಯ ನಂತರ Master Key ಸಿಗುತ್ತದೆ.`);
+};
+
+// ೪. 🌟 ಅಡ್ಮಿನ್‌ನಲ್ಲಿ ನೇರವಾಗಿ ಶಿಕ್ಷಕರನ್ನು ಸೇರಿಸುವಾಗ ಡಬಲ್ ಎಂಟ್ರಿ ತಡೆಗಟ್ಟುವಿಕೆ
+window.handleTeacherRegister = async function(e) {
+  e.preventDefault();
+  const name = document.getElementById('reg-teacher-name').value.trim();
+  const school = document.getElementById('reg-teacher-school').value.trim();
+  const phone = document.getElementById('reg-teacher-phone').value.trim();
+  const grades = Array.from(document.querySelectorAll('input[name="teacher_reg_class"]:checked')).map(cb => cb.value);
+  const subjects = Array.from(document.querySelectorAll('input[name="teacher_reg_subj"]:checked')).map(cb => cb.value);
+
+  if (subjects.length === 0) return alert('ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ವಿಷಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+
+  const cleanPhone = cleanPhoneDigits(phone);
+  let allTeachers = appState.teachers || JSON.parse(localStorage.getItem('kar_qgen_teachers') || '[]');
+
+  // 🌟 ಪರಿಶೀಲನೆ: ಈಗಾಗಲೇ ನೋಂದಾಯಿತರಾಗಿದ್ದರೆ ಡೂಪ್ಲಿಕೇಟ್ ಮಾಡಬೇಡಿ
+  const existingTeacher = allTeachers.find(t => cleanPhoneDigits(t.phone) === cleanPhone);
+  if (existingTeacher) {
+    if (confirm(`⚠️ ಈ ಮೊಬೈಲ್ ನಂಬರ್ (${phone}) ಈಗಾಗಲೇ ${existingTeacher.name} ಹೆಸರಿನಲ್ಲಿ ನೋಂದಾಯಿತವಾಗಿದೆ!\n\nAccess Key: ${existingTeacher.accessKey}\nಶಾಲೆ: ${existingTeacher.school}\n\nಇವರ ಖಾತೆಯನ್ನು ನವೀಕರಿಸಿ (Renew ಮಾಡಿ) ಹೊಸ ವಿವರಗಳೊಂದಿಗೆ ಅಪ್ಡೇಟ್ ಮಾಡಬೇಕೇ?`)) {
+      existingTeacher.name = name;
+      existingTeacher.school = school;
+      existingTeacher.grades = grades;
+      existingTeacher.subjects = subjects;
+      existingTeacher.fee = `₹${subjects.length * 100}`;
+      existingTeacher.expiryDate = calculateExact1YearExpiry(getTodayFormattedDate());
+      
+      localStorage.setItem('kar_qgen_teachers', JSON.stringify(allTeachers));
+      await pushAuthDataToFirebase();
+      renderRegisteredTeachers();
+      document.getElementById('form-register-teacher').reset();
+      
+      sendKeyToTeacherWhatsApp(existingTeacher.phone, existingTeacher.name, existingTeacher.accessKey);
+      alert(`✅ ${existingTeacher.name} ಅವರ ಖಾತೆ ನವೀಕರಣಗೊಂಡಿದೆ ಮತ್ತು WhatsApp ಗೆ Access Key & ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ಕಳುಹಿಸಲಾಗಿದೆ!`);
+    }
+    return;
+  }
+
+  const accessKey = generateGuaranteedUniqueKey('TCH');
+  const regDate = getTodayFormattedDate();
+  const totalFee = `₹${subjects.length * 100}`;
+
+  const newTeacher = {
+    id: 'T_' + Date.now(),
+    name, school, phone,
+    grades: grades.length > 0 ? grades : ['6', '7', '8'],
+    subjects: subjects,
+    accessKey,
+    registeredDate: regDate,
+    expiryDate: calculateExact1YearExpiry(regDate),
+    fee: totalFee
+  };
+
+  if (!Array.isArray(appState.teachers)) appState.teachers = [];
+  appState.teachers.unshift(newTeacher);
+  localStorage.setItem('kar_qgen_teachers', JSON.stringify(appState.teachers));
+  
+  await pushAuthDataToFirebase();
+  renderRegisteredTeachers();
+  document.getElementById('form-register-teacher').reset();
+  
+  sendKeyToTeacherWhatsApp(newTeacher.phone, newTeacher.name, accessKey);
+  alert(`🎉 ಶಿಕ್ಷಕ ${name} ನೋಂದಣಿಯಾಗಿದ್ದಾರೆ!\n\nAccess Key: ${accessKey}\nಶುಲ್ಕ: ${totalFee}\n\nಶಿಕ್ಷಕರ WhatsApp ಗೆ Access Key ಮತ್ತು ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ಕಳುಹಿಸಲಾಗಿದೆ!`);
+};
+
+// ೫. 🌟 1-Click Approve ನಲ್ಲಿ ಡಬಲ್ ರಿಜಿಸ್ಟ್ರೇಷನ್ ಬ್ಲಾಕ್ ಮಾಡಿ ಆಟೋ-ಮರ್ಜ್ ಮಾಡುವುದು
+window.approvePendingRequest = async function(reqId) {
+  const reqList = appState.pendingRequests || JSON.parse(localStorage.getItem('withyou_pending_requests') || '[]');
+  const req = reqList.find(r => r.id === reqId);
+  if (!req) return;
+
+  const isTeacher = (req.type === 'teacher');
+  const regDate = getTodayFormattedDate();
+  const expDate = calculateExact1YearExpiry(regDate);
+
+  if (isTeacher) {
+    const cleanPhone = cleanPhoneDigits(req.phone);
+    let allTeachers = appState.teachers || JSON.parse(localStorage.getItem('kar_qgen_teachers') || '[]');
+    const existingIndex = allTeachers.findIndex(t => cleanPhoneDigits(t.phone) === cleanPhone);
+
+    if (existingIndex >= 0) {
+      // 🌟 ಮೊದಲೇ ಇದ್ದರೆ ಹಳೆಯದನ್ನು ಡಿಲೀಟ್ ಮಾಡದೆ ಕೇವಲ ರಿನೀವ್ / ಅಪ್ಡೇಟ್ ಮಾಡಿ ಕೀ ಕಳುಹಿಸುವುದು (No Duplicate!)
+      const ext = allTeachers[existingIndex];
+      ext.name = req.name;
+      ext.school = req.school;
+      ext.schoolEn = req.schoolEn || ext.schoolEn || req.school;
+      ext.grades = req.grades || ext.grades;
+      ext.subjects = req.subjects || ext.subjects;
+      ext.expiryDate = expDate;
+      ext.fee = req.fee || ext.fee;
+
+      localStorage.setItem('kar_qgen_teachers', JSON.stringify(allTeachers));
+      await pushAuthDataToFirebase();
+      renderRegisteredTeachers();
+
+      sendKeyToTeacherWhatsApp(ext.phone, ext.name, ext.accessKey);
+      showToast(`🔄 ${ext.name} ಅವರ ಖಾತೆಯನ್ನು ನವೀಕರಿಸಿ Key ಕಳುಹಿಸಲಾಗಿದೆ!`, 'success');
+    } else {
+      // ಹೊಸ ಖಾತೆ ಸೃಷ್ಟಿ
+      const accessKey = generateGuaranteedUniqueKey('TCH');
+      const newTeacher = {
+        id: 'T_' + Date.now(),
+        name: req.name,
+        school: req.school,
+        schoolEn: req.schoolEn || req.school,
+        phone: req.phone,
+        grades: req.grades || ['6', '7', '8'],
+        subjects: req.subjects || ['ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)'],
+        accessKey: accessKey,
+        registeredDate: regDate,
+        expiryDate: expDate,
+        fee: req.fee || `₹${(req.subjects || []).length * 100}`
+      };
+
+      if (!Array.isArray(appState.teachers)) appState.teachers = [];
+      appState.teachers.unshift(newTeacher);
+      localStorage.setItem('kar_qgen_teachers', JSON.stringify(appState.teachers));
+      await pushAuthDataToFirebase();
+      renderRegisteredTeachers();
+
+      sendKeyToTeacherWhatsApp(req.phone, req.name, accessKey);
+      showToast(`🎉 ${req.name} ಅವರ ನೋಂದಣಿ ಅನುಮೋದನೆಗೊಂಡಿದೆ!`, 'success');
+    }
+  } else {
+    // ಶಾಲಾ ಅನುಮೋದನೆ
+    const cleanDise = cleanKeyString(req.dise);
+    let allSchools = appState.schools || JSON.parse(localStorage.getItem('kar_qgen_schools') || '[]');
+    const existingSchIndex = allSchools.findIndex(s => cleanKeyString(s.dise) === cleanDise);
+
+    if (existingSchIndex >= 0) {
+      const extSch = allSchools[existingSchIndex];
+      extSch.name = req.name;
+      extSch.hm = req.hm;
+      extSch.hmPhone = req.hmPhone;
+      extSch.expiryDate = expDate;
+
+      localStorage.setItem('kar_qgen_schools', JSON.stringify(allSchools));
+      await pushAuthDataToFirebase();
+      renderRegisteredSchools();
+
+      sendKeyToSchoolWhatsApp(extSch.hmPhone, extSch.name, extSch.accessKey);
+      showToast(`🔄 ಶಾಲೆ: ${extSch.name} ನವೀಕರಿಸಿ Master Key ಕಳುಹಿಸಲಾಗಿದೆ!`, 'success');
+    } else {
+      const accessKey = generateGuaranteedUniqueKey('SCH');
+      const newSchool = {
+        id: 'SCH_' + Date.now(),
+        name: req.name,
+        dise: req.dise,
+        hm: req.hm,
+        hmPhone: req.hmPhone,
+        accessKey: accessKey,
+        registeredDate: regDate,
+        expiryDate: expDate,
+        fee: req.fee || FEE_SCHOOL_YEARLY
+      };
+
+      if (!Array.isArray(appState.schools)) appState.schools = [];
+      appState.schools.unshift(newSchool);
+      localStorage.setItem('kar_qgen_schools', JSON.stringify(appState.schools));
+      await pushAuthDataToFirebase();
+      renderRegisteredSchools();
+
+      sendKeyToSchoolWhatsApp(req.hmPhone, req.name, accessKey);
+      showToast(`🎉 ಶಾಲೆ: ${req.name} ಅನುಮೋದನೆಗೊಂಡಿದೆ!`, 'success');
+    }
+  }
+
+  // ಪೆಂಡಿಂಗ್ ಪಟ್ಟಿಯಿಂದ ತೆಗೆಯುವುದು
+  appState.pendingRequests = reqList.filter(r => r.id !== reqId);
+  localStorage.setItem('withyou_pending_requests', JSON.stringify(appState.pendingRequests));
+  await pushPendingRequestsToCloud();
+
+  renderPendingRequestsInAdmin();
+};
+
+// ೬. 🌟 WhatsApp ಮೆಸೇಜ್‌ನಲ್ಲಿ ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ಕಳುಹಿಸುವಿಕೆ (ಶಿಕ್ಷಕರಿಗೆ)
+window.sendKeyToTeacherWhatsApp = function(phone, name, key) {
+  const cleanPhone = cleanPhoneDigits(phone);
+  const t = (appState.teachers || []).find(item => item.accessKey === key || cleanPhoneDigits(item.phone) === cleanPhone);
+  const expDate = t ? getUserExactDynamicExpiry(t) : calculateExact1YearExpiry(getTodayFormattedDate());
+  const feeText = t && t.fee ? t.fee : `₹${(t && t.subjects ? t.subjects.length : 1) * 100}`;
+  const subjectsText = t && t.subjects ? t.subjects.map(s => s.split('(')[0].trim()).join(', ') : 'ಸಮಾಜ ವಿಜ್ಞಾನ';
+  const webLink = getLiveAppWebsiteUrl();
+
+  const msg = `*With You QP Generator - ಅಧಿಕೃತ Access Key*\n\n` +
+              `ನಮಸ್ಕಾರ ${name} ಸರ್/ಮೇಡಂ,\n` +
+              `ನಿಮ್ಮ ವಾರ್ಷಿಕ ಚಂದಾದಾರಿಕೆ ಖಾತೆಯನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ.\n\n` +
+              `🔑 *Teacher Access Key:* *${key}*\n` +
+              `📱 *ಲಾಗಿನ್ ಮೊಬೈಲ್:* ${cleanPhone}\n` +
+              `🏫 *ಶಾಲೆ:* ${t ? t.school : '-'}\n` +
+              `📖 *ಅನುಮೋದಿತ ವಿಷಯಗಳು:* *${subjectsText}*\n` +
+              `💰 *ಪಾವತಿಸಿದ ಶುಲ್ಕ:* ${feeText}\n` +
+              `🗓️ *ವ್ಯಾಲಿಡಿಟಿ:* *${expDate} ರವರೆಗೆ (1 ಪೂರ್ಣ ವರ್ಷ)*\n\n` +
+              `🌐 *ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ (ಲಾಗಿನ್ ಮಾಡಲು ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ):*\n${webLink}\n\n` +
+              `ಧನ್ಯವಾದಗಳು!`;
+
+  window.open(`https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+};
+
+// ೭. 🌟 WhatsApp ಮೆಸೇಜ್‌ನಲ್ಲಿ ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ಕಳುಹಿಸುವಿಕೆ (ಶಾಲೆಗೆ)
+window.sendKeyToSchoolWhatsApp = function(phone, schoolName, key) {
+  const cleanPhone = cleanPhoneDigits(phone);
+  const s = (appState.schools || []).find(item => item.accessKey === key || cleanPhoneDigits(item.hmPhone) === cleanPhone);
+  const expDate = s ? getUserExactDynamicExpiry(s) : calculateExact1YearExpiry(getTodayFormattedDate());
+  const webLink = getLiveAppWebsiteUrl();
+
+  const msg = `*With You QP Generator - ಶಾಲಾ Master Access Key*\n\n` +
+              `ನಮಸ್ಕಾರ ಮುಖ್ಯಶಿಕ್ಷಕರೇ,\n` +
+              `*${schoolName}* ಶಾಲೆಯ ವಾರ್ಷಿಕ ಚಂದಾದಾರಿಕೆ ಖಾತೆಯನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ.\n\n` +
+              `🔑 *ಶಾಲಾ Master Key:* *${key}*\n` +
+              `🔢 *DISE ಕೋಡ್:* ${s ? s.dise : '-'}\n` +
+              `🗓️ *ಶಾಲಾ ವ್ಯಾಲಿಡಿಟಿ:* *${expDate} ರವರೆಗೆ (1 ಪೂರ್ಣ ವರ್ಷ)*\n` +
+              `💰 *ಶಾಲಾ ವಾರ್ಷಿಕ ಶುಲ್ಕ:* ${FEE_SCHOOL_YEARLY}\n\n` +
+              `🌐 *ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ (ಲಾಗಿನ್ ಮಾಡಲು ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ):*\n${webLink}\n\n` +
+              `ಧನ್ಯವಾದಗಳು!`;
+
+  window.open(`https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+};
+
   </script>
 </body>
 </html>

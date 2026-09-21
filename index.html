@@ -43756,6 +43756,81 @@ window.sendKeyToSchoolWhatsApp = function(phone, schoolName, key) {
 // ತಕ್ಷಣವೇ ಕ್ಲೌಡ್‌ನಿಂದ ಸಿಂಕ್ ಮಾಡಿ ಪೆಂಡಿಂಗ್ ಲಿಸ್ಟ್ ಅಪ್ಡೇಟ್ ಮಾಡುವುದು
 fetchPendingRequestsFromCloud();
 
+/* ==========================================================================
+   ✨ 1-CLICK AUTO FIX: MULTI-LINE QUESTION FORMATTER & UNDERLINE RESTORER
+   ========================================================================== */
+(function() {
+  // ೧. ಪೂರ್ಣ CSS ಇಂಜೆಕ್ಷನ್ (ಸ್ಕ್ರೀನ್, ಪ್ರಿಂಟ್ & ಅಡ್ಮಿನ್‌ನಲ್ಲಿ New-Line ಸಕ್ರಿಯಗೊಳಿಸಲು)
+  const autoStyle = document.createElement('style');
+  autoStyle.innerHTML = `
+    .q-paper-text, .board-q-text-fit, .key-text, .key-hanging-text, 
+    #admin-qbank-display-list .font-black, #json-verified-cards-container .font-bold {
+      white-space: pre-line !important;
+      word-break: break-word !important;
+      line-height: 1.6 !important;
+    }
+  `;
+  document.head.appendChild(autoStyle);
+
+  // ೨. ಒಂದೇ ಲೈನ್‌ನಲ್ಲಿ ಗೀಚಿಕೊಂಡಿರುವ ಪ್ರಶ್ನೆಗಳನ್ನು ಲೈನ್ ಬೈ ಲೈನ್ ವಿಂಗಡಿಸುವ ಮಾಸ್ಟರ್ ಪಾರ್ಸರ್
+  window.renderSafeRichTextWithUnderlines = function(rawText) {
+    if (!rawText) return '';
+    let text = String(rawText).trim();
+
+    // AI ಸಿಟೇಶನ್ ಚಿಹ್ನೆಗಳ ನಿವಾರಣೆ ([cite: 1] ಇತ್ಯಾದಿ)
+    text = text.replace(/\[cite:\s*\d+\]/gi, '').replace(/\[\d+\]/g, '').trim();
+
+    // ಪ್ರಶ್ನೆಯ ಮುಂದಿರುವ ಡಬಲ್ ನಂಬರ್ (ಉದಾ: 1. 1) ಅಥವಾ 3.) ತೆಗೆಯುವುದು
+    text = text.replace(/^[\(\[]?\d+[\)\]\.\s\:\-]+/, '').trim();
+
+    // 🌟 ಆವರಣ ಚಿಹ್ನೆ ( क , ज, त्र... ) ಯನ್ನು ಪ್ರತ್ಯೇಕ ಸಾಲಿಗೆ ತರುವುದು
+    text = text.replace(/(?:\:\s*|\s+)(\([^\)]+\))\s*(?=[1-9೧-೯]\.)/g, ':\n$1\n');
+
+    // 🌟 1. 2. 3. 4. ಉಪ-ಪ್ರಶ್ನೆಗಳನ್ನು ಕಡ್ಡಾಯವಾಗಿ ಹೊಸ ಸಾಲಿಗೆ ಇಳಿಸುವುದು
+    text = text.replace(/(?:\s{2,}|\s+)(?=[1-9೧-೯]\.\s+)/g, '\n');
+
+    // 🌟 ಸಣ್ಣ ಅಂಡರ್‌ಸ್ಕೋರ್ (_) ಅಥವಾ ಡ್ಯಾಶ್ (_) ಗಳನ್ನು ಸುಂದರ ಉತ್ತರ ಗೆರೆಯನ್ನಾಗಿ ಮಾಡುವುದು (_______)
+    text = text.replace(/(?<=\-\s*)_(?!\w)/g, '____________________________________');
+    text = text.replace(/(?<=\:\s*)_(?!\w)/g, '____________________________________');
+    text = text.replace(/:\s*_\s*$/gm, ': ____________________________________');
+    text = text.replace(/-\s*_\s*$/gm, '- ____________________________________');
+
+    // ಅಂಡರ್‌ಲೈನ್ __ಪದ__ ಟ್ಯಾಗ್
+    text = text.replace(/__(.*?)__/g, '<u>$1</u>');
+
+    // HTML ಎಸ್ಕೇಪಿಂಗ್ & ಟ್ಯಾಗ್ ರಕ್ಷಣೆ
+    text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    text = text.replace(/&lt;u&gt;(.*?)&lt;\/u&gt;/gi, '<u style="text-decoration: underline !important; text-decoration-thickness: 2px !important; text-underline-offset: 3px !important; font-weight: 800 !important;">$1</u>');
+    text = text.replace(/&lt;b&gt;(.*?)&lt;\/b&gt;/gi, '<b style="font-weight: 900 !important;">$1</b>');
+
+    return `<div style="white-space: pre-line !important; line-height: 1.55 !important; font-size: 11pt !important;">${text}</div>`;
+  };
+
+  window.cleanQuestionTextForDisplay = function(text) {
+    if (!text) return '';
+    return renderSafeRichTextWithUnderlines(text);
+  };
+
+  // ೩. ಪ್ರಶ್ನೆ ಭಂಡಾರದಲ್ಲಿ (Admin Question Bank) ಲೈವ್ ಆಗಿ ತಿದ್ದಿ ತೋರಿಸುವುದು
+  const originalRenderCustomQuestionList = window.renderCustomQuestionList;
+  window.renderCustomQuestionList = function() {
+    if (typeof originalRenderCustomQuestionList === 'function') {
+      originalRenderCustomQuestionList();
+    }
+    const container = document.getElementById('admin-qbank-display-list');
+    if (!container) return;
+
+    // ಕಾರ್ಡ್‌ಗಳ ಒಳಗಿರುವ ಪ್ರಶ್ನೆ ಹಾಗೂ ಉತ್ತರಗಳನ್ನು New-Line ಗೆ ಸರಿಪಡಿಸುವುದು
+    container.querySelectorAll('.font-black.text-slate-900.text-\\[13\\.5px\\], .text-emerald-800').forEach(el => {
+      el.style.whiteSpace = 'pre-line';
+      el.style.lineHeight = '1.5';
+    });
+  };
+
+  // ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಅಪ್ಲೈ ಮಾಡುವುದು
+  if (typeof renderCustomQuestionList === 'function') renderCustomQuestionList();
+})();
+
   </script>
 </body>
 </html>

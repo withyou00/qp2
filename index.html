@@ -43940,6 +43940,479 @@ fetchPendingRequestsFromCloud();
     cleanNodes('rendered-key');
   };
 })();
+
+
+/* ==========================================================================
+   🇮🇳 100% EXCLUSIVE HINDI SUBJECT MASTER ENGINE (SPACIOUS, KEY & BLUEPRINT)
+   ========================================================================== */
+(function() {
+  // ೧. ಹಿಂದಿ ವಿಷಯವೇ ಎಂದು ಪತ್ತೆಹಚ್ಚುವ ಹೆಲ್ಪರ್
+  function isSubjectHindi(subjStr) {
+    if (!subjStr) return false;
+    const s = String(subjStr).toLowerCase().trim();
+    return s.includes('ಹಿಂದಿ') || s.includes('hindi') || s.includes('हिन्दी') || s.includes('हिंदी');
+  }
+
+  // ೨. ಹಿಂದಿ ಪರೀಕ್ಷಾ ವಿಧಾನದ ಹೆಸರು
+  function getHindiExamTypeName(rawExamType) {
+    const e = String(rawExamType || '').toLowerCase();
+    if (e.includes('1ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-1') || e.includes('fa 1')) return 'प्रथम रचनात्मक परीक्षा (FA-1) 2026-27';
+    if (e.includes('2ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-2') || e.includes('fa 2')) return 'द्वितीय रचनात्मक परीक्षा (FA-2) 2026-27';
+    if (e.includes('3ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-3') || e.includes('fa 3')) return 'तृतीय रचनात्मक परीक्षा (FA-3) 2026-27';
+    if (e.includes('4ನೇ ರೂಪಣಾತ್ಮಕ') || e.includes('fa-4') || e.includes('fa 4')) return 'चतुर्थ रचनात्मक परीक्षा (FA-4) 2026-27';
+    if (e.includes('sa-1') || e.includes('ಸಂಕಲನಾತ್ಮಕ-1') || e.includes('ಮಧ್ಯವಾರ್ಷಿಕ')) return 'संकलनात्मक मूल्यांकन-1 (SA-1) 2026-27';
+    if (e.includes('sa-2') || e.includes('ಸಂಕಲನಾತ್ಮಕ-2') || e.includes('ವಾರ್ಷಿಕ')) return 'संकलनात्मक मूल्यांकन-2 (SA-2) 2026-27';
+    if (e.includes('lba') || e.includes('ಘಟಕ')) return 'इकाई परीक्षा (Unit Test / LBA) 2026-27';
+    return rawExamType;
+  }
+
+  // ೩. 🌟 ಹಿಂದಿ ಪತ್ರಿಕೆಯ ಪ್ರತ್ಯೇಕ ಹೆಡಿಂಗ್ಸ್ ಡಿಕ್ಷನರಿ
+  function getHindiSectionHeading(typeKey) {
+    const raw = String(typeKey || '').toLowerCase().trim();
+    if (raw === 'mcq') return "निम्नलिखित प्रश्नों के सही विकल्प चुनकर लिखिए :";
+    if (raw === 'blanks' || raw === 'fill_ups' || raw === 'fib') return "कोष्ठक में दिए गए उचित शब्दों से रिक्त स्थानों की पूर्ति कीजिए :";
+    if (raw === 'true_false') return "निम्नलिखित कथन सही है या गलत लिखिए :";
+    if (raw === 'analogy') return "पहले दो शब्दों के संबंध के अनुसार तीसरे शब्द का संबंध लिखिए :";
+    if (raw === 'odd_one_out') return "निम्नलिखित में से बेमेल (भिन्न) शब्द चुनकर लिखिए :";
+    if (raw === 'match') return "सही जोड़ियाँ मिलाइए (जोड़कर लिखिए) :";
+    if (raw === 'vsa_1m') return "निम्नलिखित प्रश्नों के उत्तर एक-एक वाक्य में लिखिए :";
+    if (raw === 'sa_2m') return "निम्नलिखित प्रश्नों के उत्तर दो-तीन वाक्यों में लिखिए :";
+    if (raw === 'sa_3m') return "निम्नलिखित प्रश्नों के उत्तर तीन-चार वाक्यों में लिखिए :";
+    if (raw === 'la_4m') return "निम्नलिखित प्रश्नों के सविस्तार उत्तर लिखिए :";
+    return `${typeKey} :`;
+  }
+
+  // ೪. 🌟 ಹಿಂದಿ ಉತ್ತರ ಪತ್ರಿಕೆಯ (Answer Key) ಪ್ರತ್ಯೇಕ ಹೆಡಿಂಗ್ಸ್ ಡಿಕ್ಷನರಿ
+  function getHindiKeyHeading(typeKey) {
+    const raw = String(typeKey || '').toLowerCase().trim();
+    if (raw === 'mcq') return "बहुविकल्पी प्रश्नों के उत्तर :";
+    if (raw === 'blanks' || raw === 'fill_ups' || raw === 'fib') return "रिक्त स्थानों की पूर्ति के उत्तर :";
+    if (raw === 'true_false') return "सही या गलत के उत्तर :";
+    if (raw === 'analogy') return "संबंध आधारित उत्तर :";
+    if (raw === 'odd_one_out') return "बेमेल शब्दों के उत्तर :";
+    if (raw === 'match') return "सही जोड़ियों के उत्तर :";
+    if (raw === 'vsa_1m') return "एक वाक्य के उत्तर :";
+    if (raw === 'sa_2m') return "दो-तीन वाक्यों के उत्तर :";
+    if (raw === 'sa_3m') return "तीन-चार वाक्यों के उत्तर :";
+    if (raw === 'la_4m') return "सविस्तार / व्याकरण आधारित उत्तर :";
+    return "प्रश्नों के आदर्श उत्तर :";
+  }
+
+  // ೫. 🌟 ಹಿಂದಿ ಪತ್ರಿಕೆಗೆ ಮುಕ್ತ ಅಂತರದ (Spacious Multi-page Flow) CSS ಇಂಜೆಕ್ಷನ್
+  const hindiSpaciousCSS = document.createElement('style');
+  hindiSpaciousCSS.innerHTML = `
+    /* ಹಿಂದಿ ಪತ್ರಿಕೆಗೆ ಆರಾಮದಾಯಕ ಅಂತರ */
+    .hindi-spacious-sheet {
+      padding: 8mm 12mm 8mm 12mm !important;
+      min-height: 270mm !important;
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+    .hindi-spacious-sheet .board-q-row-fit {
+      display: flex !important;
+      align-items: flex-start !important;
+      gap: 7px !important;
+      margin-bottom: 7px !important; /* ಮುಕ್ತ ಸಾಲುಗಳ ಅಂತರ */
+      line-height: 1.60 !important;   /* ಮಾತ್ರಾಗಳಿಗೆ ಸೂಕ್ತ ಲೈನ್ ಹೈಟ್ */
+      break-inside: avoid !important;
+    }
+    .hindi-spacious-sheet .board-q-num-fit {
+      font-weight: 900 !important;
+      font-size: 11.5pt !important;
+      min-width: 26px !important;
+      color: #000 !important;
+    }
+    .hindi-spacious-sheet .board-q-text-fit {
+      flex: 1 !important;
+      font-weight: 600 !important;
+      font-size: 11pt !important;
+      color: #000 !important;
+      text-align: justify !important;
+      line-height: 1.60 !important;
+    }
+    .hindi-spacious-sheet .section-wrapper-box {
+      margin-top: 12px !important; /* ವಿಭಾಗಗಳ ಮುನ್ನ ಸ್ಪಷ್ಟ ಅಂತರ */
+      margin-bottom: 5px !important;
+      break-inside: avoid !important;
+    }
+    .hindi-spacious-sheet .key-answer-hanging-row {
+      display: flex !important;
+      align-items: flex-start !important;
+      gap: 8px !important;
+      margin-bottom: 6px !important;
+      line-height: 1.50 !important;
+      break-inside: avoid !important;
+    }
+  `;
+  document.head.appendChild(hindiSpaciousCSS);
+
+  // ೬. 🌟 ಹಿಂದಿ ಅಧಿಕೃತ ಹೆಡರ್ ಬಿಲ್ಡರ್
+  function generateHindiOfficialHeader(schoolName, grade, examType, marks, examDate) {
+    const cleanDate = examDate && examDate.trim() !== '' ? escapeHtml(examDate.trim()) : '_____________';
+    const displayExamType = getHindiExamTypeName(examType);
+
+    return `
+      <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 6px;">
+        <div style="text-align: center; margin-bottom: 2px;">
+          <h1 style="font-size: 14.5pt; font-weight: 900; color: #000; text-transform: uppercase; margin: 0; line-height: 1.15;">
+            ${escapeHtml(schoolName)}
+          </h1>
+          <div style="font-size: 11pt; font-weight: 900; color: #000; margin-top: 1px; line-height: 1.2;">
+            ${escapeHtml(displayExamType)}
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
+          <tr>
+            <td style="width: 32%; text-align: left; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+              विषय : <b>हिन्दी (Hindi)</b>
+            </td>
+            <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+              कक्षा : <b>${grade}वीं कक्षा</b>
+            </td>
+            <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+              दिनांक : <b>${cleanDate}</b>
+            </td>
+            <td style="width: 20%; text-align: right; font-weight: 800; font-size: 10.5pt; color: #000; padding: 2px 0;">
+              पूर्णांक / कुल अंक : <b>${marks}</b>
+            </td>
+          </tr>
+        </table>
+      </div>
+    `;
+  }
+
+  // ೭. 🌟 ಹಿಂದಿ ನೀಲನಕ್ಷೆ (100% Hindi Devanagari Blue Print)
+  function renderHindiExclusiveBlueprint(questions, totalMarks, grade) {
+    const container = document.getElementById('rendered-blueprint');
+    if (!container) return;
+
+    const totalQ = questions.length;
+    const kMarks = Math.round(totalMarks * 0.25);
+    const uMarks = Math.round(totalMarks * 0.45);
+    const aMarks = Math.round(totalMarks * 0.20);
+    const sMarks = totalMarks - (kMarks + uMarks + aMarks);
+
+    const easyMarks = Math.round(totalMarks * 0.30);
+    const avgMarks = Math.round(totalMarks * 0.50);
+    const diffMarks = totalMarks - (easyMarks + avgMarks);
+
+    // ಪಾಠವಾರು ಗುಂಪು
+    const chapterGroupMap = new Map();
+    questions.forEach(q => {
+      const ch = (q.chapter || 'सामान्य पाठ').trim();
+      if (!chapterGroupMap.has(ch)) {
+        chapterGroupMap.set(ch, { count: 0, marks: 0 });
+      }
+      chapterGroupMap.get(ch).count += 1;
+      chapterGroupMap.get(ch).marks += (typeof getExactQuestionMarks === 'function' ? getExactQuestionMarks(q) : (q.marks || 1));
+    });
+
+    const sortedChapters = Array.from(chapterGroupMap.entries());
+
+    container.innerHTML = `
+      <div class="a4-board-sheet hindi-spacious-sheet">
+        <h2 style="text-align: center; font-size: 14pt; font-weight: 900; color: #000; margin-bottom: 8px; border-bottom: 2px solid #000; padding-bottom: 4px;">
+          कक्षा ${grade}वीं - हिन्दी (Hindi) - आधिकारिक ब्लूप्रिंट (Blue Print)
+        </h2>
+
+        <!-- चरण 1: उद्देश्यों के अनुसार अंक विभाजन -->
+        <div style="margin-bottom: 10px;">
+          <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">चरण 1: उद्देश्यों के अनुसार अंक विभाजन (Weightage to Objectives)</h4>
+          <table class="blueprint-official-table">
+            <thead>
+              <tr>
+                <th style="width: 8%;">क्र.सं.</th>
+                <th style="width: 36%; text-align: left;">उद्देश्य</th>
+                <th style="width: 18%;">अंक</th>
+                <th style="width: 18%;">प्रश्नों की संख्या</th>
+                <th style="width: 20%;">प्रतिशत</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td style="text-align: left;">ज्ञान (Knowledge)</td><td>${kMarks}</td><td>${questions.filter(q=>q.obj==='ಜ್ಞಾನ'||q.obj==='ಸ್ಮರಣೆ'||q.obj==='ज्ञान').length || Math.round(totalQ * 0.3)}</td><td>25%</td></tr>
+              <tr><td>2</td><td style="text-align: left;">समझ / बोध (Understanding)</td><td>${uMarks}</td><td>${questions.filter(q=>q.obj==='ತಿಳುವಳಿಕೆ'||q.obj==='समझ').length || Math.round(totalQ * 0.45)}</td><td>45%</td></tr>
+              <tr><td>3</td><td style="text-align: left;">अनुप्रयोग (Application)</td><td>${aMarks}</td><td>${questions.filter(q=>q.obj==='ಅನ್ವಯ'||q.obj==='अनुप्रयोग').length || Math.round(totalQ * 0.15)}</td><td>20%</td></tr>
+              <tr><td>4</td><td style="text-align: left;">कौशल / व्याकरण (Skill)</td><td>${sMarks}</td><td>${Math.max(1, totalQ - (Math.round(totalQ * 0.3) + Math.round(totalQ * 0.45) + Math.round(totalQ * 0.15)))}</td><td>10%</td></tr>
+              <tr style="font-weight: 900; background: #f1f5f9;"><td></td><td style="text-align: left;">कुल</td><td>${totalMarks}</td><td>${totalQ}</td><td>100%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- चरण 2: कठिनाई स्तर के अनुसार अंक विभाजन -->
+        <div style="margin-bottom: 10px;">
+          <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">चरण 2: कठिनाई स्तर के अनुसार अंक विभाजन (Difficulty Level)</h4>
+          <table class="blueprint-official-table">
+            <thead>
+              <tr>
+                <th style="width: 8%;">क्र.सं.</th>
+                <th style="width: 36%; text-align: left;">कठिनाई स्तर</th>
+                <th style="width: 18%;">अंक</th>
+                <th style="width: 18%;">प्रश्नों की संख्या</th>
+                <th style="width: 20%;">प्रतिशत</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>1</td><td style="text-align: left;">सरल / सुगम (Easy)</td><td>${easyMarks}</td><td>${questions.filter(q=>q.diff==='ಸುಲಭ'||q.diff==='सरल').length || Math.round(totalQ * 0.35)}</td><td>30%</td></tr>
+              <tr><td>2</td><td style="text-align: left;">सामान्य / मध्यम (Average)</td><td>${avgMarks}</td><td>${questions.filter(q=>q.diff==='ಸಾಧಾರಣ'||q.diff==='सामान्य').length || Math.round(totalQ * 0.50)}</td><td>50%</td></tr>
+              <tr><td>3</td><td style="text-align: left;">कठिन (Difficult)</td><td>${diffMarks}</td><td>${Math.max(1, totalQ - (Math.round(totalQ * 0.35) + Math.round(totalQ * 0.50)))}</td><td>20%</td></tr>
+              <tr style="font-weight: 900; background: #f1f5f9;"><td></td><td style="text-align: left;">कुल</td><td>${totalMarks}</td><td>${totalQ}</td><td>100%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- चरण 3: पाठवार अंक विभाजन -->
+        <div>
+          <h4 style="font-weight: 900; font-size: 10.5pt; margin-bottom: 2px;">चरण 3: पाठवार / इकाईवार अंक विभाजन (Unit-wise Weightage)</h4>
+          <table class="blueprint-official-table">
+            <thead>
+              <tr>
+                <th style="width: 8%;">क्र.सं.</th>
+                <th style="width: 54%; text-align: left;">पाठ का नाम</th>
+                <th style="width: 18%;">प्रश्नों की संख्या</th>
+                <th style="width: 20%;">कुल अंक</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedChapters.map(([chName, stats], i) => `
+                <tr>
+                  <td>${i + 1}</td>
+                  <td style="text-align: left; font-weight: 700;">${escapeHtml(chName)}</td>
+                  <td style="font-weight: 900;">${stats.count}</td>
+                  <td style="font-weight: 900; color: #0f172a;">${stats.marks}</td>
+                </tr>
+              `).join('')}
+              <tr style="font-weight: 900; background: #f1f5f9;">
+                <td colspan="2" style="text-align: right; padding-right: 12px;">कुल</td>
+                <td style="font-size: 11pt;">${totalQ}</td>
+                <td style="font-size: 11pt;">${totalMarks}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  // ೮. 🌟 ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ & ಉತ್ತರ ಪತ್ರಿಕೆ ರೆಂಡರರ್ (ಹಿಂದಿಗೆ ವಿಶೇಷ ಸಂಯೋಜನೆ)
+  const previousRenderFullPaper = window.renderFullExamPaperWithCustomHeader;
+  window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+    const currentSubj = String(document.getElementById('cfg-subject')?.value || '');
+    const isHindi = isSubjectHindi(currentSubj);
+
+    // ಒಂದು ವೇಳೆ ಹಿಂದಿ ವಿಷಯವಲ್ಲದಿದ್ದರೆ ಎಂದಿನಂತೆ ಕಾರ್ಯನಿರ್ವಹಿಸಲಿ
+    if (!isHindi) {
+      if (typeof previousRenderFullPaper === 'function') {
+        previousRenderFullPaper(headerHtml);
+      }
+      return;
+    }
+
+    // 🌟 ಹಿಂದಿ ವಿಷಯವಾಗಿದ್ದಲ್ಲಿ ವಿಶೇಷ ರೆಂಡರಿಂಗ್
+    const allQuestions = (appState.activeGeneratedQuestions || []).filter(Boolean);
+    const grade = document.getElementById('cfg-class')?.value || '6';
+    const schoolName = document.getElementById('cfg-school-name')?.value || 'सरकारी प्राथमिक विद्यालय';
+    const examType = document.getElementById('cfg-exam-type')?.value || 'द्वितीय रचनात्मक परीक्षा';
+    const examDate = document.getElementById('cfg-exam-date')?.value || '';
+
+    const typeGroups = new Map();
+    allQuestions.forEach(q => {
+      let t = (typeof getCanonicalQuestionType === 'function') ? getCanonicalQuestionType(q) : (q.type || 'vsa_1m');
+      if (!typeGroups.has(t)) typeGroups.set(t, []);
+      typeGroups.get(t).push(q);
+    });
+
+    const order = ['mcq', 'blanks', 'true_false', 'analogy', 'odd_one_out', 'match', 'vsa_1m', 'sa_2m', 'sa_3m', 'la_4m'];
+    const sortedKeys = Array.from(typeGroups.keys()).sort((a, b) => {
+      const iA = order.indexOf(a) >= 0 ? order.indexOf(a) : 99;
+      const iB = order.indexOf(b) >= 0 ? order.indexOf(b) : 99;
+      return iA - iB;
+    });
+
+    let paperSectionsHtml = [];
+    let keySectionsHtml = [];
+    let qNum = 1, kNum = 1, romanIndex = 1;
+    const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV"];
+
+    sortedKeys.forEach(tKey => {
+      const qList = typeGroups.get(tKey);
+      if (!qList || qList.length === 0) return;
+
+      const r = romanNumerals[romanIndex++ - 1];
+      const headingText = getHindiSectionHeading(tKey);
+      const keyHeadingText = getHindiKeyHeading(tKey);
+      const marksPerQ = (tKey === 'match') ? 4 : (typeof getExactQuestionMarks === 'function' ? getExactQuestionMarks(qList[0]) : (qList[0].marks || 1));
+      const totalMarks = (tKey === 'match') ? 4 : (marksPerQ * qList.length);
+
+      const headerTableHtml = `
+        <table class="board-heading-row-table">
+          <tr>
+            <td class="heading-left-title">
+              <b>${r}.</b> <span id="live-head-${r}" contenteditable="true" style="outline:none;">${escapeHtml(headingText)}</span>
+            </td>
+            <td class="heading-right-marks">
+              <b>${marksPerQ}x${tKey === 'match' ? 1 : qList.length}=${String(totalMarks).padStart(2, '0')}</b>
+            </td>
+          </tr>
+        </table>
+      `;
+
+      if (tKey === 'match') {
+        const mItem = qList[0];
+        const idx = allQuestions.indexOf(mItem);
+        let pairs = mItem.matchPairs || [{ a: 'ಅಂಶ 1', b: 'ಉತ್ತರ 1' }, { a: 'ಅಂಶ 2', b: 'ಉತ್ತರ 2' }, { a: 'ಅಂಶ 3', b: 'ಉತ್ತರ 3' }, { a: 'ಅಂಶ 4', b: 'ಉತ್ತರ 4' }];
+        if (pairs.length > 4) pairs = pairs.slice(0, 4);
+
+        const colA = pairs.map((p, i) => ({ text: String(p.a || '').replace(/^[\(\[]?\d+[\)\]\.\s]+/, '').trim(), origIdx: i }));
+        let colB = pairs.map((p, i) => ({ text: String(p.b || '').replace(/^[\(\[]?[A-Za-z\u0C80-\u0CFF][\)\]\.\s]+/, '').trim(), origIdx: i }));
+        for (let i = colB.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [colB[i], colB[j]] = [colB[j], colB[i]]; }
+
+        const matchQNum = qNum++;
+        const matchKNum = kNum++;
+
+        paperSectionsHtml.push(`
+          <div class="section-wrapper-box">
+            ${headerTableHtml}
+            <div class="board-q-row-fit" style="margin-bottom: 2px;">
+              <span class="board-q-num-fit">${matchQNum}.</span>
+              <span class="board-q-text-fit">खंड 'क' में दिए गए शब्दों को खंड 'ख' से सही जोड़कर लिखिए :</span>
+              <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+            </div>
+            <table style="width: 100%; max-width: 580px; margin: 2px auto; border-collapse: collapse; font-size: 10.5pt;">
+              <tr>
+                <td style="width: 50%; text-decoration: underline; font-weight: 900; padding: 1px 8px;">खंड 'क'</td>
+                <td style="width: 50%; text-decoration: underline; font-weight: 900; padding: 1px 8px;">खंड 'ख'</td>
+              </tr>
+              ${colA.map((a, i) => `
+                <tr>
+                  <td style="padding: 2px 8px; font-weight: 600;">(${i + 1}) ${escapeHtml(a.text)}</td>
+                  <td style="padding: 2px 8px; font-weight: 600;">(${String.fromCharCode(65 + i)}) ${escapeHtml(colB[i].text)}</td>
+                </tr>
+              `).join('')}
+            </table>
+          </div>
+        `);
+
+        keySectionsHtml.push(`
+          <div class="section-wrapper-box">
+            <table class="board-heading-row-table">
+              <tr>
+                <td class="heading-left-title"><b>${r}. ${escapeHtml(keyHeadingText)}</b></td>
+              </tr>
+            </table>
+            <div class="key-hanging-row-item">
+              <span class="key-num-label">${matchKNum}.</span>
+              <div class="key-text-content" style="font-weight: 700;">
+                ${colA.map((a, i) => {
+                  const bIdx = colB.findIndex(b => b.origIdx === a.origIdx);
+                  return `(${i + 1}) ➔ <b>(${String.fromCharCode(65 + bIdx)}) ${escapeHtml(colB[bIdx].text)}</b>`;
+                }).join(' &nbsp;|&nbsp; ')}
+              </div>
+            </div>
+          </div>
+        `);
+      } else if (tKey === 'mcq') {
+        paperSectionsHtml.push(`
+          <div class="section-wrapper-box">
+            ${headerTableHtml}
+            <div>${qList.map(m => {
+              const idx = allQuestions.indexOf(m);
+              return `
+                <div style="margin-bottom: 4px;">
+                  <div class="board-q-row-fit">
+                    <span class="board-q-num-fit">${qNum++}.</span>
+                    <span class="board-q-text-fit">${escapeHtml(cleanQuestionTextForDisplay(m.q))}</span>
+                    <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                  </div>
+                  ${window.renderMCQOptionsGridBlock(m)}
+                </div>`;
+            }).join('')}</div>
+          </div>
+        `);
+
+        keySectionsHtml.push(`
+          <div class="section-wrapper-box">
+            <table class="board-heading-row-table">
+              <tr>
+                <td class="heading-left-title"><b>${r}. ${escapeHtml(keyHeadingText)}</b></td>
+              </tr>
+            </table>
+            <div>${qList.map(m => `
+              <div class="key-hanging-row-item">
+                <span class="key-num-label">${kNum++}.</span>
+                <span class="key-text-content"><b>${escapeHtml(m.ans || '')}</b></span>
+              </div>
+            `).join('')}</div>
+          </div>
+        `);
+      } else {
+        paperSectionsHtml.push(`
+          <div class="section-wrapper-box">
+            ${headerTableHtml}
+            <div>${qList.map(item => {
+              const idx = allQuestions.indexOf(item);
+              const isTF = (tKey === 'true_false');
+              return `
+                <div style="margin-bottom: 5px;">
+                  <div class="board-q-row-fit">
+                    <span class="board-q-num-fit">${qNum++}.</span>
+                    <span class="board-q-text-fit">${escapeHtml(cleanQuestionTextForDisplay(item.q))}${isTF ? " &nbsp; [ &nbsp;&nbsp;&nbsp;&nbsp; ]" : ""}</span>
+                    <button type="button" onclick="openPopupQuestionEditor(${idx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                  </div>
+                  ${(typeof renderQuestionDiagramImage === 'function') ? renderQuestionDiagramImage(item) : ''}
+                </div>`;
+            }).join('')}</div>
+          </div>
+        `);
+
+        keySectionsHtml.push(`
+          <div class="section-wrapper-box">
+            <table class="board-heading-row-table">
+              <tr>
+                <td class="heading-left-title"><b>${r}. ${escapeHtml(keyHeadingText)}</b></td>
+              </tr>
+            </table>
+            <div>${qList.map(item => `
+              <div class="key-hanging-row-item">
+                <span class="key-num-label">${kNum++}.</span>
+                <span class="key-text-content">${escapeHtml(item.ans || '')}</span>
+              </div>
+            `).join('')}</div>
+          </div>
+        `);
+      }
+    });
+
+    const totalCalculatedMarks = allQuestions.reduce((a, b) => a + (typeof getExactQuestionMarks === 'function' ? getExactQuestionMarks(b) : (b.marks || 1)), 0);
+    const hindiHeader = generateHindiOfficialHeader(schoolName, grade, examType, totalCalculatedMarks, examDate);
+
+    // 🌟 ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರೆಂಡರ್ (ಆರಾಮದಾಯಕ ಮುಕ್ತ ಅಂತರದ ಶೀಟ್)
+    document.getElementById('rendered-paper').innerHTML = `
+      <div class="a4-board-sheet hindi-spacious-sheet">
+        ${hindiHeader}
+        <div>${paperSectionsHtml.join('')}</div>
+      </div>
+    `;
+
+    // 🌟 ಉತ್ತರ ಪತ್ರಿಕೆ ರೆಂಡರ್ (ಆದರ್ಶ ಉತ್ತರ ತಾಲಿಖಾ - 100% Hindi)
+    document.getElementById('rendered-key').innerHTML = `
+      <div class="a4-board-sheet hindi-spacious-sheet">
+        ${hindiHeader}
+        <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #000; padding-bottom: 3px;">
+          <h3 style="font-size: 13pt; font-weight: 900; margin: 0; text-transform: uppercase; color: #000;">
+            आदर्श उत्तर तालिका एवं मूल्यांकन योजना (Scheme of Valuation)
+          </h3>
+        </div>
+        <div>${keySectionsHtml.join('')}</div>
+      </div>
+    `;
+
+    // 🌟 ನೀಲನಕ್ಷೆ ರೆಂಡರ್ (100% Hindi Blueprint)
+    renderHindiExclusiveBlueprint(allQuestions, totalCalculatedMarks, grade);
+  };
+})();
+
   </script>
 </body>
 </html>

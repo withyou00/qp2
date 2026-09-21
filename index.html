@@ -44865,6 +44865,157 @@ fetchPendingRequestsFromCloud();
   };
 })();
 
+/* ==========================================================================
+   🕒 SMART EXAM HISTORY ENGINE: SAVE LAST 2 PAPERS PER SUBJECT
+   ========================================================================== */
+(function() {
+  // ೧. ಹಿಸ್ಟರಿ ಸೇವ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+  window.saveToUserHistory = function() {
+    const userId = appState.currentUserId || 'guest';
+    const subject = document.getElementById('cfg-subject')?.value || 'General';
+    const schoolName = document.getElementById('cfg-school-name')?.value || '';
+    const grade = document.getElementById('cfg-class')?.value || '';
+    const examType = document.getElementById('cfg-exam-type')?.value || '';
+    const examDate = document.getElementById('cfg-exam-date')?.value || '';
+    const marks = document.getElementById('cfg-total-marks')?.value || '';
+
+    const historyKey = `wy_history_${userId}`;
+    let history = JSON.parse(localStorage.getItem(historyKey) || '{}');
+
+    if (!history[subject]) history[subject] = [];
+
+    // ಹೊಸ ಪತ್ರಿಕೆಯ ಡೇಟಾ
+    const newPaper = {
+      timestamp: new Date().toLocaleString(),
+      id: Date.now(),
+      config: { schoolName, subject, grade, examType, examDate, marks },
+      questions: JSON.parse(JSON.stringify(appState.activeGeneratedQuestions)) // 🌟 ಪ್ರಶ್ನೆಗಳ ಸ್ನ್ಯಾಪ್‌ಶಾಟ್
+    };
+
+    // ವಿಷಯವಾರು ಕೇವಲ ಕೊನೆಯ 2 ಪತ್ರಿಕೆಗಳನ್ನು ಮಾತ್ರ ಉಳಿಸುವುದು
+    history[subject].unshift(newPaper);
+    if (history[subject].length > 2) {
+      history[subject] = history[subject].slice(0, 2);
+    }
+
+    localStorage.setItem(historyKey, JSON.stringify(history));
+    renderHistoryUI();
+  };
+
+  // ೨. ಹಿಸ್ಟರಿ ಲಿಸ್ಟ್ ಪ್ರದರ್ಶಿಸುವ ಫಂಕ್ಷನ್ (UI)
+  window.renderHistoryUI = function() {
+    const userId = appState.currentUserId || 'guest';
+    const subject = document.getElementById('cfg-subject')?.value || 'General';
+    const historyKey = `wy_history_${userId}`;
+    const history = JSON.parse(localStorage.getItem(historyKey) || '{}');
+    const subjectHistory = history[subject] || [];
+
+    // ಜನರೇಟರ್ ಪೇಜ್‌ನಲ್ಲಿ ಹಿಸ್ಟರಿ ಬಾಕ್ಸ್ ಇಂಜೆಕ್ಷನ್
+    let historyContainer = document.getElementById('user-history-box');
+    if (!historyContainer) {
+      const targetArea = document.querySelector('#view-generator .lg\\:col-span-4');
+      if (targetArea) {
+        const boxHtml = `
+          <div id="user-history-box" class="card-modern p-4 space-y-3 border-2 border-indigo-100 bg-indigo-50/20 mt-4">
+            <h3 class="font-black text-xs text-indigo-900 flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left"></i> <span>🕒 ಇತ್ತೀಚಿನ ಪತ್ರಿಕೆಗಳು (History)</span>
+            </h3>
+            <div id="history-items-list" class="space-y-2"></div>
+            <p class="text-[9px] text-slate-400 font-bold">* ಪ್ರತಿ ವಿಷಯದ ಕೊನೆಯ 2 ಪತ್ರಿಕೆಗಳು ಇಲ್ಲಿರುತ್ತವೆ.</p>
+          </div>
+        `;
+        targetArea.insertAdjacentHTML('beforeend', boxHtml);
+        historyContainer = document.getElementById('history-items-list');
+      }
+    } else {
+      historyContainer = document.getElementById('history-items-list');
+    }
+
+    if (!historyContainer) return;
+
+    if (subjectHistory.length === 0) {
+      historyContainer.innerHTML = `<p class="text-[10px] text-slate-400 font-bold py-2">ಯಾವುದೇ ಹಳೆಯ ಪತ್ರಿಕೆಗಳಿಲ್ಲ.</p>`;
+      return;
+    }
+
+    historyContainer.innerHTML = subjectHistory.map((paper, idx) => `
+      <div onclick="loadFromHistory('${subject}', ${idx})" class="p-2.5 bg-white border border-indigo-200 rounded-xl shadow-sm cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition group">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-full font-bold">${idx + 1}. ಪತ್ರಿಕೆ</span>
+          <span class="text-[9px] text-slate-400 font-bold">${paper.timestamp}</span>
+        </div>
+        <div class="text-[10px] font-black text-slate-800 leading-tight">
+          ${paper.config.examType} &bull; ${paper.config.marks} ಅಂಕ
+        </div>
+        <div class="text-[9px] text-indigo-600 font-bold mt-1 group-hover:underline">➔ ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ ಪುನಃ ನೋಡಿ</div>
+      </div>
+    `).join('');
+  };
+
+  // ೩. ಹಿಸ್ಟರಿಯಿಂದ ಪತ್ರಿಕೆಯನ್ನು ಲೋಡ್ ಮಾಡುವುದು
+  window.loadFromHistory = function(subject, index) {
+    const userId = appState.currentUserId || 'guest';
+    const history = JSON.parse(localStorage.getItem(`wy_history_${userId}`) || '{}');
+    const paper = history[subject][index];
+
+    if (!paper) return;
+
+    // ಕಾನ್ಫಿಗರೇಶನ್ ಮರುಸ್ಥಾಪನೆ
+    document.getElementById('cfg-school-name').value = paper.config.schoolName;
+    document.getElementById('cfg-class').value = paper.config.grade;
+    document.getElementById('cfg-exam-type').value = paper.config.examType;
+    document.getElementById('cfg-exam-date').value = paper.config.examDate;
+    document.getElementById('cfg-total-marks').value = paper.config.marks;
+
+    // 🌟 ಪ್ರಶ್ನೆಗಳನ್ನು ಮರುಸ್ಥಾಪಿಸಿ ರೆಂಡರ್ ಮಾಡುವುದು
+    appState.activeGeneratedQuestions = paper.questions;
+    
+    // ಹೆಡರ್ ರಚನೆ (ಹಳೆಯ ಪೇಪರ್ ಡೇಟಾ ಬಳಸಿ)
+    const isEnglish = String(subject).toLowerCase().includes('english');
+    const headerHtml = (typeof generateOfficialBoardHeader === 'function') 
+      ? generateOfficialBoardHeader(paper.config.schoolName, subject, paper.config.grade, paper.config.examType, paper.config.marks, paper.config.examDate)
+      : "";
+
+    window.renderFullExamPaperWithCustomHeader(headerHtml);
+
+    // ಔಟ್‌ಪುಟ್ ಸೆಕ್ಷನ್ ತೋರಿಸುವುದು
+    const outSec = document.getElementById('output-section');
+    if (outSec) {
+      outSec.classList.remove('hidden');
+      switchOutputTab('paper');
+      outSec.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    showToast(`🕒 ಹಳೆಯ ಪತ್ರಿಕೆಯನ್ನು (${paper.timestamp}) ಲೋಡ್ ಮಾಡಲಾಗಿದೆ!`, 'success');
+  };
+
+  // ೪. ಜನರೇಟ್ ಬಟನ್ ಕ್ಲಿಕ್ ಆದಾಗ ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ಹಿಸ್ಟರಿಗೆ ಸೇರಿಸುವ ಹುಕ್ (Hook)
+  const originalGenerateAction = window.generateExamPackageFromBank;
+  window.generateExamPackageFromBank = window.generateExamPackage = async function() {
+    // ಮೊದಲು ಪೇಪರ್ ಜನರೇಟ್ ಮಾಡಲಿ
+    if (typeof originalGenerateAction === 'function') {
+      await originalGenerateAction();
+    }
+    
+    // ಜನರೇಟ್ ಯಶಸ್ವಿಯಾದ ನಂತರ ಹಿಸ್ಟರಿಗೆ ಸೇರಿಸು
+    setTimeout(() => {
+      if (appState.activeGeneratedQuestions && appState.activeGeneratedQuestions.length > 0) {
+        window.saveToUserHistory();
+      }
+    }, 1000);
+  };
+
+  // ೫. ವಿಷಯ ಅಥವಾ ಲಾಗಿನ್ ಬದಲಾದಾಗ ಹಿಸ್ಟರಿ ಲಿಸ್ಟ್ ಅಪ್ಡೇಟ್ ಆಗಲು
+  const originalSyncFn = window.syncSubjectAndChapters;
+  window.syncSubjectAndChapters = function() {
+    if (typeof originalSyncFn === 'function') originalSyncFn();
+    window.renderHistoryUI();
+  };
+
+  // ಪ್ರಾರಂಭದಲ್ಲಿ ಲೋಡ್ ಮಾಡುವುದು
+  setTimeout(window.renderHistoryUI, 1000);
+})();
+
   </script>
 </body>
 </html>

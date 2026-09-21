@@ -43832,143 +43832,114 @@ fetchPendingRequestsFromCloud();
 })();
 
 /* ==========================================================================
-   🌐 100% MULTI-SCRIPT SUBJECT & PART AUTO-MATCHER (HINDI/DEVANAGARI FIX)
+   ✨ 100% CLEAN NO-HTML-LEAK MULTI-LINE & UNDERLINE MASTER ENGINE
    ========================================================================== */
 (function() {
-  // ೧. ಹಿಂದಿ (हिन्दी / हिंदी), ಕನ್ನಡ & ಇಂಗ್ಲಿಷ್ ಲಿಪಿಗಳನ್ನು ನಿಖರವಾಗಿ ಮ್ಯಾಪ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+  // ೧. ಪೂರ್ಣ CSS (ಸ್ಕ್ರೀನ್ & ಪ್ರಿಂಟ್ ಎರಡರಲ್ಲೂ New-Line ಹಾಗೂ ಅಂಡರ್‌ಲೈನ್ ಸಕ್ರಿಯ)
+  const masterStyle = document.createElement('style');
+  masterStyle.innerHTML = `
+    .q-paper-text, .board-q-text-fit, .key-text, .key-hanging-text, 
+    .board-q-text, .key-hanging-text-content, .font-bold.text-slate-900 {
+      white-space: pre-line !important;
+      word-break: break-word !important;
+      line-height: 1.55 !important;
+    }
+    .mcq-4col-grid, .mcq-grid-layout, .mcq-4col-horizontal-row {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 2px 10px !important;
+      padding-left: 28px !important;
+      margin-top: 2px !important;
+    }
+  `;
+  document.head.appendChild(masterStyle);
+
+  // ೨. 🌟 ಯಾವುದೇ HTML ಟ್ಯಾಗ್ ಲೀಕ್ ಆಗದಂತೆ ಶುದ್ಧ ಪಠ್ಯವನ್ನು ಲೈನ್ ಬೈ ಲೈನ್ ರೂಪಿಸುವ ಮಾಸ್ಟರ್ ಪಾರ್ಸರ್
+  window.cleanAndFormatQuestionTextPure = function(rawText) {
+    if (!rawText) return '';
+    let text = String(rawText).trim();
+
+    // AI ಸಿಟೇಶನ್ ಚಿಹ್ನೆಗಳ ನಿವಾರಣೆ ([cite: 1] ಇತ್ಯಾದಿ)
+    text = text.replace(/\[cite:\s*\d+\]/gi, '').replace(/\[\d+\]/g, '').trim();
+
+    // ಮೊದಲೇ ಬಂದಿರುವ <div...> ಅಥವಾ <u...> ಟ್ಯಾಗ್‌ಗಳಿದ್ದರೆ ಸಂಪೂರ್ಣ ಸ್ವಚ್ಛಗೊಳಿಸುವುದು
+    text = text.replace(/<\/?div[^>]*>/gi, '');
+    text = text.replace(/<\/?u[^>]*>/gi, '');
+    text = text.replace(/<\/?b[^>]*>/gi, '');
+
+    // ಪ್ರಶ್ನೆಯ ಮುಂದಿರುವ ಡಬಲ್ ನಂಬರ್ (ಉದಾ: "5) 5)", "1.", "3)") ತೆಗೆಯುವುದು
+    text = text.replace(/^(?:[\(\[]?\d+[\)\]\.\s\:\-]+\s*)+/g, '').trim();
+
+    // 🌟 ಆವರಣ ಚಿಹ್ನೆ ( क , ज, त्र... ) ಯನ್ನು ಪ್ರತ್ಯೇಕ ಸಾಲಿಗೆ ತರುವುದು
+    text = text.replace(/(?:\:\s*|\s+)(\([^\)]+\))\s*(?=[1-9೧-೯]\.)/g, ':\n$1\n');
+
+    // 🌟 1. 2. 3. 4. ಉಪ-ಪ್ರಶ್ನೆಗಳನ್ನು ಕಡ್ಡಾಯವಾಗಿ ಹೊಸ ಸಾಲಿಗೆ ಇಳಿಸುವುದು
+    text = text.replace(/(?:\s{2,}|\s+)(?=[1-9೧-೯]\.\s+)/g, '\n');
+
+    // 🌟 ಸಣ್ಣ ಅಂಡರ್‌ಸ್ಕೋರ್ (_) ಅಥವಾ ಡ್ಯಾಶ್ (-) ಗಳನ್ನು ಉದ್ದನೆಯ ನೈಜ ಉತ್ತರ ಗೆರೆಯನ್ನಾಗಿ ಮಾಡುವುದು (____)
+    text = text.replace(/(?<=\-\s*)_(?!\w)/g, '____________________________________');
+    text = text.replace(/(?<=\:\s*)_(?!\w)/g, '____________________________________');
+    text = text.replace(/:\s*_\s*$/gm, ': ____________________________________');
+    text = text.replace(/-\s*_\s*$/gm, '- ____________________________________');
+
+    // ಕೊನೆಯಲ್ಲಿರುವ (ಸುಲಭ), (ಕಠಿಣ) ತೆಗೆಯುವುದು
+    text = text.replace(/\s*\((?:ಸುಲಭ|ಸಾಧಾರಣ|ಕಠಿಣ|ಸ್ಮರಣೆ|ಜ್ಞಾನ|ತಿಳುವಳಿಕೆ|ಅನ್ವಯ)\)\s*$/gi, '').trim();
+
+    return text;
+  };
+
+  // ಗ್ಲೋಬಲ್ ಫಂಕ್ಷನ್‌ಗಳ ಓವರ್‌ರೈಡ್
+  window.renderSafeRichTextWithUnderlines = function(text) {
+    return window.cleanAndFormatQuestionTextPure(text);
+  };
+
+  window.cleanQuestionTextForDisplay = function(text) {
+    return window.cleanAndFormatQuestionTextPure(text);
+  };
+
+  // ೩. 🌟 ಹಿಂದಿ ಮತ್ತು ಎಲ್ಲಾ ಭಾಷೆಗಳ ಸಬ್ಜೆಕ್ಟ್ ಆಟೋ-ಮ್ಯಾಪರ್
   window.getNormalizedSubjectKey = function(subjectStr) {
     if (!subjectStr) return 'general';
     const s = String(subjectStr).toLowerCase().trim();
-    
-    // ಹಿಂದಿ (Kannada, English & Devanagari Scripts)
-    if (s.includes('ಹಿಂದಿ') || s.includes('hindi') || s.includes('हिन्दी') || s.includes('हिंदी')) {
-      return 'hindi';
-    }
-    // ಸಮಾಜ ವಿಜ್ಞಾನ
-    if (s.includes('ಸಮಾಜ') || s.includes('social') || s.includes('ಸಾಮಾಜಿಕ') || s.includes('samaja') || s.includes('सामाजिक')) {
-      return 'social_science';
-    }
-    // ವಿಜ್ಞಾನ
-    if (s.includes('ವಿಜ್ಞಾನ') || s.includes('science') || s.includes('vignana') || s.includes('विज्ञान')) {
-      return 'science';
-    }
-    // ಗಣಿತ
-    if (s.includes('ಗಣಿತ') || s.includes('math') || s.includes('ganitha') || s.includes('गणित')) {
-      return 'mathematics';
-    }
-    // ಕನ್ನಡ
-    if (s.includes('ಕನ್ನಡ') || s.includes('kannada')) {
-      return 'kannada';
-    }
-    // ಇಂಗ್ಲಿಷ್
-    if (s.includes('ಇಂಗ್ಲಿಷ್') || s.includes('english') || s.includes('ಆಂಗ್ಲ')) {
-      return 'english';
-    }
-    // ಉರ್ದು
-    if (s.includes('ಉರ್ದು') || s.includes('urdu') || s.includes('اردو')) {
-      return 'urdu';
-    }
-    // ದೈಹಿಕ ಶಿಕ್ಷಣ
-    if (s.includes('ದೈಹಿಕ') || s.includes('physical') || s.includes('ಶಾರೀರಿಕ')) {
-      return 'physical_education';
-    }
-    
+    if (s.includes('ಹಿಂದಿ') || s.includes('hindi') || s.includes('हिन्दी') || s.includes('हिंदी')) return 'hindi';
+    if (s.includes('ಸಮಾಜ') || s.includes('social') || s.includes('ಸಾಮಾಜಿಕ') || s.includes('सामाजिक')) return 'social_science';
+    if (s.includes('ವಿಜ್ಞಾನ') || s.includes('science') || s.includes('विज्ञान')) return 'science';
+    if (s.includes('ಗಣಿತ') || s.includes('math') || s.includes('गणित')) return 'mathematics';
+    if (s.includes('ಕನ್ನಡ') || s.includes('kannada')) return 'kannada';
+    if (s.includes('ಇಂಗ್ಲಿಷ್') || s.includes('english')) return 'english';
+    if (s.includes('ಉರ್ದು') || s.includes('urdu') || s.includes('اردو')) return 'urdu';
+    if (s.includes('ದೈಹಿಕ') || s.includes('physical')) return 'physical_education';
     return String(subjectStr).toLowerCase().replace(/[\(\)\s\-\.\:\d\/\,]/g, '');
   };
 
-  // ೨. ಸಡಿಲ ವಿಷಯ ಮ್ಯಾಚಿಂಗ್ (Subject Matcher)
   window.isStrictSubjectMatch = function(qSubj, filterSubj) {
     if (!filterSubj || filterSubj === 'all') return true;
-    const k1 = window.getNormalizedSubjectKey(qSubj);
-    const k2 = window.getNormalizedSubjectKey(filterSubj);
-    return k1 === k2;
+    return window.getNormalizedSubjectKey(qSubj) === window.getNormalizedSubjectKey(filterSubj);
   };
 
-  // ೩. ಭಾಗ (Part 1 / Part-1 / ಭಾಗ-1) ಮ್ಯಾಚಿಂಗ್
-  function isPartMatchedClean(qPart, selectedPart) {
-    if (!selectedPart || selectedPart === 'all' || selectedPart === 'ಎಲ್ಲಾ ಭಾಗಗಳು' || selectedPart === 'ಸಂಪೂರ್ಣ') return true;
-    if (!qPart || qPart === 'all' || qPart === 'ಸಂಪೂರ್ಣ') return true;
-    const p1 = String(qPart).replace(/\D/g, '');
-    const p2 = String(selectedPart).replace(/\D/g, '');
-    if (p1 && p2) return p1 === p2;
-    return true;
-  }
-
-  // ೪. 🌟 Step 2 ಪಾಠಗಳ ಪಟ್ಟಿಯನ್ನು ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ತರುವ ಫಂಕ್ಷನ್
-  window.renderChapterCheckboxes = function() {
-    const subject = document.getElementById('cfg-subject')?.value || 'ಹಿಂದಿ';
-    const grade = document.getElementById('cfg-class')?.value || '6';
-    const part = document.getElementById('cfg-part')?.value || 'all';
-    const container = document.getElementById('chapter-list-box');
-    const headerLabel = document.getElementById('chapters-header-label');
-    if (!container) return;
-
-    const isGradeMatch = (qG, fG) => String(qG || '').replace(/\D/g, '') === String(fG || '').replace(/\D/g, '');
-
-    const matchedQuestions = (appState.qbank || []).filter(q => {
-      if (!q) return false;
-      const isGradeOk = isGradeMatch(q.grade, grade);
-      const isSubjOk = window.isStrictSubjectMatch(q.subject, subject);
-      const isPartOk = isPartMatchedClean(q.part, part);
-      return isGradeOk && isSubjOk && isPartOk;
-    });
-
-    const chapterMap = new Map();
-    matchedQuestions.forEach(q => {
-      if (q.chapter) {
-        const cleanChap = String(q.chapter).trim().replace(/\s+/g, ' ');
-        const uKey = cleanChap.toLowerCase().replace(/[\(\)\s\-\.\:\d\/\,]/g, '');
-        if (!chapterMap.has(uKey)) chapterMap.set(uKey, cleanChap);
-      }
-    });
-
-    const uniqueChapters = Array.from(chapterMap.values()).sort((a, b) => {
-      const nA = typeof getSerialSortNum === 'function' ? getSerialSortNum(a) : 9999;
-      const nB = typeof getSerialSortNum === 'function' ? getSerialSortNum(b) : 9999;
-      if (nA !== nB) return nA - nB;
-      return String(a).localeCompare(String(b));
-    });
-
-    if (uniqueChapters.length === 0) {
-      if (headerLabel) headerLabel.innerHTML = `ಪಾಠಗಳ ಆಯ್ಕೆ <span class="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full ml-1">ಖಾಲಿ ಭಂಡಾರ</span>`;
-      container.innerHTML = `<div class="col-span-2 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 font-bold text-center">⚠️ ಈ ತರಗತಿ ಮತ್ತು ವಿಷಯಕ್ಕೆ ಪ್ರಶ್ನೆಗಳಿಲ್ಲ.</div>`;
-      return;
+  // ೪. 🌟 ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರೆಂಡರರ್ (ಯಾವುದೇ HTML ಕೋಡ್ ಪ್ರಿಂಟ್ ಆಗುವುದಿಲ್ಲ)
+  const prevRenderFullPaper = window.renderFullExamPaperWithCustomHeader;
+  window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+    if (typeof prevRenderFullPaper === 'function') {
+      prevRenderFullPaper(headerHtml);
     }
+    
+    // ಡಾಕ್ಯುಮೆಂಟ್‌ನಲ್ಲಿ ತಪ್ಪಾಗಿ ಬಂದಿರುವ ಟ್ಯಾಗ್ ಕೋಡಿಂಗ್ ಅಕ್ಷರಗಳನ್ನು ಲೈವ್ ಆಗಿ ಸ್ವಚ್ಛಗೊಳಿಸುವುದು
+    const cleanNodes = (rootId) => {
+      const root = document.getElementById(rootId);
+      if (!root) return;
+      root.querySelectorAll('.board-q-text-fit, .board-q-text, .q-paper-text, .key-hanging-text, .key-text').forEach(el => {
+        let raw = el.innerHTML;
+        if (raw.includes('&lt;div') || raw.includes('&lt;u') || raw.includes('<div') || raw.includes('<u')) {
+          el.innerHTML = escapeHtml(window.cleanAndFormatQuestionTextPure(el.innerText || el.textContent));
+        }
+      });
+    };
 
-    if (headerLabel) {
-      headerLabel.innerHTML = `ಪಾಠಗಳ ಆಯ್ಕೆ <span class="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2.5 py-0.5 rounded-full border border-emerald-300 ml-1"><i class="fa-solid fa-book"></i> ಭಂಡಾರದಲ್ಲಿರುವ ${uniqueChapters.length} ಪಾಠಗಳು</span>`;
-    }
-
-    container.innerHTML = uniqueChapters.map(chap => `
-      <label class="flex items-center space-x-2.5 p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:border-emerald-500 transition cursor-pointer text-xs">
-        <input type="checkbox" name="selected_chapter" value="${escapeHtml(chap)}" checked onchange="if(typeof renderMaster10QuestionFormats==='function') renderMaster10QuestionFormats();" class="w-4 h-4 text-emerald-600 rounded" />
-        <span class="font-bold text-slate-800">${escapeHtml(chap)}</span>
-      </label>
-    `).join('');
+    cleanNodes('rendered-paper');
+    cleanNodes('rendered-key');
   };
-
-  // ಡ್ರಾಪ್‌ಡೌನ್ ಬದಲಾದಾಗ ತಕ್ಷಣ ಪಾಠಗಳನ್ನು ತೋರಿಸಲು ಈವೆಂಟ್ ಲಿಂಕ್
-  window.handleClassOrSubjectChange = function() {
-    window.renderChapterCheckboxes();
-    if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats();
-  };
-
-  // ಡ್ರಾಪ್‌ಡೌನ್‌ಗಳಿಗೆ ನೇರ Listener
-  const subjDropdown = document.getElementById('cfg-subject');
-  const classDropdown = document.getElementById('cfg-class');
-  const partDropdown = document.getElementById('cfg-part');
-  
-  if (subjDropdown) subjDropdown.onchange = window.handleClassOrSubjectChange;
-  if (classDropdown) classDropdown.onchange = window.handleClassOrSubjectChange;
-  if (partDropdown) partDropdown.onchange = window.handleClassOrSubjectChange;
-
-  // ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ರಿಫ್ರೆಶ್ ಮಾಡಿ ಪಾಠಗಳನ್ನು ತೋರಿಸುವುದು
-  setTimeout(() => {
-    window.renderChapterCheckboxes();
-    if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats();
-  }, 200);
 })();
-
   </script>
 </body>
 </html>

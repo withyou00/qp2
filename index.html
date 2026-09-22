@@ -45016,6 +45016,160 @@ fetchPendingRequestsFromCloud();
   setTimeout(window.renderHistoryUI, 1000);
 })();
 
+
+/* ==========================================================================
+   🚀 100% RECOVERY & ZERO-LAG CLOUD SYNC: RESTORE ALL 16,000+ QUESTIONS
+   ========================================================================== */
+(function initializeUltraFast16KRecoveryEngine() {
+  console.log("⚡ WithYou Ultra-Speed 16,000+ Questions Recovery Engine Activated...");
+
+  // ೧. 🌟 Firebase ನಿಂದ ಎಲ್ಲಾ 16k ಪ್ರಶ್ನೆಗಳನ್ನು ಹಿನ್ನೆಲೆಯಲ್ಲಿ (Zero-Lag) ತರುವ ಮಾಸ್ಟರ್ ಫಂಕ್ಷನ್
+  window.fetchFromFirebaseCloud = async function() {
+    // A. ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಈಗಾಗಲೇ ಇರುವ ಡೇಟಾವನ್ನು ತಕ್ಷಣ ಸ್ಕ್ರೀನ್‌ಗೆ ನೀಡಿ (No Page Waiting)
+    if (appState.qbank && appState.qbank.length > 0) {
+      if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
+    }
+
+    // B. ಹಿನ್ನೆಲೆಯಲ್ಲಿ (Background) Firebase ನಿಂದ ಎಲ್ಲಾ ನೋಡ್‌ಗಳನ್ನು ಒಟ್ಟಿಗೆ ತರುವುದು
+    setTimeout(async () => {
+      try {
+        const [qRes, partRes, tRes, sRes, subRes] = await Promise.all([
+          fetch(`${FIREBASE_REST_BASE}/withyou_qbank.json`).catch(() => null),
+          fetch(`${FIREBASE_REST_BASE}/withyou_partitioned_qbank.json`).catch(() => null),
+          fetch(`${FIREBASE_REST_BASE}/withyou_teachers.json`).catch(() => null),
+          fetch(`${FIREBASE_REST_BASE}/withyou_schools.json`).catch(() => null),
+          fetch(`${FIREBASE_REST_BASE}/withyou_custom_subjects.json`).catch(() => null)
+        ]);
+
+        const qMap = new Map();
+
+        // ೧. ಹಾಲಿ ಮೆಮೊರಿಯಲ್ಲಿರುವ ಪ್ರಶ್ನೆಗಳನ್ನು ಮ್ಯಾಪ್‌ಗೆ ಹಾಕುವುದು
+        (appState.qbank || []).forEach(q => {
+          if (q && q.q) {
+            const key = q.id || (String(q.q).trim() + '_' + (q.grade || '') + '_' + (q.subject || ''));
+            qMap.set(key, q);
+          }
+        });
+
+        // ೨. withyou_qbank ನಿಂದ ಪ್ರಶ್ನೆಗಳನ್ನು ಸೇರಿಸುವುದು
+        if (qRes && qRes.ok) {
+          const d = await qRes.json();
+          if (d) {
+            const list = Array.isArray(d) ? d.filter(Boolean) : Object.values(d);
+            list.forEach(q => {
+              if (q && q.q) {
+                const key = q.id || (String(q.q).trim() + '_' + (q.grade || '') + '_' + (q.subject || ''));
+                qMap.set(key, q);
+              }
+            });
+          }
+        }
+
+        // ೩. withyou_partitioned_qbank (ವಿಭಜಿತ ಫೋಲ್ಡರ್‌ಗಳು) ನಿಂದಲೂ ಎಲ್ಲವನ್ನೂ ಸೇರಿಸುವುದು
+        if (partRes && partRes.ok) {
+          const partData = await partRes.json();
+          if (partData) {
+            function extractAllRecursively(obj) {
+              if (!obj || typeof obj !== 'object') return;
+              if (obj.q && (obj.grade || obj.subject || obj.type)) {
+                const key = obj.id || (String(obj.q).trim() + '_' + (obj.grade || '') + '_' + (obj.subject || ''));
+                qMap.set(key, obj);
+                return;
+              }
+              Object.values(obj).forEach(val => extractAllRecursively(val));
+            }
+            extractAllRecursively(partData);
+          }
+        }
+
+        // ೪. 🌟 ಎಲ್ಲಾ ಪ್ರಶ್ನೆಗಳನ್ನು ಒಟ್ಟುಗೂಡಿಸಿ appState ಗೆ ಹಾಕುವುದು
+        const allFetchedQuestions = Array.from(qMap.values());
+        if (allFetchedQuestions.length > 0) {
+          appState.qbank = allFetchedQuestions;
+
+          // LocalStorage 5MB ಮಿತಿ ದಾಟಿದಾಗ ಕ್ರ್ಯಾಶ್ ಆಗದಂತೆ ಸುರಕ್ಷಿತ ಸೇವ್
+          try {
+            localStorage.setItem('withyou_custom_qbank', JSON.stringify(appState.qbank));
+          } catch (storageErr) {
+            // 5MB ಮೀರಿದರೆ ಮೆಮೊರಿಯಲ್ಲಿ 16,000+ ಪ್ರಶ್ನೆಗಳು ಆಕ್ಟಿವ್ ಆಗಿರುತ್ತವೆ
+            console.warn("LocalStorage quota full; running 100% in-memory with full 16K questions.");
+          }
+
+          if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
+          if (typeof renderCustomQuestionList === 'function') renderCustomQuestionList();
+          if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats();
+
+          showToast(`🎉 ಒಟ್ಟು ${allFetchedQuestions.length} ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿವೆ!`, 'success');
+        }
+
+        // ಶಿಕ್ಷಕರು, ಶಾಲೆ ಮತ್ತು ವಿಷಯಗಳ ಸಿಂಕ್
+        if (tRes && tRes.ok) {
+          const td = await tRes.json();
+          if (td) {
+            appState.teachers = Array.isArray(td) ? td.filter(Boolean) : Object.values(td);
+            try { localStorage.setItem('kar_qgen_teachers', JSON.stringify(appState.teachers)); } catch(e){}
+            if (typeof renderRegisteredTeachers === 'function') renderRegisteredTeachers();
+          }
+        }
+
+        if (sRes && sRes.ok) {
+          const sd = await sRes.json();
+          if (sd) {
+            appState.schools = Array.isArray(sd) ? sd.filter(Boolean) : Object.values(sd);
+            try { localStorage.setItem('kar_qgen_schools', JSON.stringify(appState.schools)); } catch(e){}
+            if (typeof renderRegisteredSchools === 'function') renderRegisteredSchools();
+          }
+        }
+
+        if (subRes && subRes.ok) {
+          const subd = await subRes.json();
+          if (subd && Array.isArray(subd)) {
+            try { localStorage.setItem('withyou_custom_subjects', JSON.stringify(subd)); } catch(e){}
+          }
+        }
+
+      } catch (err) {
+        console.warn("Cloud sync warning:", err);
+      }
+    }, 50); // ಕೇವಲ 50ms ನಂತರ ಹಿನ್ನೆಲೆಯಲ್ಲಿ ರನ್ ಆಗುವುದರಿಂದ ವೆಬ್‌ಸೈಟ್ 0% ಲ್ಯಾಗ್ ಇರುತ್ತದೆ
+  };
+
+  // ೨. 🌟 ಅಡ್ಮಿನ್‌ನಲ್ಲಿ 16,000 ಪ್ರಶ್ನೆಗಳಿದ್ದರೂ ಸ್ಕ್ರೀನ್ ಹ್ಯಾಂಗ್ ಆಗದಂತೆ 50-50 ಬ್ಯಾಚ್ ಡಿಸ್ಪ್ಲೇ ಲಿಮಿಟರ್
+  let adminDisplayBatchLimit = 50;
+  const prevAdminRenderFn = window.renderCustomQuestionList;
+
+  window.renderCustomQuestionList = function() {
+    if (typeof prevAdminRenderFn === 'function') {
+      prevAdminRenderFn();
+    }
+    
+    const container = document.getElementById('admin-qbank-display-list');
+    if (!container) return;
+
+    const cards = container.querySelectorAll('.p-3\\.5.bg-white.border-2, .p-3\\.5');
+    if (cards.length > adminDisplayBatchLimit) {
+      for (let i = adminDisplayBatchLimit; i < cards.length; i++) {
+        cards[i].style.display = 'none';
+      }
+
+      if (!document.getElementById('btn-load-more-16k-qbank')) {
+        const loadMoreBox = document.createElement('div');
+        loadMoreBox.id = 'btn-load-more-16k-qbank';
+        loadMoreBox.className = 'p-3 text-center';
+        loadMoreBox.innerHTML = `
+          <button type="button" onclick="adminDisplayBatchLimit += 50; renderCustomQuestionList();" class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black rounded-xl text-xs shadow-md cursor-pointer transition">
+            ⬇️ ಇನ್ನಷ್ಟು ಪ್ರಶ್ನೆಗಳನ್ನು ತೋರಿಸು (+50 Load More)
+          </button>
+        `;
+        container.appendChild(loadMoreBox);
+      }
+    }
+  };
+
+  // ೩. ಪುಟ ತೆರೆದ ತಕ್ಷಣವೇ ಹಿನ್ನೆಲೆಯಲ್ಲಿ ಸಿಂಕ್ ಚಾಲನೆ
+  window.fetchFromFirebaseCloud();
+})();
+
   </script>
 </body>
 </html>

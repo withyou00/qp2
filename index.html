@@ -10588,6 +10588,426 @@ saveCurrentPaperToUserHistory = function(generatedQuestions, headerHtml) {
   if (typeof renderUserPaperHistoryWidget === 'function') renderUserPaperHistoryWidget();
 };
 
+
+// =========================================================================
+// ⚡ 100% BULLETPROOF & FAST ZERO-FREEZE CLOUD LOGIN ENGINE
+// =========================================================================
+
+// ಸ್ಟ್ರಿಂಗ್ ಕ್ಲೀನಪ್ ಹೆಲ್ಪರ್ (ಸ್ಪೇಸ್ ಮತ್ತು ಕೇಸ್ ಸಮಸ್ಯೆ ನಿವಾರಣೆ)
+function cleanAuthString(val) {
+  return String(val || '').replace(/[\s\-\_]/g, '').toLowerCase().trim();
+}
+
+// ೧. ಶಿಕ್ಷಕರ ಸೂಪರ್ ಫಾಸ್ಟ್ ಲಾಗಿನ್ (TEACHER LOGIN - FIXED)
+window.handleTeacherLoginSubmit = async function() {
+  const mobileInput = document.getElementById('t-login-mobile')?.value.trim();
+  const keyInput = document.getElementById('t-login-key')?.value.trim();
+
+  if (!mobileInput || mobileInput.length !== 10) {
+    return alert('⚠️ ದಯವಿಟ್ಟು ಸರಿಯಾದ 10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.');
+  }
+  if (!keyInput || keyInput.length < 3) {
+    return alert('⚠️ ದಯವಿಟ್ಟು ನಿಮ್ಮ Secret Key ನಮೂದಿಸಿ.');
+  }
+
+  showToast('🔄 ಲಾಗಿನ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+  const cleanEnteredMobile = cleanAuthString(mobileInput);
+  const cleanEnteredKey = cleanAuthString(keyInput);
+
+  let user = null;
+
+  // 🌟 ಹಂತ ೧: Firebase Cloud ನಿಂದ ಅತಿ ವೇಗವಾಗಿ ಹುಡುಕಾಟ (3-sec Timeout)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const res = await fetch(`${FIREBASE_DB_BASE_URL}/users.json?t=${Date.now()}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const allCloudUsers = await res.json();
+      if (allCloudUsers) {
+        const usersArray = Object.values(allCloudUsers);
+        // ಸ್ಥಳೀಯ ಮೆಮೊರಿಯನ್ನೂ ಅಪ್ಡೇಟ್ ಮಾಡುವುದು
+        localStorage.setItem('wy_admin_users_db', JSON.stringify(usersArray));
+
+        // ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಹೊಂದಾಣಿಕೆ
+        user = usersArray.find(u => {
+          const uMob = cleanAuthString(u.mobile || u.dise);
+          return uMob.includes(cleanEnteredMobile) || cleanEnteredMobile.includes(uMob);
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Firebase live check timed out, checking local database...");
+  }
+
+  // 🌟 ಹಂತ ೨: Firebase ಸಿಗದಿದ್ದರೆ ಸ್ಥಳೀಯ ಡೇಟಾಬೇಸ್‌ನಲ್ಲಿ ತಕ್ಷಣ ಹುಡುಕಾಟ
+  if (!user) {
+    const localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+    user = localUsers.find(u => {
+      const uMob = cleanAuthString(u.mobile || u.dise);
+      return uMob.includes(cleanEnteredMobile) || cleanEnteredMobile.includes(uMob);
+    });
+  }
+
+  // ❌ ಯೂಸರ್ ಸಿಗಲಿಲ್ಲ ಅಥವಾ ಕೀ ತಪ್ಪಾಗಿದ್ದರೆ
+  if (!user) {
+    return alert(
+      "❌ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯ ಖಾತೆ ಕಂಡುಬಂದಿಲ್ಲ!\n\n" +
+      "ನೀವು ಇನ್ನೂ Secret Key ಪಡೆದಿಲ್ಲದಿದ್ದರೆ 'ಹೊಸ ನೋಂದಣಿ (Sign Up)' ಮಾಡಿ ಅಥವಾ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911."
+    );
+  }
+
+  const cleanSavedKey = cleanAuthString(user.secretKey);
+  if (cleanSavedKey !== cleanEnteredKey) {
+    return alert(
+      "❌ ತಪ್ಪಾದ Secret Key!\n\n" +
+      "ದಯವಿಟ್ಟು ನಿಮಗೆ WhatsApp ನಲ್ಲಿ ಬಂದಿರುವ ಸರಿಯಾದ Secret Key ನಮೂದಿಸಿ (ಉದಾ: WY-TCH-XXXXXX)."
+    );
+  }
+
+  // 🌟 ಹಂತ ೩: ಮಾನ್ಯತೆ ದಿನಾಂಕ (Validity) ಪರಿಶೀಲನೆ
+  if (user.validityDate) {
+    const expDate = new Date(user.validityDate);
+    const today = new Date(new Date().toDateString());
+    if (expDate < today) {
+      return alert(
+        `⚠️ ನಿಮ್ಮ ಖಾತೆಯ ಮಾನ್ಯತೆ (${user.validityDate}) ಮುಕ್ತಾಯಗೊಂಡಿದೆ!\n\n` +
+        "ನವೀಕರಣಕ್ಕಾಗಿ (Renewal) Admin ಸಂಪರ್ಕಿಸಿ: 9902090911."
+      );
+    }
+  }
+
+  // ✅ ಹಂತ ೪: ಸಕ್ರಿಯ ಯೂಸರ್ ಸೆಷನ್ ರಚನೆ
+  const sessionData = {
+    isLoggedIn: true,
+    type: 'teacher',
+    name: user.name || 'ಶಿಕ್ಷಕರು',
+    school: user.school || 'ಸರ್ಕಾರಿ ಶಾಲೆ',
+    mobile: user.mobile || mobileInput,
+    allowedSubjects: user.allowedSubjects || (user.subjects ? user.subjects.split(',').map(s => s.trim()) : ['all']),
+    allowedClasses: user.allowedClasses || (user.classes ? user.classes.split(',').map(c => c.trim()) : ['all']),
+    validityDate: user.validityDate || '2027-12-31'
+  };
+
+  localStorage.setItem('wy_active_session', JSON.stringify(sessionData));
+
+  // ಶಾಲೆಯ ಹೆಸರನ್ನು ಜನರೇಟರ್ ಹೆಡರ್‌ನಲ್ಲಿ ಸೆಟ್ ಮಾಡುವುದು
+  const schoolInp = document.getElementById('cfg-school-name');
+  if (schoolInp && user.school) schoolInp.value = user.school;
+
+  // UI ಅಪ್ಡೇಟ್ (ವಿಷಯಗಳ ಲಾಕ್ & ಪ್ರೊಫೈಲ್ ಬಾರ್)
+  if (typeof applyUserSubjectPermissionsToUI === 'function') applyUserSubjectPermissionsToUI(sessionData);
+  if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar();
+
+  showToast(`✅ ಸುಸ್ವಾಗತ ${user.name}! ಲಾಗಿನ್ ಯಶಸ್ವಿಯಾಗಿದೆ.`, 'success');
+  closeAuthModal();
+  navigateToSection('generator');
+};
+
+// ೨. ಶಾಲಾ ಸೂಪರ್ ಫಾಸ್ಟ್ ಲಾಗಿನ್ (SCHOOL LOGIN - FIXED)
+window.handleSchoolLoginSubmit = async function() {
+  const diseInput = document.getElementById('s-login-dise')?.value.trim();
+  const keyInput = document.getElementById('s-login-key')?.value.trim();
+
+  if (!diseInput || diseInput.length < 5) {
+    return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲೆಯ ಸರಿಯಾದ DISE ಕೋಡ್ ನಮೂದಿಸಿ.');
+  }
+  if (!keyInput || keyInput.length < 3) {
+    return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲಾ Secret Key ನಮೂದಿಸಿ.');
+  }
+
+  showToast('🔄 ಶಾಲಾ ಲಾಗಿನ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+  const cleanEnteredDise = cleanAuthString(diseInput);
+  const cleanEnteredKey = cleanAuthString(keyInput);
+
+  let user = null;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const res = await fetch(`${FIREBASE_DB_BASE_URL}/users.json?t=${Date.now()}`, {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const allCloudUsers = await res.json();
+      if (allCloudUsers) {
+        const usersArray = Object.values(allCloudUsers);
+        localStorage.setItem('wy_admin_users_db', JSON.stringify(usersArray));
+
+        user = usersArray.find(u => {
+          const uDise = cleanAuthString(u.dise || u.mobile);
+          return u.type === 'school' && (uDise.includes(cleanEnteredDise) || cleanEnteredDise.includes(uDise));
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Firebase live check timed out, checking local database...");
+  }
+
+  if (!user) {
+    const localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+    user = localUsers.find(u => {
+      const uDise = cleanAuthString(u.dise || u.mobile);
+      return u.type === 'school' && (uDise.includes(cleanEnteredDise) || cleanEnteredDise.includes(uDise));
+    });
+  }
+
+  if (!user) {
+    return alert('❌ ಈ DISE ಕೋಡ್‌ನ ಶಾಲಾ ಖಾತೆ ಸಿಗಲಿಲ್ಲ!\nನೋಂದಣಿಗಾಗಿ Sign Up ಮಾಡಿ ಅಥವಾ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.');
+  }
+
+  const cleanSavedKey = cleanAuthString(user.secretKey);
+  if (cleanSavedKey !== cleanEnteredKey) {
+    return alert('❌ ತಪ್ಪಾದ School Secret Key!\nದಯವಿಟ್ಟು ಸರಿಯಾದ ಕೀ ನಮೂದಿಸಿ.');
+  }
+
+  if (user.validityDate && new Date(user.validityDate) < new Date(new Date().toDateString())) {
+    return alert(`⚠️ ನಿಮ್ಮ ಶಾಲೆಯ ವಾರ್ಷಿಕ ಮಾನ್ಯತೆ (${user.validityDate}) ಮುಕ್ತಾಯಗೊಂಡಿದೆ.\nನವೀಕರಣಕ್ಕಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+  }
+
+  const sessionData = {
+    isLoggedIn: true,
+    type: 'school',
+    name: user.name || 'ಮುಖ್ಯೋಪಾಧ್ಯಾಯರು',
+    school: user.school || 'ಸರ್ಕಾರಿ ಶಾಲೆ',
+    dise: user.dise || diseInput,
+    allowedSubjects: ['all'],
+    allowedClasses: ['all'],
+    validityDate: user.validityDate || '2027-12-31'
+  };
+
+  localStorage.setItem('wy_active_session', JSON.stringify(sessionData));
+
+  const schoolInp = document.getElementById('cfg-school-name');
+  if (schoolInp && user.school) schoolInp.value = user.school;
+
+  if (typeof applyUserSubjectPermissionsToUI === 'function') applyUserSubjectPermissionsToUI(sessionData);
+  if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar();
+
+  showToast(`✅ ${user.school} - ಎಲ್ಲಾ ತರಗತಿ & ವಿಷಯಗಳು ಅನ್‌ಲಾಕ್ ಆಗಿವೆ!`, 'success');
+  closeAuthModal();
+  navigateToSection('generator');
+};
+
+// =========================================================================
+// 🎯 100% EXPLICIT ALERT & BULLETPROOF DIRECT LOGIN ENGINE
+// =========================================================================
+
+// ಅಕ್ಷರ ಮತ್ತು ಸಂಖ್ಯೆಗಳನ್ನು ಶುದ್ಧೀಕರಿಸುವ ಫಂಕ್ಷನ್
+function cleanExactStr(str) {
+  return String(str || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+}
+
+// ೧. ಶಿಕ್ಷಕರ ಲಾಗಿನ್ (TEACHER LOGIN - GUARANTEED RESULT)
+window.handleTeacherLoginSubmit = async function() {
+  try {
+    const mobEl = document.getElementById('t-login-mobile');
+    const keyEl = document.getElementById('t-login-key');
+
+    if (!mobEl || !keyEl) {
+      return alert('⚠️ ಲಾಗಿನ್ ಫಾರ್ಮ್ ಕಂಡುಬಂದಿಲ್ಲ. ದಯವಿಟ್ಟು ಪೇಜ್ ರಿಫ್ರೆಶ್ ಮಾಡಿ.');
+    }
+
+    const mobile = mobEl.value.trim();
+    const key = keyEl.value.trim();
+
+    if (!mobile || mobile.length !== 10) {
+      return alert('⚠️ ದಯವಿಟ್ಟು ಸರಿಯಾದ 10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.');
+    }
+    if (!key || key.length < 3) {
+      return alert('⚠️ ದಯವಿಟ್ಟು ನಿಮ್ಮ Secret Key ನಮೂದಿಸಿ.');
+    }
+
+    showToast('🔄 ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+    // ೧. ಸ್ಥಳೀಯ ಡೇಟಾಬೇಸ್ ಲೋಡ್ ಮಾಡುವುದು
+    let allUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+
+    // ೨. Firebase ನಿಂದ ಲೈವ್ ಸಿಂಕ್ (ಫಾಸ್ಟ್ ಫೆಚ್)
+    try {
+      const res = await fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/users.json?t=${Date.now()}`);
+      if (res.ok) {
+        const cloudData = await res.json();
+        if (cloudData) {
+          const cloudList = Object.values(cloudData);
+          const map = new Map();
+          [...cloudList, ...allUsers].forEach(item => {
+            if (item && (item.mobile || item.dise)) {
+              map.set(cleanExactStr(item.mobile || item.dise), item);
+            }
+          });
+          allUsers = Array.from(map.values());
+          localStorage.setItem('wy_admin_users_db', JSON.stringify(allUsers));
+        }
+      }
+    } catch (netErr) {
+      console.warn("Firebase offline, using local DB check");
+    }
+
+    const searchMob = cleanExactStr(mobile);
+    const searchKey = cleanExactStr(key);
+
+    // ೩. ಯೂಸರ್ ಹುಡುಕಾಟ
+    const user = allUsers.find(u => {
+      const uMob = cleanExactStr(u.mobile || u.dise);
+      return uMob === searchMob || uMob.endsWith(searchMob) || searchMob.endsWith(uMob);
+    });
+
+    // ❌ ಸಂದರ್ಭ ೧: ಈ ನಂಬರ್‌ನ ಯೂಸರ್ ಇಲ್ಲವೇ ಇಲ್ಲದಿದ್ದರೆ
+    if (!user) {
+      return alert(
+        `❌ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (${mobile}) ನೋಂದಣಿಯಾಗಿಲ್ಲ!\n\n` +
+        "ದಯವಿಟ್ಟು Admin Panel ನಲ್ಲಿ User ಸೇರಿಸಲಾಗಿದೆಯೇ ಅಥವಾ 'ಹೊಸ ನೋಂದಣಿ (Sign Up)' ಮಾಡಲಾಗಿದೆಯೇ ಪರಿಶೀಲಿಸಿ."
+      );
+    }
+
+    // ❌ ಸಂದರ್ಭ ೨: Secret Key ತಪ್ಪಾಗಿದ್ದರೆ
+    const savedKey = cleanExactStr(user.secretKey);
+    if (savedKey !== searchKey) {
+      return alert(
+        `❌ ನೀವು ನಮೂದಿಸಿದ Secret Key ತಪ್ಪಾಗಿದೆ!\n\n` +
+        `ದಯವಿಟ್ಟು ನಿಮಗೆ ನೀಡಲಾದ ಸರಿಯಾದ Secret Key ನಮೂದಿಸಿ (ಉದಾ: ${user.secretKey ? user.secretKey : 'WY-TCH-XXXXXX'}).`
+      );
+    }
+
+    // ❌ ಸಂದರ್ಭ ೩: ಮಾನ್ಯತೆ ದಿನಾಂಕ ಮುಗಿದಿದ್ದರೆ
+    if (user.validityDate && new Date(user.validityDate) < new Date(new Date().toDateString())) {
+      return alert(
+        `⚠️ ನಿಮ್ಮ ಖಾತೆಯ ಮಾನ್ಯತೆ (${user.validityDate}) ಮುಕ್ತಾಯಗೊಂಡಿದೆ!\n\n` +
+        "ನವೀಕರಣಕ್ಕಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911."
+      );
+    }
+
+    // ✅ ಸಂದರ್ಭ ೪: ಲಾಗಿನ್ ಯಶಸ್ವಿ (SUCCESS)
+    const sessionData = {
+      isLoggedIn: true,
+      type: 'teacher',
+      name: user.name || 'ಶಿಕ್ಷಕರು',
+      school: user.school || 'ಸರ್ಕಾರಿ ಶಾಲೆ',
+      mobile: user.mobile || mobile,
+      allowedSubjects: user.allowedSubjects || (user.subjects ? user.subjects.split(',').map(s => s.trim()) : ['all']),
+      allowedClasses: user.allowedClasses || (user.classes ? user.classes.split(',').map(c => c.trim()) : ['all']),
+      validityDate: user.validityDate || '2027-12-31'
+    };
+
+    localStorage.setItem('wy_active_session', JSON.stringify(sessionData));
+
+    const schoolInp = document.getElementById('cfg-school-name');
+    if (schoolInp && user.school) schoolInp.value = user.school;
+
+    if (typeof applyUserSubjectPermissionsToUI === 'function') applyUserSubjectPermissionsToUI(sessionData);
+    if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar();
+
+    alert(`🎉 ಸುಸ್ವಾಗತ ${user.name}!\n\nನಿಮ್ಮ ಲಾಗಿನ್ ಯಶಸ್ವಿಯಾಗಿದೆ (Login Successful).`);
+    closeAuthModal();
+    navigateToSection('generator');
+
+  } catch (err) {
+    alert("❌ ಲಾಗಿನ್ ದೋಷ: " + err.message);
+  }
+};
+
+// ೨. ಶಾಲಾ ಲಾಗಿನ್ (SCHOOL LOGIN - GUARANTEED RESULT)
+window.handleSchoolLoginSubmit = async function() {
+  try {
+    const diseEl = document.getElementById('s-login-dise');
+    const keyEl = document.getElementById('s-login-key');
+
+    if (!diseEl || !keyEl) {
+      return alert('⚠️ ಫಾರ್ಮ್ ಕಂಡುಬಂದಿಲ್ಲ. ದಯವಿಟ್ಟು ರಿಫ್ರೆಶ್ ಮಾಡಿ.');
+    }
+
+    const dise = diseEl.value.trim();
+    const key = keyEl.value.trim();
+
+    if (!dise || dise.length < 5) {
+      return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲೆಯ ಸರಿಯಾದ DISE ಕೋಡ್ ನಮೂದಿಸಿ.');
+    }
+    if (!key || key.length < 3) {
+      return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲಾ Secret Key ನಮೂದಿಸಿ.');
+    }
+
+    showToast('🔄 ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+    let allUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+
+    try {
+      const res = await fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/users.json?t=${Date.now()}`);
+      if (res.ok) {
+        const cloudData = await res.json();
+        if (cloudData) {
+          const cloudList = Object.values(cloudData);
+          const map = new Map();
+          [...cloudList, ...allUsers].forEach(item => {
+            if (item && (item.mobile || item.dise)) {
+              map.set(cleanExactStr(item.mobile || item.dise), item);
+            }
+          });
+          allUsers = Array.from(map.values());
+          localStorage.setItem('wy_admin_users_db', JSON.stringify(allUsers));
+        }
+      }
+    } catch (netErr) {
+      console.warn("Firebase offline");
+    }
+
+    const searchDise = cleanExactStr(dise);
+    const searchKey = cleanExactStr(key);
+
+    const user = allUsers.find(u => {
+      const uDise = cleanExactStr(u.dise || u.mobile);
+      return u.type === 'school' && (uDise === searchDise || uDise.includes(searchDise));
+    });
+
+    if (!user) {
+      return alert(`❌ ಈ DISE Code (${dise}) ಶಾಲಾ ಖಾತೆ ನೋಂದಣಿಯಾಗಿಲ್ಲ!\n\nದಯವಿಟ್ಟು Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+    }
+
+    const savedKey = cleanExactStr(user.secretKey);
+    if (savedKey !== searchKey) {
+      return alert(`❌ ತಪ್ಪಾದ School Secret Key!\n\nದಯವಿಟ್ಟು ಶಾಲೆಗೆ ನೀಡಲಾದ ಸರಿಯಾದ ಕೀ ನಮೂದಿಸಿ.`);
+    }
+
+    if (user.validityDate && new Date(user.validityDate) < new Date(new Date().toDateString())) {
+      return alert(`⚠️ ನಿಮ್ಮ ಶಾಲೆಯ ವಾರ್ಷಿಕ ಮಾನ್ಯತೆ (${user.validityDate}) ಮುಕ್ತಾಯಗೊಂಡಿದೆ.\nನವೀಕರಣಕ್ಕಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ.`);
+    }
+
+    const sessionData = {
+      isLoggedIn: true,
+      type: 'school',
+      name: user.name || 'ಮುಖ್ಯೋಪಾಧ್ಯಾಯರು',
+      school: user.school || 'ಸರ್ಕಾರಿ ಶಾಲೆ',
+      dise: user.dise || dise,
+      allowedSubjects: ['all'],
+      allowedClasses: ['all'],
+      validityDate: user.validityDate || '2027-12-31'
+    };
+
+    localStorage.setItem('wy_active_session', JSON.stringify(sessionData));
+
+    const schoolInp = document.getElementById('cfg-school-name');
+    if (schoolInp && user.school) schoolInp.value = user.school;
+
+    if (typeof applyUserSubjectPermissionsToUI === 'function') applyUserSubjectPermissionsToUI(sessionData);
+    if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar();
+
+    alert(`🎉 ಸುಸ್ವಾಗತ!\n\n${user.school} ಶಾಲಾ ಲಾಗಿನ್ ಯಶಸ್ವಿಯಾಗಿದೆ.`);
+    closeAuthModal();
+    navigateToSection('generator');
+
+  } catch (err) {
+    alert("❌ ಶಾಲಾ ಲಾಗಿನ್ ದೋಷ: " + err.message);
+  }
+};
   </script>
 </body>
 </html>

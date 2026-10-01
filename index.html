@@ -8356,6 +8356,791 @@ window.resendUserCredentialsWhatsApp = function(index) {
 };
 
 
+// =========================================================================
+// 👤 LIVE USER PROFILE BAR & BULLETPROOF LOGOUT SECURITY SYSTEM
+// =========================================================================
+
+// ೧. ಮೇಲ್ಭಾಗದಲ್ಲಿ ಲಾಗಿನ್ ಆದವರ ಪ್ರೊಫೈಲ್ ಬಾರ್ ರೆಂಡರ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+function renderTopUserProfileBar() {
+  let profileContainer = document.getElementById('wy-user-profile-header');
+  const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+  const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+
+  if (!profileContainer) {
+    profileContainer = document.createElement('div');
+    profileContainer.id = 'wy-user-profile-header';
+    const mainEl = document.querySelector('main');
+    if (mainEl) mainEl.prepend(profileContainer);
+  }
+
+  // ಯಾರೂ ಲಾಗಿನ್ ಆಗಿಲ್ಲದಿದ್ದರೆ ಪ್ರೊಫೈಲ್ ಬಾರ್ ಹೈಡ್ ಮಾಡುವುದು
+  if (!isAdmin && (!session || !session.isLoggedIn)) {
+    profileContainer.innerHTML = '';
+    profileContainer.className = 'hidden';
+    return;
+  }
+
+  profileContainer.className = 'w-full mb-4 animate-fade-in no-print';
+
+  // 👑 ADMIN ಲಾಗಿನ್ ಆಗಿದ್ದಾಗ
+  if (isAdmin) {
+    profileContainer.innerHTML = `
+      <div class="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 text-slate-950 p-3 rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-2 border border-amber-400">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-slate-950 text-amber-400 flex items-center justify-center font-black text-sm shadow">
+            <i class="fa-solid fa-crown"></i>
+          </div>
+          <div>
+            <div class="text-xs font-black text-slate-950 flex items-center gap-1.5">
+              <span>Master Administrator (All Access Unlocked)</span>
+              <span class="bg-slate-950 text-amber-300 text-[10px] px-2 py-0.2 rounded-full font-bold">Admin Mode</span>
+            </div>
+            <p class="text-[11px] font-bold text-slate-900">ಎಲ್ಲಾ ತರಗತಿ ಹಾಗೂ ವಿಷಯಗಳ ಸಂಪೂರ್ಣ ನಿಯಂತ್ರಣ ಸಕ್ರಿಯವಾಗಿದೆ</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="openAdminDashboardModal()" class="px-3 py-1.5 bg-slate-950 text-amber-400 hover:bg-slate-900 rounded-xl text-xs font-black shadow cursor-pointer transition">
+            👑 Admin Suite
+          </button>
+          <button onclick="logoutAnyUser()" class="px-3 py-1.5 bg-rose-700 hover:bg-rose-800 text-white rounded-xl text-xs font-black shadow cursor-pointer transition flex items-center gap-1">
+            <i class="fa-solid fa-right-from-bracket"></i> <span>Logout</span>
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // 👨‍🏫 ಶಿಕ್ಷಕರು / 🏫 ಶಾಲೆ ಲಾಗಿನ್ ಆಗಿದ್ದಾಗ
+  const isSchool = session.type === 'school';
+  const subjsText = Array.isArray(session.allowedSubjects) ? session.allowedSubjects.join(', ') : (session.allowedSubjects || 'ಎಲ್ಲಾ ವಿಷಯಗಳು');
+
+  profileContainer.innerHTML = `
+    <div class="bg-gradient-to-r ${isSchool ? 'from-indigo-900 via-slate-900 to-indigo-950' : 'from-emerald-900 via-slate-900 to-teal-950'} text-white p-3.5 rounded-2xl shadow-lg flex flex-wrap items-center justify-between gap-3 border border-slate-700">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-2xl ${isSchool ? 'bg-indigo-600' : 'bg-emerald-600'} text-white flex items-center justify-center font-black text-lg shadow-md">
+          <i class="fa-solid ${isSchool ? 'fa-school' : 'fa-chalkboard-user'}"></i>
+        </div>
+        <div>
+          <div class="text-xs sm:text-sm font-black flex items-center gap-2">
+            <span>${escapeHtml(session.name)}</span>
+            <span class="text-[10px] ${isSchool ? 'bg-indigo-500/30 text-indigo-300 border-indigo-500/40' : 'bg-emerald-500/30 text-emerald-300 border-emerald-500/40'} border px-2 py-0.5 rounded-full font-bold">
+              ${isSchool ? 'ಶಾಲಾ ಲಾಗಿನ್' : 'ಶಿಕ್ಷಕರ ಲಾಗಿನ್'}
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-300 font-bold truncate max-w-sm sm:max-w-md">
+            🏫 ${escapeHtml(session.school)}
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 text-[11px] font-bold">
+        <div class="bg-white/10 border border-white/10 px-2.5 py-1.5 rounded-xl text-emerald-300">
+          📚 ವಿಷಯಗಳು: <b class="text-white">${escapeHtml(subjsText)}</b>
+        </div>
+        <div class="bg-white/10 border border-white/10 px-2.5 py-1.5 rounded-xl text-amber-300">
+          📅 ಮಾನ್ಯತೆ: <b class="text-white">${session.validityDate || 'ಅನಿರ್ದಿಷ್ಟ'}</b>
+        </div>
+        <button onclick="logoutAnyUser()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow cursor-pointer transition flex items-center gap-1 ml-1">
+          <i class="fa-solid fa-power-off"></i> <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// ೨. ಸಂಪೂರ್ಣ ಸೆಷನ್ ಕ್ಲಿಯರ್ ಮಾಡುವ ಮಾಸ್ಟರ್ LOGOUT ಫಂಕ್ಷನ್
+window.logoutAnyUser = function() {
+  // ಎಲ್ಲಾ ಅಡ್ಮಿನ್ ಮತ್ತು ಯೂಸರ್ ಸೆಷನ್ ಡೇಟಾ ಸಂಪೂರ್ಣ ಡಿಲೀಟ್
+  sessionStorage.removeItem('wy_is_admin');
+  localStorage.removeItem('wy_active_session');
+  localStorage.removeItem('wy_auth_user');
+
+  // ಜನರೇಟ್ ಆದ ಪತ್ರಿಕೆಯನ್ನು ಕ್ಲಿಯರ್ ಮಾಡುವುದು
+  appState.activeGeneratedQuestions = [];
+  document.getElementById('output-section')?.classList.add('hidden');
+  document.getElementById('btn-admin-panel-top')?.remove();
+
+  // ಪ್ರೊಫೈಲ್ ಬಾರ್ ಅಪ್ಡೇಟ್
+  renderTopUserProfileBar();
+
+  // ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ರಿಡೈರೆಕ್ಟ್
+  navigateToSection('dashboard');
+  showToast('👋 ನೀವು ಯಶಸ್ವಿಯಾಗಿ ಲಾಗೌಟ್ ಆಗಿದ್ದೀರಿ.', 'info');
+};
+
+// ೩. ಅಡ್ಮಿನ್ ಲಾಗೌಟ್ ಫಂಕ್ಷನ್ ಸಹ ಮಾಸ್ಟರ್ ಲಾಗೌಟ್‌ಗೆ ಜೋಡಣೆ
+window.logoutAdmin = window.logoutAnyUser;
+
+// =========================================================================
+// 🔒 ಕಟ್ಟುನಿಟ್ಟಾದ ಸೆಕ್ಯುರಿಟಿ ಗಾರ್ಡ್ (LOGOUT ಆದ ಮೇಲೆ GENERATE ಆಗದಂತೆ ತಡೆ)
+// =========================================================================
+window.generateExamPackageFromBank = function() {
+  const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+  const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+
+  // ❌ ೧. ಅಡ್ಮಿನ್ ಅಥವಾ ಯೂಸರ್ ಯಾರೂ ಲಾಗಿನ್ ಇಲ್ಲದಿದ್ದರೆ ನೇರ ಬ್ಲಾಕ್
+  if (!isAdmin && (!session || !session.isLoggedIn)) {
+    alert(
+      "🔒 ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ (Registration / Login Required)!\n\n" +
+      "ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಲು ದಯವಿಟ್ಟು ಮೊದಲು ನಿಮ್ಮ ಮೊಬೈಲ್ ನಂಬರ್ & Secret Key ಹಾಕಿ ಲಾಗಿನ್ ಆಗಿ ಅಥವಾ ಹೊಸದಾಗಿ ನೋಂದಣಿ (Sign Up) ಮಾಡಿಕೊಳ್ಳಿ.\n\n" +
+      "ಲಾಗಿನ್ ಮಾಡಲು 'OK' ಒತ್ತಿರಿ."
+    );
+    openTeacherAuthModal('login');
+    return;
+  }
+
+  // ❌ ೨. ಮಾನ್ಯತೆ ಅವಧಿ (Validity) ಮುಗಿದಿದ್ದರೆ ಬ್ಲಾಕ್
+  if (!isAdmin && session && session.validityDate && new Date(session.validityDate) < new Date(new Date().toDateString())) {
+    alert(`⚠️ ನಿಮ್ಮ ಖಾತೆಯ ಮಾನ್ಯತೆ ಮುಕ್ತಾಯಗೊಂಡಿದೆ (${session.validityDate}).\nನವೀಕರಣಕ್ಕಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+    logoutAnyUser();
+    return;
+  }
+
+  // ❌ ೩. ಶಿಕ್ಷಕರ ವಿಷಯ ಪರಿಶೀಲನೆ (Subject Permission Check)
+  if (!isAdmin && session && session.type === 'teacher') {
+    const currentSubj = document.getElementById('cfg-subject')?.value || '';
+    const normalizedCurrent = typeof normalizeSubjectMatchText === 'function' ? normalizeSubjectMatchText(currentSubj) : currentSubj.toLowerCase();
+    const allowed = (session.allowedSubjects || []).map(s => typeof normalizeSubjectMatchText === 'function' ? normalizeSubjectMatchText(s) : s.toLowerCase());
+
+    if (!allowed.includes('all') && !allowed.includes(normalizedCurrent)) {
+      const allowedNames = (session.allowedSubjects || []).join(', ');
+      alert(
+        `⚠️ ವಿಷಯ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ!\n\n` +
+        `ನಿಮ್ಮ ಖಾತೆಗೆ ಕೇವಲ [ ${allowedNames} ] ವಿಷಯಗಳಿಗೆ ಮಾತ್ರ ಅನುಮತಿ ಇದೆ.\n\n` +
+        `ಈ ವಿಷಯವನ್ನು (${currentSubj}) ಸಕ್ರಿಯಗೊಳಿಸಲು WhatsApp: 9902090911 ಸಂಪರ್ಕಿಸಿ.`
+      );
+      return;
+    }
+  }
+
+  // ✅ ವಾಸ್ತವಿಕ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚನೆ
+  const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  const grade = document.getElementById('cfg-class')?.value || '8';
+  const rawSubject = document.getElementById('cfg-subject')?.value || 'ವಿಜ್ಞಾನ';
+  const rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+  const targetTotalMarks = parseInt(document.getElementById('cfg-total-marks')?.value) || 40;
+  const targetTotalQuestions = parseInt(document.getElementById('cfg-total-questions')?.value) || 24;
+  const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+
+  const checkedTypeNodes = document.querySelectorAll('input[name="qtype_opt"]:checked');
+  const selectedTypes = Array.from(checkedTypeNodes).map(cb => cb.value);
+  if (selectedTypes.length === 0) return alert('⚠️ ದಯವಿಟ್ಟು Step 3 ರಲ್ಲಿ ಕನಿಷ್ಠ ಒಂದು ಪ್ರಶ್ನೆ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+
+  const selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+  const selectedChapters = Array.from(selectedBoxes).map(b => b.value);
+
+  const pool = (appState.activeSubjectQuestions || []).filter(q => {
+    if (!q) return false;
+    const isChapOk = (selectedChapters.length === 0 || selectedChapters.some(sc => safeCleanMatch(sc) === safeCleanMatch(q.chapter)));
+    const cType = getCanonicalQuestionType(q);
+    return isChapOk && selectedTypes.includes(cType);
+  });
+
+  if (pool.length === 0) return alert('⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ. Step 2 ಮತ್ತು Step 3 ಪರಿಶೀಲಿಸಿ.');
+
+  let chosen = solveStrictExactExamMath(pool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+  if (!chosen || chosen.length === 0) return;
+
+  appState.activeGeneratedQuestions = chosen;
+  const actualMarks = chosen.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+  const headerHtml = generateOfficialBoardHeader(schoolName, rawSubject, grade, rawExamType, actualMarks, examDate);
+
+  renderFullExamPaperWithCustomHeader(headerHtml);
+
+  const outSec = document.getElementById('output-section');
+  if (outSec) {
+    outSec.classList.remove('hidden');
+    switchOutputTab('paper');
+    outSec.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  showToast(`⚡ ಯಶಸ್ವಿ: ${chosen.length} ಪ್ರಶ್ನೆಗಳು & ${actualMarks} ಅಂಕಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ!`, 'success');
+};
+
+// ೪. ಲಾಗಿನ್ ಆದ ತಕ್ಷಣ ಪ್ರೊಫೈಲ್ ಬಾರ್ ಅಪ್ಡೇಟ್ ಮಾಡುವ ಹುಕ್ಸ್
+const origHandleTeacherLogin = window.handleTeacherLoginSubmit;
+window.handleTeacherLoginSubmit = function() {
+  if (origHandleTeacherLogin) origHandleTeacherLogin();
+  setTimeout(renderTopUserProfileBar, 200);
+};
+
+const origHandleSchoolLogin = window.handleSchoolLoginSubmit;
+window.handleSchoolLoginSubmit = function() {
+  if (origHandleSchoolLogin) origHandleSchoolLogin();
+  setTimeout(renderTopUserProfileBar, 200);
+};
+
+const origHandleAdminLogin = window.handleAdminLoginSubmit;
+window.handleAdminLoginSubmit = function() {
+  if (origHandleAdminLogin) origHandleAdminLogin();
+  setTimeout(renderTopUserProfileBar, 200);
+};
+
+// ಪೇಜ್ ಲೋಡ್ ಆದಾಗ ಪ್ರೊಫೈಲ್ ಬಾರ್ ಪರಿಶೀಲನೆ
+document.addEventListener('DOMContentLoaded', () => {
+  renderTopUserProfileBar();
+});
+
+// =========================================================================
+// 📢 1. LIVE ANNOUNCEMENT BANNER SYSTEM (WEBSITE TOP TICKER)
+// =========================================================================
+
+// ವೆಬ್‌ಸೈಟ್‌ನ ಮೇಲ್ಭಾಗದಲ್ಲಿ ಲೈವ್ ಪ್ರಕಟಣೆ ರನ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+function renderLiveAnnouncementBanner() {
+  const annData = JSON.parse(localStorage.getItem('wy_live_announcement') || '{"text":"","enabled":false}');
+  let banner = document.getElementById('wy-live-notice-bar');
+
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'wy-live-notice-bar';
+    const header = document.querySelector('header');
+    if (header && header.parentNode) {
+      header.parentNode.insertBefore(banner, header.nextSibling);
+    }
+  }
+
+  // ಪ್ರಕಟಣೆ ಆಫ್ ಆಗಿದ್ದರೆ ಅಥವಾ ಖಾಲಿ ಇದ್ದರೆ ಹೈಡ್ ಮಾಡುವುದು
+  if (!annData.enabled || !annData.text || !annData.text.trim()) {
+    banner.innerHTML = '';
+    banner.className = 'hidden';
+    return;
+  }
+
+  banner.className = 'w-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-slate-950 font-black py-2 px-4 shadow-sm border-b border-amber-600/30 flex items-center gap-3 text-xs overflow-hidden no-print animate-fade-in';
+  banner.innerHTML = `
+    <div class="flex items-center gap-1.5 bg-slate-950 text-amber-300 px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider shrink-0 shadow">
+      <i class="fa-solid fa-bullhorn text-amber-400 animate-bounce"></i> <span>ಲೈವ್ ಪ್ರಕಟಣೆ</span>
+    </div>
+    <div class="flex-1 overflow-hidden whitespace-nowrap">
+      <marquee behavior="scroll" direction="left" scrollamount="6" class="font-extrabold text-slate-950 text-xs sm:text-sm">
+        ${escapeHtml(annData.text)}
+      </marquee>
+    </div>
+  `;
+}
+
+// =========================================================================
+// 🎛️ 2. SPACIOUS & WIDE MASTER ADMIN DASHBOARD (ದೊಡ್ಡದಾದ ಅಡ್ಮಿನ್ ಸೂಟ್)
+// =========================================================================
+
+window.openAdminDashboardModal = function(activeTab = 'users') {
+  const wrapper = document.getElementById('auth-modal-wrapper');
+  if (!wrapper) return;
+
+  wrapper.className = 'auth-modal-overlay';
+  wrapper.style.display = 'flex';
+
+  const requests = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]');
+  const users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+  const pendingCount = requests.filter(r => r.status === 'pending').length;
+  const annData = JSON.parse(localStorage.getItem('wy_live_announcement') || '{"text":"","enabled":false}');
+
+  wrapper.innerHTML = `
+    <div class="auth-modal-card p-6 sm:p-8 space-y-5" style="max-width: 1050px !important; width: 95% !important;" onclick="event.stopPropagation()">
+      
+      <!-- Top Bar Header -->
+      <div class="flex flex-wrap items-center justify-between border-b border-slate-200 pb-4 gap-3">
+        <div class="flex items-center space-x-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-2xl shadow-md">
+            <i class="fa-solid fa-crown"></i>
+          </div>
+          <div>
+            <h2 class="font-black text-lg sm:text-xl text-slate-900 leading-tight">With You Master Admin Suite Pro</h2>
+            <p class="text-xs text-emerald-700 font-extrabold">ಬಳಕೆದಾರರ ನಿರ್ವಹಣೆ, Secret Key ವಿತರಣೆ ಮತ್ತು ಲೈವ್ ಪ್ರಕಟಣೆ ನಿಯಂತ್ರಣ</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button onclick="logoutAnyUser()" class="px-4 py-2 bg-rose-50 text-rose-700 rounded-xl text-xs font-black border border-rose-200 hover:bg-rose-100 cursor-pointer transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-power-off"></i> <span>Logout</span>
+          </button>
+          <button onclick="closeAuthModal()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black text-lg cursor-pointer transition">✕</button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (ಬಿಡಬಿಡಿಯಾದ ಟ್ಯಾಬ್ಸ್) -->
+      <div class="flex flex-wrap bg-slate-100 p-1.5 rounded-2xl text-xs font-black gap-1.5 shadow-inner">
+        <button id="adm-tab-users" onclick="switchAdminTab('users')" class="flex-1 py-2.5 px-4 rounded-xl transition ${activeTab==='users'?'auth-tab-active text-white shadow':'text-slate-700 hover:bg-white'}">
+          <i class="fa-solid fa-users"></i> ಸಕ್ರಿಯ ಸದಸ್ಯರು (${users.length})
+        </button>
+        <button id="adm-tab-reqs" onclick="switchAdminTab('requests')" class="flex-1 py-2.5 px-4 rounded-xl transition ${activeTab==='requests'?'auth-tab-active text-white shadow':'text-slate-700 hover:bg-white'}">
+          <i class="fa-solid fa-bell"></i> ಹೊಸ ಕೋರಿಕೆಗಳು ${pendingCount > 0 ? `<span class="bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black ml-1">${pendingCount}</span>` : ''}
+        </button>
+        <button id="adm-tab-notice" onclick="switchAdminTab('notice')" class="flex-1 py-2.5 px-4 rounded-xl transition ${activeTab==='notice'?'auth-tab-active text-white shadow':'text-slate-700 hover:bg-white'}">
+          <i class="fa-solid fa-bullhorn text-amber-500"></i> ಲೈವ್ ಪ್ರಕಟಣೆ ${annData.enabled ? '🟢' : '⚪'}
+        </button>
+        <button id="adm-tab-add" onclick="switchAdminTab('add')" class="flex-1 py-2.5 px-4 rounded-xl transition ${activeTab==='add'?'auth-tab-active text-white shadow':'text-slate-700 hover:bg-white'}">
+          <i class="fa-solid fa-user-plus"></i> ಯೂಸರ್ ಸೇರಿಸಿ
+        </button>
+        <button id="adm-tab-settings" onclick="switchAdminTab('settings')" class="flex-1 py-2.5 px-4 rounded-xl transition ${activeTab==='settings'?'auth-tab-active text-white shadow':'text-slate-700 hover:bg-white'}">
+          <i class="fa-solid fa-gear"></i> ಸೆಟ್ಟಿಂಗ್ಸ್
+        </button>
+      </div>
+
+      <!-- 🌟 TAB 1: ACTIVE USERS DB (ಸ್ಪೇಷಿಯಸ್ ಲೇಔಟ್) -->
+      <div id="adm-view-users" class="${activeTab==='users'?'':'hidden'} space-y-4">
+        ${renderSpaciousActiveUsersHtml(users)}
+      </div>
+
+      <!-- 🌟 TAB 2: PENDING REQUESTS -->
+      <div id="adm-view-requests" class="${activeTab==='requests'?'':'hidden'} space-y-4">
+        ${renderPendingRequestsListHtml(requests)}
+      </div>
+
+      <!-- 🌟 TAB 3: LIVE ANNOUNCEMENT CONTROLLER -->
+      <div id="adm-view-notice" class="${activeTab==='notice'?'':'hidden'} space-y-4">
+        <div class="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4">
+          <div class="flex items-center justify-between border-b pb-3">
+            <div>
+              <h3 class="font-black text-sm text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-bullhorn text-amber-600"></i>
+                <span>ವೆಬ್‌ಸೈಟ್ ಲೈವ್ ಪ್ರಕಟಣೆ ನಿರ್ವಹಣೆ (Live Announcement Ticker)</span>
+              </h3>
+              <p class="text-xs text-slate-500 font-bold">ಇಲ್ಲಿ ಬರೆದ ಸಂದೇಶವು ಎಲ್ಲಾ ಶಿಕ್ಷಕರಿಗೆ ವೆಬ್‌ಸೈಟ್‌ನ ಮೇಲ್ಭಾಗದಲ್ಲಿ ಲೈವ್ ಆಗಿ ಸ್ಕ್ರೋಲ್ ಆಗುತ್ತದೆ.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="adm-notice-enable" ${annData.enabled ? 'checked' : ''} class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                <span class="ml-2 text-xs font-black text-slate-700">ಪ್ರಕಟಣೆ ಸಕ್ರಿಯ (Active)</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-black text-slate-700 mb-1.5">ಪ್ರಕಟಣೆ ಸಂದೇಶ (Announcement Message)</label>
+            <textarea id="adm-notice-text" rows="3" placeholder="ಉದಾ: 🎉 2026-27 ಸಾಲಿನ SA-1 ವಿಜ್ಞಾನ, ಗಣಿತ ಮತ್ತು ಸಮಾಜ ವಿಜ್ಞಾನ ಪ್ರಶ್ನೋತ್ತರಗಳು ಅಪ್ಲೋಡ್ ಆಗಿವೆ! ತಕ್ಷಣ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳನ್ನು ರಚಿಸಿಕೊಳ್ಳಿ..." class="w-full p-3.5 bg-white border border-slate-300 rounded-2xl text-xs sm:text-sm font-bold text-slate-900 focus:border-amber-500 outline-none leading-relaxed">${escapeHtml(annData.text || '')}</textarea>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button onclick="clearAnnouncementSubmit()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-black text-xs rounded-xl cursor-pointer">
+              🗑️ ತೆರವುಗೊಳಿಸಿ (Clear)
+            </button>
+            <button onclick="saveAnnouncementSubmit()" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md cursor-pointer transition flex items-center gap-1.5">
+              <i class="fa-solid fa-paper-plane"></i> <span>ಲೈವ್ ಪ್ರಕಟಿಸಿ (Publish Announcement)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: MANUAL ADD USER -->
+      <div id="adm-view-add" class="${activeTab==='add'?'':'hidden'} space-y-4">
+        ${renderManualUserAddFormHtml()}
+      </div>
+
+      <!-- TAB 5: SETTINGS -->
+      <div id="adm-view-settings" class="${activeTab==='settings'?'':'hidden'} space-y-4">
+        ${renderAdminSettingsHtml()}
+      </div>
+
+    </div>
+  `;
+};
+
+// ೩. ಪ್ರಕಟಣೆ ಸೇವ್ ಮತ್ತು ಪಬ್ಲಿಷ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+window.saveAnnouncementSubmit = function() {
+  const text = document.getElementById('adm-notice-text')?.value.trim();
+  const enabled = document.getElementById('adm-notice-enable')?.checked || false;
+
+  const data = {
+    text: text,
+    enabled: enabled,
+    updatedAt: new Date().toLocaleDateString()
+  };
+
+  localStorage.setItem('wy_live_announcement', JSON.stringify(data));
+  renderLiveAnnouncementBanner();
+  showToast('📢 ಲೈವ್ ಪ್ರಕಟಣೆ ಯಶಸ್ವಿಯಾಗಿ ಅಪ್ಡೇಟ್ ಆಗಿದೆ!', 'success');
+  openAdminDashboardModal('notice');
+};
+
+window.clearAnnouncementSubmit = function() {
+  localStorage.setItem('wy_live_announcement', JSON.stringify({ text: '', enabled: false }));
+  renderLiveAnnouncementBanner();
+  showToast('🗑️ ಪ್ರಕಟಣೆಯನ್ನು ತೆರವುಗೊಳಿಸಲಾಗಿದೆ.', 'info');
+  openAdminDashboardModal('notice');
+};
+
+// =========================================================================
+// 👥 4. ವಿಸ್ತಾರವಾದ & ಸುಂದರ ಸಕ್ರಿಯ ಸದಸ್ಯರ ಪಟ್ಟಿ (SPACIOUS USERS CARDS)
+// =========================================================================
+function renderSpaciousActiveUsersHtml(users) {
+  if (users.length === 0) {
+    return `<div class="p-12 text-center bg-slate-50 border rounded-3xl text-slate-500 font-extrabold text-sm">ಯಾವುದೇ ಸಕ್ರಿಯ ಸದಸ್ಯರಿಲ್ಲ.</div>`;
+  }
+
+  return `
+    <div class="space-y-4">
+      <!-- Search Input -->
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+        <input type="text" id="adm-user-search" oninput="filterAdminUsersList()" placeholder="ಹೆಸರು, ಶಾಲೆ ಅಥವಾ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಮೂಲಕ ತಕ್ಷಣ ಹುಡುಕಿ..." class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-xs sm:text-sm font-bold text-slate-900 focus:bg-white focus:border-indigo-500 outline-none" />
+      </div>
+
+      <!-- Users Grid List -->
+      <div id="adm-users-container" class="space-y-3 max-h-[55vh] overflow-y-auto pr-1.5">
+        ${users.map((u, idx) => {
+          const isSchool = u.type === 'school';
+          const subjs = Array.isArray(u.allowedSubjects) ? u.allowedSubjects.join(', ') : (u.subjects || 'ಎಲ್ಲಾ ವಿಷಯಗಳು');
+          const classes = Array.isArray(u.allowedClasses) ? u.allowedClasses.join(', ') : (u.classes || 'ಎಲ್ಲಾ ತರಗತಿಗಳು');
+          const isExpired = u.validityDate && new Date(u.validityDate) < new Date(new Date().toDateString());
+
+          return `
+            <div class="p-4 sm:p-5 bg-white border border-slate-200 rounded-3xl space-y-3 shadow-sm hover:shadow-md hover:border-indigo-300 transition">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 rounded-2xl ${isSchool ? 'bg-indigo-600' : 'bg-emerald-600'} text-white flex items-center justify-center font-black text-lg shadow">
+                    <i class="fa-solid ${isSchool ? 'fa-school' : 'fa-chalkboard-user'}"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-black text-sm sm:text-base text-slate-900 leading-tight">${escapeHtml(u.name)}</h4>
+                    <p class="text-xs text-slate-600 font-bold">🏫 ${escapeHtml(u.school)}</p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] font-black px-3 py-1 rounded-full ${isSchool ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'}">
+                    ${isSchool ? 'ಶಾಲಾ ಖಾತೆ' : 'ಶಿಕ್ಷಕರ ಖಾತೆ'}
+                  </span>
+                  <span class="text-[11px] font-black px-3 py-1 rounded-full ${isExpired ? 'bg-rose-100 text-rose-800' : 'bg-teal-100 text-teal-800'}">
+                    ${isExpired ? 'Expired' : 'Active'}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Details Bar -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs font-bold text-slate-700">
+                <div>📱 <b>ಮೊಬೈಲ್/DISE:</b> <span class="text-slate-900 font-black block">${escapeHtml(u.mobile || u.dise)}</span></div>
+                <div>🔑 <b>Secret Key:</b> <span class="text-emerald-700 font-black block tracking-wide">${escapeHtml(u.secretKey)}</span></div>
+                <div>📅 <b>ಮಾನ್ಯತೆ (Validity):</b> <span class="text-indigo-700 font-black block">${u.validityDate || 'ಅನಿರ್ದಿಷ್ಟ'}</span></div>
+                <div>🎒 <b>ತರಗತಿಗಳು:</b> <span class="text-slate-900 font-bold block truncate">${escapeHtml(classes)}</span></div>
+              </div>
+
+              <!-- Allowed Subjects Tag -->
+              <div class="text-xs font-bold text-slate-600 flex items-center gap-1.5 flex-wrap">
+                <span>📚 <b>ಅನುಮತಿಸಿದ ವಿಷಯಗಳು:</b></span>
+                <span class="bg-indigo-50 text-indigo-950 px-2.5 py-0.5 rounded-lg border border-indigo-200 font-extrabold">${escapeHtml(subjs)}</span>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                <button onclick="openEditUserModal(${idx})" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs rounded-xl cursor-pointer transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-pen-to-square text-indigo-600"></i> <span>ಸಂಪಾದಿಸಿ (Edit)</span>
+                </button>
+                <button onclick="resendUserCredentialsWhatsApp(${idx})" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow cursor-pointer transition flex items-center gap-1.5">
+                  <i class="fa-brands fa-whatsapp text-emerald-200"></i> <span>Re-Send Key (WhatsApp)</span>
+                </button>
+                <button onclick="deleteActiveUser(${idx})" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-black text-xs rounded-xl border border-rose-200 cursor-pointer transition">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ಲೈವ್ ಸರ್ಚ್ ಫಿಲ್ಟರ್ ಫಂಕ್ಷನ್
+window.filterAdminUsersList = function() {
+  const query = document.getElementById('adm-user-search')?.value.toLowerCase().trim() || '';
+  const users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+  const container = document.getElementById('adm-users-container');
+  if (!container) return;
+
+  const filtered = users.filter(u => {
+    return (u.name && u.name.toLowerCase().includes(query)) ||
+           (u.school && u.school.toLowerCase().includes(query)) ||
+           (u.mobile && u.mobile.includes(query)) ||
+           (u.dise && u.dise.includes(query)) ||
+           (u.secretKey && u.secretKey.toLowerCase().includes(query));
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="p-8 text-center text-slate-500 font-bold text-xs">ಯಾವುದೇ ಫಲಿತಾಂಶ ಸಿಗಲಿಲ್ಲ.</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map((u) => {
+    const originalIndex = users.indexOf(u);
+    const isSchool = u.type === 'school';
+    const subjs = Array.isArray(u.allowedSubjects) ? u.allowedSubjects.join(', ') : (u.subjects || 'ಎಲ್ಲಾ ವಿಷಯಗಳು');
+    const classes = Array.isArray(u.allowedClasses) ? u.allowedClasses.join(', ') : (u.classes || 'ಎಲ್ಲಾ ತರಗತಿಗಳು');
+    const isExpired = u.validityDate && new Date(u.validityDate) < new Date(new Date().toDateString());
+
+    return `
+      <div class="p-4 bg-white border border-slate-200 rounded-3xl space-y-3 shadow-sm">
+        <div class="flex items-center justify-between border-b pb-2">
+          <div class="flex items-center space-x-2.5">
+            <b class="text-slate-900 font-black text-sm">${escapeHtml(u.name)}</b>
+            <span class="text-xs text-slate-500 font-bold">(${escapeHtml(u.school)})</span>
+          </div>
+          <span class="text-[10px] font-black px-2.5 py-0.5 rounded-full ${isExpired ? 'bg-rose-100 text-rose-800' : 'bg-teal-100 text-teal-800'}">
+            ${isExpired ? 'Expired' : 'Active'}
+          </span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-2xl text-xs font-bold text-slate-700">
+          <div>📱 <b>ಮೊಬೈಲ್:</b> ${escapeHtml(u.mobile || u.dise)}</div>
+          <div>🔑 <b>Key:</b> <span class="text-emerald-700 font-black">${escapeHtml(u.secretKey)}</span></div>
+          <div>📅 <b>ಮಾನ್ಯತೆ:</b> <span class="text-indigo-700 font-black">${u.validityDate || 'ಅನಿರ್ದಿಷ್ಟ'}</span></div>
+          <div>🎒 <b>ತರಗತಿ:</b> ${escapeHtml(classes)}</div>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-1">
+          <button onclick="openEditUserModal(${originalIndex})" class="px-3.5 py-1.5 bg-slate-100 text-slate-800 font-bold text-xs rounded-xl cursor-pointer">
+            <i class="fa-solid fa-pen-to-square text-indigo-600"></i> Edit
+          </button>
+          <button onclick="resendUserCredentialsWhatsApp(${originalIndex})" class="px-3.5 py-1.5 bg-emerald-600 text-white font-bold text-xs rounded-xl cursor-pointer">
+            <i class="fa-brands fa-whatsapp"></i> Re-Send
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
+// ಪೇಜ್ ಲೋಡ್ ಆದ ತಕ್ಷಣ ಲೈವ್ ಪ್ರಕಟಣೆ ಪ್ರದರ್ಶನ
+document.addEventListener('DOMContentLoaded', () => {
+  renderLiveAnnouncementBanner();
+});
+
+// =========================================================================
+// 📢 LIVE ANNOUNCEMENT TICKER & 100% WORKING TAB CONTROLLER
+// =========================================================================
+
+// ೧. ವೆಬ್‌ಸೈಟ್‌ನ ಮೇಲ್ಭಾಗದಲ್ಲಿ ಲೈವ್ ಪ್ರಕಟಣೆ ರನ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+function renderLiveAnnouncementBanner() {
+  const annData = JSON.parse(localStorage.getItem('wy_live_announcement') || '{"text":"","enabled":false}');
+  let banner = document.getElementById('wy-live-notice-bar');
+
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'wy-live-notice-bar';
+    const header = document.querySelector('header');
+    if (header && header.parentNode) {
+      header.parentNode.insertBefore(banner, header.nextSibling);
+    }
+  }
+
+  // ಪ್ರಕಟಣೆ ಆಫ್ ಆಗಿದ್ದರೆ ಅಥವಾ ಖಾಲಿ ಇದ್ದರೆ ಹೈಡ್ ಮಾಡುವುದು
+  if (!annData.enabled || !annData.text || !annData.text.trim()) {
+    banner.innerHTML = '';
+    banner.className = 'hidden';
+    return;
+  }
+
+  banner.className = 'w-full bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 text-slate-950 font-black py-2.5 px-4 shadow-md border-b-2 border-amber-600 flex items-center gap-3 text-xs overflow-hidden no-print animate-fade-in';
+  banner.innerHTML = `
+    <div class="flex items-center gap-1.5 bg-slate-950 text-amber-300 px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider shrink-0 shadow">
+      <i class="fa-solid fa-bullhorn text-amber-400 animate-bounce"></i> <span>ಲೈವ್ ಪ್ರಕಟಣೆ</span>
+    </div>
+    <div class="flex-1 overflow-hidden whitespace-nowrap">
+      <marquee behavior="scroll" direction="left" scrollamount="6" class="font-black text-slate-950 text-xs sm:text-sm tracking-wide">
+        ${escapeHtml(annData.text)}
+      </marquee>
+    </div>
+  `;
+}
+
+// ೨. 🌟 ಎಲ್ಲಾ ೫ ಟ್ಯಾಬ್‌ಗಳನ್ನು 100% ಸರಿಯಾಗಿ ತೆರೆಯುವ ಸ್ವಿಚರ್ ಫಂಕ್ಷನ್ (FIXED)
+window.switchAdminTab = function(tab) {
+  const tabMapping = {
+    'users': { view: 'adm-view-users', btn: 'adm-tab-users' },
+    'requests': { view: 'adm-view-requests', btn: 'adm-tab-reqs' },
+    'notice': { view: 'adm-view-notice', btn: 'adm-tab-notice' },
+    'add': { view: 'adm-view-add', btn: 'adm-tab-add' },
+    'settings': { view: 'adm-view-settings', btn: 'adm-tab-settings' }
+  };
+
+  Object.keys(tabMapping).forEach(t => {
+    const isCurrent = (t === tab);
+    const viewEl = document.getElementById(tabMapping[t].view);
+    const btnEl = document.getElementById(tabMapping[t].btn);
+
+    if (viewEl) {
+      if (isCurrent) {
+        viewEl.classList.remove('hidden');
+      } else {
+        viewEl.classList.add('hidden');
+      }
+    }
+
+    if (btnEl) {
+      if (isCurrent) {
+        btnEl.classList.add('auth-tab-active', 'text-white', 'shadow');
+        btnEl.classList.remove('text-slate-700');
+      } else {
+        btnEl.classList.remove('auth-tab-active', 'text-white', 'shadow');
+        btnEl.classList.add('text-slate-700');
+      }
+    }
+  });
+};
+
+// ೩. ಅಡ್ಮಿನ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ರೆಂಡರರ್ (ವಿಶಾಲವಾದ & ಲೈವ್ ನೋಟೀಸ್ ಫಾರ್ಮ್ ಒಳಗೊಂಡಿದೆ)
+window.openAdminDashboardModal = function(activeTab = 'users') {
+  const wrapper = document.getElementById('auth-modal-wrapper');
+  if (!wrapper) return;
+
+  wrapper.className = 'auth-modal-overlay';
+  wrapper.style.display = 'flex';
+
+  const requests = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]');
+  const users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+  const pendingCount = requests.filter(r => r.status === 'pending').length;
+  const annData = JSON.parse(localStorage.getItem('wy_live_announcement') || '{"text":"","enabled":false}');
+
+  wrapper.innerHTML = `
+    <div class="auth-modal-card p-6 sm:p-8 space-y-5" style="max-width: 1050px !important; width: 95% !important;" onclick="event.stopPropagation()">
+      
+      <!-- Top Bar Header -->
+      <div class="flex flex-wrap items-center justify-between border-b border-slate-200 pb-4 gap-3">
+        <div class="flex items-center space-x-3.5">
+          <div class="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-2xl shadow-md">
+            <i class="fa-solid fa-crown"></i>
+          </div>
+          <div>
+            <h2 class="font-black text-lg sm:text-xl text-slate-900 leading-tight">With You Master Admin Suite Pro</h2>
+            <p class="text-xs text-emerald-700 font-extrabold">ಬಳಕೆದಾರರ ನಿರ್ವಹಣೆ, Secret Key ವಿತರಣೆ ಮತ್ತು ಲೈವ್ ಪ್ರಕಟಣೆ ನಿಯಂತ್ರಣ</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button onclick="logoutAnyUser()" class="px-4 py-2 bg-rose-50 text-rose-700 rounded-xl text-xs font-black border border-rose-200 hover:bg-rose-100 cursor-pointer transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-power-off"></i> <span>Logout</span>
+          </button>
+          <button onclick="closeAuthModal()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black text-lg cursor-pointer transition">✕</button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (5 ಪ್ರಮುಖ ಟ್ಯಾಬ್‌ಗಳು) -->
+      <div class="flex flex-wrap bg-slate-100 p-1.5 rounded-2xl text-xs font-black gap-1.5 shadow-inner">
+        <button id="adm-tab-users" onclick="switchAdminTab('users')" class="flex-1 py-2.5 px-3 rounded-xl transition ${activeTab==='users'?'auth-tab-active text-white shadow':'text-slate-700 hover:bg-white'}">
+          <i class="fa-solid fa-users"></i> ಸಕ್ರಿಯ ಸದಸ್ಯರು (${users.length})
+        </button>
+        <button id="adm-tab-reqs" onclick="switchAdminTab('requests')" class="flex-1 py-2.5 px-3 rounded-xl transition ${activeTab==='requests'?'auth-tab-active text-white shadow':'text-slate-700 hover:bg-white'}">
+          <i class="fa-solid fa-bell"></i> ಹೊಸ ಕೋರಿಕೆಗಳು ${pendingCount > 0 ? `<span class="bg-rose-600 text-white text-[10px] px-2 py-0.5 rounded-full font-black ml-1">${pendingCount}</span>` : ''}
+        </button>
+        <button id="adm-tab-notice" onclick="switchAdminTab('notice')" class="flex-1 py-2.5 px-3 rounded-xl transition ${activeTab==='notice'?'auth-tab-active text-white shadow':'text-slate-700 hover:bg-white'}">
+          <i class="fa-solid fa-bullhorn text-amber-500"></i> ಲೈವ್ ಪ್ರಕಟಣೆ ${annData.enabled ? '🟢' : '⚪'}
+        </button>
+        <button id="adm-tab-add" onclick="switchAdminTab('add')" class="flex-1 py-2.5 px-3 rounded-xl transition ${activeTab==='add'?'auth-tab-active text-white shadow':'text-slate-700 hover:bg-white'}">
+          <i class="fa-solid fa-user-plus"></i> ಯೂಸರ್ ಸೇರಿಸಿ
+        </button>
+        <button id="adm-tab-settings" onclick="switchAdminTab('settings')" class="flex-1 py-2.5 px-3 rounded-xl transition ${activeTab==='settings'?'auth-tab-active text-white shadow':'text-slate-700 hover:bg-white'}">
+          <i class="fa-solid fa-gear"></i> ಸೆಟ್ಟಿಂಗ್ಸ್
+        </button>
+      </div>
+
+      <!-- TAB 1: ACTIVE USERS -->
+      <div id="adm-view-users" class="${activeTab==='users'?'':'hidden'} space-y-4">
+        ${renderSpaciousActiveUsersHtml(users)}
+      </div>
+
+      <!-- TAB 2: PENDING REQUESTS -->
+      <div id="adm-view-requests" class="${activeTab==='requests'?'':'hidden'} space-y-4">
+        ${renderPendingRequestsListHtml(requests)}
+      </div>
+
+      <!-- 🌟 TAB 3: LIVE ANNOUNCEMENT FORM (ಪ್ರಕಟಣೆ ಟೈಪ್ ಮಾಡುವ ವಿಂಡೋ) -->
+      <div id="adm-view-notice" class="${activeTab==='notice'?'':'hidden'} space-y-4">
+        <div class="p-6 bg-slate-50 border border-slate-200 rounded-3xl space-y-4">
+          <div class="flex flex-wrap items-center justify-between border-b pb-3 gap-2">
+            <div>
+              <h3 class="font-black text-sm sm:text-base text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-bullhorn text-amber-500 text-lg"></i>
+                <span>ವೆಬ್‌ಸೈಟ್ ಲೈವ್ ಪ್ರಕಟಣೆ ನಿರ್ವಹಣೆ (Live Announcement Ticker)</span>
+              </h3>
+              <p class="text-xs text-slate-500 font-bold mt-0.5">ಇಲ್ಲಿ ನೀವು ಟೈಪ್ ಮಾಡುವ ಸಂದೇಶವು ವೆಬ್‌ಸೈಟ್‌ನ ಮೇಲ್ಭಾಗದಲ್ಲಿ ಎಲ್ಲಾ ಶಿಕ್ಷಕರಿಗೆ ಲೈವ್ ಆಗಿ ಸ್ಕ್ರೋಲ್ ಆಗುತ್ತದೆ.</p>
+            </div>
+            <div>
+              <label class="relative inline-flex items-center cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-slate-300 shadow-sm">
+                <input type="checkbox" id="adm-notice-enable" ${annData.enabled ? 'checked' : ''} class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[8px] after:left-[14px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                <span class="ml-14 text-xs font-black text-slate-800">ಪ್ರಕಟಣೆ ಆನ್ (Active)</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-black text-slate-700 mb-1.5">ಪ್ರಕಟಣೆ ಸಂದೇಶ (Type Announcement Message)</label>
+            <textarea id="adm-notice-text" rows="3" placeholder="ಉದಾ: 🎉 2026-27 ಸಾಲಿನ SA-1 ವಿಜ್ಞಾನ, ಗಣಿತ ಮತ್ತು ಸಮಾಜ ವಿಜ್ಞಾನ ಪ್ರಶ್ನೋತ್ತರಗಳು ಅಪ್ಲೋಡ್ ಆಗಿವೆ! ತಕ್ಷಣ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳನ್ನು ರಚಿಸಿಕೊಳ್ಳಿ..." class="w-full p-3.5 bg-white border border-slate-300 rounded-2xl text-xs sm:text-sm font-bold text-slate-900 focus:border-amber-500 outline-none leading-relaxed shadow-sm">${escapeHtml(annData.text || '')}</textarea>
+          </div>
+
+          <!-- ಶಾರ್ಟ್‌ಕಟ್ ಟೆಂಪ್ಲೇಟ್‌ಗಳು -->
+          <div class="space-y-1.5">
+            <span class="text-[11px] font-black text-slate-600">⚡ ಸಿದ್ಧ ಸಂದೇಶಗಳು (Quick Presets):</span>
+            <div class="flex flex-wrap gap-1.5 text-[11px] font-bold">
+              <button type="button" onclick="setNoticePreset('🎉 2026-27 ಸಾಲಿನ SA-1 ಎಲ್ಲಾ ವಿಷಯಗಳ ಅಧಿಕೃತ ಪ್ರಶ್ನೋತ್ತರಗಳು ಸಿದ್ಧವಾಗಿವೆ! ತಕ್ಷಣ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಿಕೊಳ್ಳಿ.')" class="px-2.5 py-1 bg-white border border-slate-300 rounded-lg hover:border-amber-500 cursor-pointer">📢 SA-1 ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯ</button>
+              <button type="button" onclick="setNoticePreset('✨ ಹೊಸ ಅಪ್ಡೇಟ್: 1 ರಿಂದ 10ನೇ ತರಗತಿಯ ಗಣಿತ & ವಿಜ್ಞಾನ ಚಿತ್ರಸಹಿತ ಪ್ರಶ್ನೋತ್ತರಗಳು ಲಭ್ಯ!')" class="px-2.5 py-1 bg-white border border-slate-300 rounded-lg hover:border-amber-500 cursor-pointer">✨ ಗಣಿತ & ವಿಜ್ಞಾನ ಅಪ್ಡೇಟ್</button>
+              <button type="button" onclick="setNoticePreset('🔑 Secret Key ಪಡೆಯಲು ಅಥವಾ ನವೀಕರಣಕ್ಕಾಗಿ WhatsApp ಸಂಪರ್ಕಿಸಿ: 9902090911')" class="px-2.5 py-1 bg-white border border-slate-300 rounded-lg hover:border-amber-500 cursor-pointer">📱 WhatsApp ಸಂಪರ್ಕ</button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-200">
+            <button type="button" onclick="clearAnnouncementSubmit()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-black text-xs rounded-xl cursor-pointer">
+              🗑️ ತೆರವುಗೊಳಿಸಿ (Clear)
+            </button>
+            <button type="button" onclick="saveAnnouncementSubmit()" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md cursor-pointer transition flex items-center gap-2">
+              <i class="fa-solid fa-paper-plane"></i> <span>ಲೈವ್ ಪ್ರಕಟಿಸಿ (Publish Announcement)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: MANUAL ADD USER -->
+      <div id="adm-view-add" class="${activeTab==='add'?'':'hidden'} space-y-4">
+        ${renderManualUserAddFormHtml()}
+      </div>
+
+      <!-- TAB 5: SETTINGS -->
+      <div id="adm-view-settings" class="${activeTab==='settings'?'':'hidden'} space-y-4">
+        ${renderAdminSettingsHtml()}
+      </div>
+
+    </div>
+  `;
+};
+
+// ಶಾರ್ಟ್‌ಕಟ್ ಪ್ರೆಸೆಟ್ ಟೆಕ್ಸ್ಟ್ ತುಂಬುವ ಫಂಕ್ಷನ್
+window.setNoticePreset = function(msg) {
+  const inp = document.getElementById('adm-notice-text');
+  const chk = document.getElementById('adm-notice-enable');
+  if (inp) inp.value = msg;
+  if (chk) chk.checked = true;
+};
+
+// ಪ್ರಕಟಣೆ ಸೇವ್ ಮತ್ತು ಲೈವ್ ರನ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+window.saveAnnouncementSubmit = function() {
+  const text = document.getElementById('adm-notice-text')?.value.trim();
+  const enabled = document.getElementById('adm-notice-enable')?.checked || false;
+
+  const data = {
+    text: text,
+    enabled: enabled,
+    updatedAt: new Date().toLocaleDateString()
+  };
+
+  localStorage.setItem('wy_live_announcement', JSON.stringify(data));
+  renderLiveAnnouncementBanner();
+  showToast('📢 ಲೈವ್ ಪ್ರಕಟಣೆ ಯಶಸ್ವಿಯಾಗಿ ಪ್ರಕಟಗೊಂಡಿದೆ!', 'success');
+  openAdminDashboardModal('notice');
+};
+
+// ಪ್ರಕಟಣೆ ತೆರವುಗೊಳಿಸುವ ಫಂಕ್ಷನ್
+window.clearAnnouncementSubmit = function() {
+  localStorage.setItem('wy_live_announcement', JSON.stringify({ text: '', enabled: false }));
+  renderLiveAnnouncementBanner();
+  showToast('🗑️ ಲೈವ್ ಪ್ರಕಟಣೆಯನ್ನು ತೆಗೆದುಹಾಕಲಾಗಿದೆ.', 'info');
+  openAdminDashboardModal('notice');
+};
+
+// ಪೇಜ್ ಲೋಡ್ ಆದಾಗ ಬ್ಯಾನರ್ ಇನಿಶಿಯಲೈಸ್
+document.addEventListener('DOMContentLoaded', () => {
+  renderLiveAnnouncementBanner();
+});
+
   </script>
 </body>
 </html>

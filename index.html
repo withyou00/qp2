@@ -7980,6 +7980,382 @@ window.saveEditedUserSubmit = function(index) {
 };
 
 
+// =========================================================================
+// 🔒 STRICT REGISTRATION GUARD (NO PAPER GENERATION WITHOUT LOGIN/SIGNUP)
+// =========================================================================
+
+(function installStrictRegistrationGate() {
+  // ಮೂಲ ಜನರೇಟರ್ ಫಂಕ್ಷನ್ ಅನ್ನು ಭದ್ರತಾ ಕವಚದೊಳಗೆ ತರುವುದು
+  const coreGeneratorFunction = window.generateExamPackageFromBank;
+
+  window.generateExamPackageFromBank = function() {
+    // ೧. ಅಡ್ಮಿನ್ ಲಾಗಿನ್ ಆಗಿದ್ದರೆ ನೇರ ಪ್ರವೇಶ
+    const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+    if (isAdmin) {
+      return executeActualPaperGeneration();
+    }
+
+    // ೨. ಲಾಗಿನ್ ಸೆಷನ್ ಪರಿಶೀಲನೆ
+    const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+
+    // ❌ ಯೂಸರ್ ಲಾಗಿನ್ ಆಗಿಲ್ಲದಿದ್ದರೆ ಜನರೇಟ್ ತಡೆಯುವುದು
+    if (!session || !session.isLoggedIn) {
+      alert(
+        "🔒 ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ (Registration Required)!\n\n" +
+        "ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಲು ದಯವಿಟ್ಟು ಮೊದಲು ಶಿಕ್ಷಕರ ನೋಂದಣಿ (₹100) ಅಥವಾ ಶಾಲಾ ನೋಂದಣಿ (₹500) ಮಾಡಿಕೊಳ್ಳಿ.\n\n" +
+        "ಈಗಲೇ ನೋಂದಾಯಿಸಲು 'OK' ಒತ್ತಿರಿ."
+      );
+      // ತಕ್ಷಣ ಶಿಕ್ಷಕರ ಸೈನ್-ಅಪ್ ವಿಂಡೋ ಓಪನ್ ಮಾಡುವುದು
+      openTeacherAuthModal('signup');
+      return;
+    }
+
+    // ೩. ಮಾನ್ಯತೆ ಅವಧಿ (Validity Date) ಪರಿಶೀಲನೆ
+    if (session.validityDate && new Date(session.validityDate) < new Date(new Date().toDateString())) {
+      alert(
+        `⚠️ ನಿಮ್ಮ ಖಾತೆಯ ಮಾನ್ಯತೆ ಮುಕ್ತಾಯಗೊಂಡಿದೆ (${session.validityDate})!\n\n` +
+        "ದಯವಿಟ್ಟು ನವೀಕರಣಕ್ಕಾಗಿ (Renewal) Admin ಸಂಪರ್ಕಿಸಿ: 9902090911."
+      );
+      openTeacherAuthModal('login');
+      return;
+    }
+
+    // ೪. ಶಿಕ್ಷಕರ ವಿಷಯ ಅನುಮತಿ ಪರಿಶೀಲನೆ (Subject Permission Check)
+    const currentSubj = document.getElementById('cfg-subject')?.value || '';
+    const normalizedCurrent = typeof normalizeSubjectMatchText === 'function' 
+      ? normalizeSubjectMatchText(currentSubj) 
+      : currentSubj.toLowerCase();
+
+    if (session.type === 'teacher' && session.allowedSubjects && !session.allowedSubjects.includes('all')) {
+      const allowed = session.allowedSubjects.map(s => typeof normalizeSubjectMatchText === 'function' ? normalizeSubjectMatchText(s) : s.toLowerCase());
+      
+      if (!allowed.includes(normalizedCurrent)) {
+        const allowedNames = session.allowedSubjects.join(', ');
+        alert(
+          `⚠️ ವಿಷಯ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ!\n\n` +
+          `ನಿಮ್ಮ ಖಾತೆಗೆ ಕೇವಲ [ ${allowedNames} ] ವಿಷಯಗಳಿಗೆ ಮಾತ್ರ ಅನುಮತಿ ಇದೆ.\n\n` +
+          `ಈ ವಿಷಯವನ್ನು (${currentSubj}) ಸಕ್ರಿಯಗೊಳಿಸಲು WhatsApp: 9902090911 ಸಂಪರ್ಕಿಸಿ.`
+        );
+        return;
+      }
+    }
+
+    // ✅ ಎಲ್ಲಾ ಪರಿಶೀಲನೆಗಳು ಯಶಸ್ವಿಯಾದರೆ ಮಾತ್ರ ಪತ್ರಿಕೆ ರಚನೆಯಾಗುತ್ತದೆ
+    executeActualPaperGeneration();
+  };
+
+  // ವಾಸ್ತವಿಕ ಪತ್ರಿಕೆ ರೆಂಡರಿಂಗ್ ಲಾಜಿಕ್
+  function executeActualPaperGeneration() {
+    const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+    const grade = document.getElementById('cfg-class')?.value || '8';
+    const rawSubject = document.getElementById('cfg-subject')?.value || 'ವಿಜ್ಞಾನ';
+    const rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+    const targetTotalMarks = parseInt(document.getElementById('cfg-total-marks')?.value) || 40;
+    const targetTotalQuestions = parseInt(document.getElementById('cfg-total-questions')?.value) || 24;
+    const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+
+    const checkedTypeNodes = document.querySelectorAll('input[name="qtype_opt"]:checked');
+    const selectedTypes = Array.from(checkedTypeNodes).map(cb => cb.value);
+    if (selectedTypes.length === 0) return alert('⚠️ ದಯವಿಟ್ಟು Step 3 ರಲ್ಲಿ ಕನಿಷ್ಠ ಒಂದು ಪ್ರಶ್ನೆ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+
+    const selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+    const selectedChapters = Array.from(selectedBoxes).map(b => b.value);
+
+    const pool = (appState.activeSubjectQuestions || []).filter(q => {
+      if (!q) return false;
+      const isChapOk = (selectedChapters.length === 0 || selectedChapters.some(sc => safeCleanMatch(sc) === safeCleanMatch(q.chapter)));
+      const cType = getCanonicalQuestionType(q);
+      return isChapOk && selectedTypes.includes(cType);
+    });
+
+    if (pool.length === 0) return alert('⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ. Step 2 ಮತ್ತು Step 3 ಪರಿಶೀಲಿಸಿ.');
+
+    let chosen = solveStrictExactExamMath(pool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+    if (!chosen || chosen.length === 0) return;
+
+    appState.activeGeneratedQuestions = chosen;
+    const actualMarks = chosen.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+    const headerHtml = generateOfficialBoardHeader(schoolName, rawSubject, grade, rawExamType, actualMarks, examDate);
+
+    renderFullExamPaperWithCustomHeader(headerHtml);
+
+    const outSec = document.getElementById('output-section');
+    if (outSec) {
+      outSec.classList.remove('hidden');
+      switchOutputTab('paper');
+      outSec.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    showToast(`⚡ 100% ಯಶಸ್ವಿ: ${chosen.length} ಪ್ರಶ್ನೆಗಳು & ${actualMarks} ಅಂಕಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ!`, 'success');
+  }
+})();
+
+
+// =========================================================================
+// 🎒 USER EDIT MODAL WITH CLASSES (1st to 10th) & SUBJECTS UPDATE
+// =========================================================================
+
+// ಬಳಕೆದಾರರ ತರಗತಿಗಳು (Classes) ಮತ್ತು ವಿಷಯಗಳು ಎರಡನ್ನೂ ಎಡಿಟ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ವಿಂಡೋ
+window.openEditUserModal = function(index) {
+  const users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+  const u = users[index];
+  if (!u) return alert('⚠️ ಬಳಕೆದಾರರ ವಿವರ ಸಿಗಲಿಲ್ಲ.');
+
+  const wrapper = document.getElementById('auth-modal-wrapper');
+  if (!wrapper) return;
+
+  wrapper.className = 'auth-modal-overlay';
+  wrapper.style.display = 'flex';
+
+  const allClasses = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const userClasses = Array.isArray(u.allowedClasses) 
+    ? u.allowedClasses 
+    : (u.classes ? u.classes.split(',').map(c => c.trim()) : []);
+
+  const allSubjs = ['ಕನ್ನಡ', 'English', 'ಹಿಂದಿ', 'ಗಣಿತ', 'ವಿಜ್ಞಾನ', 'ಸಮಾಜ ವಿಜ್ಞಾನ', 'EVS (ಪರಿಸರ)'];
+  const userSubjs = Array.isArray(u.allowedSubjects) 
+    ? u.allowedSubjects 
+    : (u.subjects ? u.subjects.split(',').map(s => s.trim()) : []);
+
+  wrapper.innerHTML = `
+    <div class="auth-modal-card p-6 space-y-3.5 max-w-lg" onclick="event.stopPropagation()">
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b pb-2.5">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shadow">
+            <i class="fa-solid fa-user-pen"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-base text-slate-900 leading-tight">ಬಳಕೆದಾರರ ಸಂಪಾದನೆ (Edit User)</h3>
+            <p class="text-[11px] text-emerald-700 font-bold">ಮೊಬೈಲ್ ಸಂಖ್ಯೆ, ತರಗತಿ, ವಿಷಯ ಹಾಗೂ ಮಾನ್ಯತೆ ತಿದ್ದಿ</p>
+          </div>
+        </div>
+        <button type="button" onclick="openAdminDashboardModal('users')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs font-bold">
+        <!-- Name & Mobile -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-700 mb-1">ಪೂರ್ಣ ಹೆಸರು</label>
+            <input type="text" id="edit-u-name" value="${escapeHtml(u.name || '')}" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold" />
+          </div>
+          <div>
+            <label class="block text-slate-700 mb-1">📱 ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (Mobile/DISE)</label>
+            <input type="text" id="edit-u-mobile" value="${escapeHtml(u.mobile || u.dise || '')}" maxlength="11" class="w-full px-3 py-2 bg-emerald-50 border border-emerald-400 rounded-xl font-black text-emerald-950" />
+          </div>
+        </div>
+
+        <!-- School -->
+        <div>
+          <label class="block text-slate-700 mb-1">ಶಾಲೆಯ ಹೆಸರು</label>
+          <input type="text" id="edit-u-school" value="${escapeHtml(u.school || '')}" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold" />
+        </div>
+
+        <!-- Key & Validity -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-700 mb-1">🔑 Secret Key</label>
+            <input type="text" id="edit-u-key" value="${escapeHtml(u.secretKey || '')}" class="w-full px-3 py-2 bg-indigo-50 border border-indigo-300 rounded-xl font-black text-indigo-950" />
+          </div>
+          <div>
+            <label class="block text-slate-700 mb-1">📅 ಮಾನ್ಯತೆ ದಿನಾಂಕ (Validity)</label>
+            <input type="date" id="edit-u-validity" value="${u.validityDate || ''}" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold" />
+          </div>
+        </div>
+
+        <!-- 🌟 ೧. ಅನುಮತಿಸಿದ ತರಗತಿಗಳು (Allowed Classes 1 to 10) -->
+        <div>
+          <label class="block text-slate-700 mb-1">🎒 ಅನುಮತಿಸಿದ ತರಗತಿಗಳು (Allowed Classes)</label>
+          <div class="grid grid-cols-5 gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl">
+            ${allClasses.map(c => {
+              const isChecked = userClasses.includes('all') || userClasses.some(uc => String(uc).includes(String(c)));
+              return `
+                <label class="flex items-center space-x-1 p-1 bg-white border border-slate-200 rounded-lg hover:border-emerald-500 cursor-pointer">
+                  <input type="checkbox" name="edit_u_classes" value="${c}ನೇ" ${isChecked ? 'checked' : ''} class="w-3.5 h-3.5 text-emerald-600 rounded">
+                  <span class="text-[11px] font-bold text-slate-900">${c}ನೇ</span>
+                </label>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- 🌟 ೨. ಅನುಮತಿಸಿದ ವಿಷಯಗಳು (Allowed Subjects) -->
+        <div>
+          <label class="block text-slate-700 mb-1">📚 ಅನುಮತಿಸಿದ ವಿಷಯಗಳು (Allowed Subjects)</label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl">
+            ${allSubjs.map(subj => {
+              const isChecked = userSubjs.includes('all') || userSubjs.some(s => s.toLowerCase().includes(subj.toLowerCase()) || subj.toLowerCase().includes(s.toLowerCase()));
+              return `
+                <label class="flex items-center space-x-1.5 p-1 bg-white border border-slate-200 rounded-lg hover:border-emerald-500 cursor-pointer">
+                  <input type="checkbox" name="edit_u_subjects" value="${subj}" ${isChecked ? 'checked' : ''} class="w-3.5 h-3.5 text-emerald-600 rounded">
+                  <span class="text-[11px] font-bold text-slate-800">${subj}</span>
+                </label>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2 pt-1.5">
+          <button type="button" onclick="saveEditedUserSubmit(${index})" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow cursor-pointer transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-floppy-disk"></i> <span>ಬದಲಾವಣೆಗಳನ್ನು ಸೇವ್ ಮಾಡಿ (Save Details)</span>
+          </button>
+          <button type="button" onclick="openAdminDashboardModal('users')" class="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl cursor-pointer">
+            ರದ್ದು (Cancel)
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+// ತರಗತಿ ಮತ್ತು ವಿಷಯಗಳ ಬದಲಾವಣೆಯನ್ನು ಡೇಟಾಬೇಸ್‌ಗೆ ಸೇವ್ ಮಾಡುವುದು
+window.saveEditedUserSubmit = function(index) {
+  let users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+  const u = users[index];
+  if (!u) return;
+
+  const newName = document.getElementById('edit-u-name')?.value.trim();
+  const newMobile = document.getElementById('edit-u-mobile')?.value.trim();
+  const newSchool = document.getElementById('edit-u-school')?.value.trim();
+  const newKey = document.getElementById('edit-u-key')?.value.trim();
+  const newValidity = document.getElementById('edit-u-validity')?.value;
+
+  const checkedClasses = Array.from(document.querySelectorAll('input[name="edit_u_classes"]:checked')).map(cb => cb.value);
+  const checkedSubjs = Array.from(document.querySelectorAll('input[name="edit_u_subjects"]:checked')).map(cb => cb.value);
+
+  if (!newName || !newMobile || !newKey) {
+    return alert('⚠️ ಹೆಸರು, ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಮತ್ತು Secret Key ಕಡ್ಡಾಯವಾಗಿದೆ.');
+  }
+
+  u.name = newName;
+  if (u.type === 'school') {
+    u.dise = newMobile;
+  } else {
+    u.mobile = newMobile;
+  }
+  u.school = newSchool;
+  u.secretKey = newKey;
+  u.validityDate = newValidity;
+  
+  // ತರಗತಿಗಳು ಮತ್ತು ವಿಷಯಗಳ ನವೀಕರಣ
+  u.allowedClasses = checkedClasses.length > 0 ? checkedClasses : ['all'];
+  u.classes = u.allowedClasses.join(', ');
+
+  u.allowedSubjects = checkedSubjs.length > 0 ? checkedSubjs : ['all'];
+  u.subjects = u.allowedSubjects.join(', ');
+
+  users[index] = u;
+  localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+
+  // ಸಕ್ರಿಯ ಯೂಸರ್ ಸೆಷನ್ ಅಪ್ಡೇಟ್
+  const currentSession = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+  if (currentSession && (currentSession.mobile === u.mobile || currentSession.dise === u.dise)) {
+    currentSession.name = u.name;
+    currentSession.school = u.school;
+    currentSession.allowedClasses = u.allowedClasses;
+    currentSession.allowedSubjects = u.allowedSubjects;
+    currentSession.validityDate = u.validityDate;
+    localStorage.setItem('wy_active_session', JSON.stringify(currentSession));
+  }
+
+  showToast('✅ ಬಳಕೆದಾರರ ತರಗತಿ, ವಿಷಯ ಹಾಗೂ ಮೊಬೈಲ್ ವಿವರಗಳು ಯಶಸ್ವಿಯಾಗಿ ಸೇವ್ ಆಗಿವೆ!', 'success');
+  openAdminDashboardModal('users');
+};
+
+
+// =========================================================================
+// 🌐 AUTOMATIC WEBSITE LINK SHARING IN WHATSAPP CREDENTIALS
+// =========================================================================
+
+const OFFICIAL_WEBSITE_URL = 'https://withyou00.github.io/qp/';
+
+// ೧. ಅಡ್ಮಿನ್ APPROVE ಮಾಡಿದಾಗ ಲಿಂಕ್ ಸಹಿತ WhatsApp ಸಂದೇಶ ರವಾನೆ
+window.approveRequestDirectly = function(reqId) {
+  let requests = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]');
+  let users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+  const req = requests.find(r => r.id === reqId);
+  if (!req) return;
+
+  const autoGeneratedKey = generateGuaranteedUniqueKey(req.type);
+
+  const nextYear = new Date();
+  nextYear.setFullYear(nextYear.getFullYear() + 1);
+  const defValidity = nextYear.toISOString().split('T')[0];
+
+  const assignedKey = prompt(`ಅನುಮೋದನೆಗಾಗಿ Auto Secret Key (Unique):`, autoGeneratedKey) || autoGeneratedKey;
+  const assignedValidity = prompt(`ಮಾನ್ಯತೆ ದಿನಾಂಕ (Validity Till YYYY-MM-DD):`, defValidity) || defValidity;
+
+  const newUser = {
+    ...req,
+    secretKey: assignedKey.trim(),
+    validityDate: assignedValidity,
+    allowedSubjects: req.subjects ? req.subjects.split(',').map(s => s.trim()) : ['all'],
+    allowedClasses: req.classes ? req.classes.split(',').map(c => c.trim()) : ['all'],
+    status: 'active',
+    approvedAt: new Date().toLocaleDateString()
+  };
+
+  users.unshift(newUser);
+  localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+
+  requests = requests.filter(r => r.id !== reqId);
+  localStorage.setItem('wy_admin_requests', JSON.stringify(requests));
+
+  const targetPhone = req.mobile || req.dise || '';
+  const subjInfo = req.type === 'school' ? 'ಸಂಪೂರ್ಣ ಶಾಲೆ (ಎಲ್ಲಾ ತರಗತಿ & ವಿಷಯಗಳು)' : (req.subjects || 'ಆಯ್ಕೆಮಾಡಿದ ವಿಷಯಗಳು');
+  const classInfo = req.classes || 'ಆಯ್ಕೆಮಾಡಿದ ತರಗತಿಗಳು';
+
+  // 🌟 ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ಒಳಗೊಂಡಿರುವ WhatsApp ಸಂದೇಶ
+  const msg = `*🎉 ಅಭಿನಂದನೆಗಳು! With You QP Generator ಖಾತೆ ಸಕ್ರಿಯಗೊಂಡಿದೆ (Approved)*\n\n` +
+              `👤 *ಹೆಸರು:* ${req.name}\n` +
+              `🏫 *ಶಾಲೆ:* ${req.school}\n` +
+              `🎒 *ತರಗತಿಗಳು:* ${classInfo}\n` +
+              `📚 *ವಿಷಯಗಳು:* ${subjInfo}\n` +
+              `🔑 *ನಿಮ್ಮ Secret Key:* ${assignedKey}\n` +
+              `📅 *ಮಾನ್ಯತೆ (Validity Till):* ${assignedValidity}\n\n` +
+              `🌐 *ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್:* ${OFFICIAL_WEBSITE_URL}\n\n` +
+              `ಮೇಲಿನ ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ತೆರೆದು ನಿಮ್ಮ ಮೊಬೈಲ್ ನಂಬರ್ ಮತ್ತು ಈ Secret Key ಬಳಸಿ ಲಾಗಿನ್ ಆಗಿ ಅನಿಯಮಿತ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿಕೊಳ್ಳಬಹುದು. ಧನ್ಯವಾದಗಳು!`;
+
+  const waUrl = targetPhone.length === 10 
+    ? `https://wa.me/91${targetPhone}?text=${encodeURIComponent(msg)}` 
+    : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+  window.open(waUrl, '_blank');
+
+  showToast(`✅ ${req.name} ರವರಿಗೆ Key ಮತ್ತು Website Link WhatsApp ಗೆ ಕಳುಹಿಸಲಾಗಿದೆ!`, 'success');
+  checkAdminBadgeStatus();
+  openAdminDashboardModal('users');
+};
+
+// ೨. RE-SEND KEY ಒತ್ತಿದಾಗಲೂ ಲಿಂಕ್ ಸಹಿತ WhatsApp ಸಂದೇಶ ರವಾನೆ
+window.resendUserCredentialsWhatsApp = function(index) {
+  const users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+  const u = users[index];
+  if (!u) return;
+
+  const targetPhone = u.mobile || u.dise || '';
+  const subjInfo = u.subjects || (Array.isArray(u.allowedSubjects) ? u.allowedSubjects.join(', ') : 'ಎಲ್ಲಾ ವಿಷಯಗಳು');
+
+  const msg = `*With You QP Generator ಲಾಗಿನ್ ವಿವರಗಳು:*\n\n` +
+              `👤 *ಹೆಸರು:* ${u.name}\n` +
+              `🏫 *ಶಾಲೆ:* ${u.school}\n` +
+              `📚 *ವಿಷಯಗಳು:* ${subjInfo}\n` +
+              `🔑 *Secret Key:* ${u.secretKey}\n` +
+              `📅 *ಮಾನ್ಯತೆ (Validity):* ${u.validityDate}\n\n` +
+              `🌐 *ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್:* ${OFFICIAL_WEBSITE_URL}\n\n` +
+              `ಮೇಲಿನ ಲಿಂಕ್ ಕ್ಲಿಕ್ ಮಾಡಿ ಲಾಗಿನ್ ಆಗಿ ನಿಮ್ಮ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳನ್ನು ರಚಿಸಿಕೊಳ್ಳಿ.`;
+
+  const waUrl = targetPhone.length === 10 
+    ? `https://wa.me/91${targetPhone}?text=${encodeURIComponent(msg)}` 
+    : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+
+  window.open(waUrl, '_blank');
+  showToast('📲 WhatsApp ಮೂಲಕ ಲಿಂಕ್ ಮತ್ತು Key ಕಳುಹಿಸಲಾಗಿದೆ!', 'info');
+};
+
+
   </script>
 </body>
 </html>

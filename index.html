@@ -9444,6 +9444,472 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+// =========================================================================
+// 🔄 SMART QUESTION BANK SWAP & LIVE BLUEPRINT/KEY SYNC ENGINE
+// =========================================================================
+
+// ೧. ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ, ಕೀ ಉತ್ತರ ಮತ್ತು ನೀಲನಕಾಶೆಯನ್ನು ಒಟ್ಟಿಗೆ ನವೀಕರಿಸುವ ಮಾಸ್ಟರ್ ರಿಫ್ರೆಶ್ ಫಂಕ್ಷನ್
+window.refreshAllPaperViewsAndBlueprint = function() {
+  const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  const grade = document.getElementById('cfg-class')?.value || '8';
+  const rawSubject = document.getElementById('cfg-subject')?.value || 'ವಿಜ್ಞಾನ';
+  const rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+  const examDate = document.getElementById('cfg-exam-date')?.value || '';
+  const actualMarks = (appState.activeGeneratedQuestions || []).reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+  const officialHeader = generateOfficialBoardHeader(schoolName, rawSubject, grade, rawExamType, actualMarks, examDate);
+  renderFullExamPaperWithCustomHeader(officialHeader);
+};
+
+// ೨. ಸ್ಮಾರ್ಟ್ ಎಡಿಟ್ & ಬ್ಯಾಂಕ್ ಸ್ವಾಪ್ ವಿಂಡೋ (OPEN SMART QUESTION EDITOR MODAL)
+window.openPopupQuestionEditor = function(qIndex) {
+  const currentQ = (appState.activeGeneratedQuestions || [])[qIndex];
+  if (!currentQ) return;
+
+  const wrapper = document.getElementById('auth-modal-wrapper');
+  if (!wrapper) return;
+
+  wrapper.className = 'auth-modal-overlay';
+  wrapper.style.display = 'flex';
+
+  const qType = getCanonicalQuestionType(currentQ);
+  const qMarks = getExactQuestionMarks(currentQ);
+  const isMCQ = (qType === 'mcq') || (currentQ.a && currentQ.b);
+
+  // ಪ್ರಸ್ತುತ ಪ್ರಶ್ನೆಯ ಪ್ರಕಾರ ಹಾಗೂ ಅಂಕಕ್ಕೆ ಸರಿಹೊಂದುವ ಬ್ಯಾಂಕ್ ಪ್ರಶ್ನೆಗಳ ಫಿಲ್ಟರ್
+  const activeBank = appState.activeSubjectQuestions || [];
+  const alternativeQuestions = activeBank.filter(q => {
+    if (!q || q === currentQ) return false;
+    const sameType = getCanonicalQuestionType(q) === qType;
+    const sameMarks = getExactQuestionMarks(q) === qMarks;
+    const notAlreadyInPaper = !appState.activeGeneratedQuestions.includes(q);
+    return sameType && sameMarks && notAlreadyInPaper;
+  });
+
+  wrapper.innerHTML = `
+    <div class="auth-modal-card p-6 space-y-4 max-w-2xl" style="max-height: 90vh;" onclick="event.stopPropagation()">
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shadow">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-base text-slate-900 leading-tight">ಪ್ರಶ್ನೆ ಬದಲಾವಣೆ & ಸಂಪಾದನೆ (Question Editor)</h3>
+            <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mt-0.5">
+              <span class="bg-indigo-50 text-indigo-800 border border-indigo-200 px-2 py-0.2 rounded-md">ಪ್ರಶ್ನೆ ಸಂಖ್ಯೆ: ${qIndex + 1}</span>
+              <span class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.2 rounded-md">${qMarks} ಅಂಕ</span>
+              <span class="bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.2 rounded-md">${currentQ.chapter || 'ಘಟಕ'}</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" onclick="closeAuthModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">✕</button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex bg-slate-100 p-1 rounded-2xl text-xs font-bold gap-1">
+        <button id="qedit-tab-bank" onclick="switchQEditTab('bank')" class="flex-1 py-2 rounded-xl transition auth-tab-active text-white">
+          <i class="fa-solid fa-database"></i> ೧. ಬ್ಯಾಂಕ್‌ನಿಂದ ಪರ್ಯಾಯ ಪ್ರಶ್ನೆ ಆರಿಸಿ (${alternativeQuestions.length})
+        </button>
+        <button id="qedit-tab-manual" onclick="switchQEditTab('manual')" class="flex-1 py-2 rounded-xl transition text-slate-700 hover:bg-white">
+          <i class="fa-solid fa-pen"></i> ೨. ಸ್ವಂತ ಪ್ರಶ್ನೆ/ಉತ್ತರ ಟೈಪ್ ಮಾಡಿ
+        </button>
+      </div>
+
+      <!-- 🌟 TAB 1: SWAP FROM BANK (ಬ್ಯಾಂಕ್‌ನಿಂದ ಸುಲಭವಾಗಿ ಬದಲಾಯಿಸಿ) -->
+      <div id="qedit-view-bank" class="space-y-3">
+        <div class="flex items-center justify-between">
+          <p class="text-xs text-slate-600 font-bold">ಈ ಕೆಳಗಿನ ಪ್ರಶ್ನೆಗಳಲ್ಲಿ ಯಾವುದಾದರೂ ಒಂದನ್ನು ಆರಿಸಿ, ಅದು ತಕ್ಷಣ ಬದಲಾಗುತ್ತದೆ:</p>
+          <input type="text" id="qedit-bank-search" oninput="filterQEditBankList(${qIndex})" placeholder="🔍 ಪ್ರಶ್ನೆ ಹುಡುಕಿ..." class="px-2.5 py-1 bg-slate-50 border rounded-xl text-xs font-bold w-44" />
+        </div>
+
+        <div id="qedit-alternatives-container" class="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1">
+          ${renderAlternativeBankListHtml(alternativeQuestions, qIndex, isMCQ)}
+        </div>
+      </div>
+
+      <!-- 🌟 TAB 2: MANUAL TEXT EDIT (ಸ್ವತಃ ಟೈಪ್ ಮಾಡಿ ಅಪ್ಡೇಟ್ ಮಾಡಿ) -->
+      <div id="qedit-view-manual" class="hidden space-y-3 text-xs font-bold">
+        <div>
+          <label class="block text-slate-700 mb-1">ಪ್ರಶ್ನೆ ಪಠ್ಯ (Question Text)</label>
+          <textarea id="manual-q-text" rows="3" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:bg-white focus:border-amber-500 outline-none leading-relaxed">${escapeHtml(currentQ.q || '')}</textarea>
+        </div>
+
+        ${isMCQ ? `
+          <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border">
+            <div>
+              <label class="block text-slate-600 mb-0.5">(A) ಆಯ್ಕೆ</label>
+              <input type="text" id="manual-q-a" value="${escapeHtml(currentQ.a || '')}" class="w-full px-2.5 py-1.5 bg-white border rounded-lg font-bold" />
+            </div>
+            <div>
+              <label class="block text-slate-600 mb-0.5">(B) ಆಯ್ಕೆ</label>
+              <input type="text" id="manual-q-b" value="${escapeHtml(currentQ.b || '')}" class="w-full px-2.5 py-1.5 bg-white border rounded-lg font-bold" />
+            </div>
+            <div>
+              <label class="block text-slate-600 mb-0.5">(C) ಆಯ್ಕೆ</label>
+              <input type="text" id="manual-q-c" value="${escapeHtml(currentQ.c || '')}" class="w-full px-2.5 py-1.5 bg-white border rounded-lg font-bold" />
+            </div>
+            <div>
+              <label class="block text-slate-600 mb-0.5">(D) ಆಯ್ಕೆ</label>
+              <input type="text" id="manual-q-d" value="${escapeHtml(currentQ.d || '')}" class="w-full px-2.5 py-1.5 bg-white border rounded-lg font-bold" />
+            </div>
+          </div>
+        ` : ''}
+
+        <div>
+          <label class="block text-slate-700 mb-1">ಕೀ ಉತ್ತರ (Key Answer)</label>
+          <textarea id="manual-q-ans" rows="2" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-950 focus:bg-white focus:border-emerald-500 outline-none leading-relaxed">${escapeHtml(currentQ.ans || '')}</textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-700 mb-1">ಘಟಕದ ಹೆಸರು (Chapter)</label>
+            <input type="text" id="manual-q-chap" value="${escapeHtml(currentQ.chapter || 'ಸಾಮಾನ್ಯ ಘಟಕ')}" class="w-full px-2.5 py-1.5 bg-slate-50 border rounded-lg font-bold" />
+          </div>
+          <div>
+            <label class="block text-slate-700 mb-1">ಉದ್ದಿಷ್ಟ (Objective)</label>
+            <select id="manual-q-obj" class="w-full px-2.5 py-1.5 bg-slate-50 border rounded-lg font-bold">
+              <option value="ಜ್ಞಾನ" ${currentQ.obj==='ಜ್ಞಾನ'?'selected':''}>ಜ್ಞಾನ (Knowledge)</option>
+              <option value="ಗ್ರಹಿಕೆ" ${(!currentQ.obj || currentQ.obj==='ಗ್ರಹಿಕೆ')?'selected':''}>ಗ್ರಹಿಕೆ (Understanding)</option>
+              <option value="ಅನ್ವಯ" ${currentQ.obj==='ಅನ್ವಯ'?'selected':''}>ಅನ್ವಯ (Application)</option>
+              <option value="ಕೌಶಲ" ${currentQ.obj==='ಕೌಶಲ'?'selected':''}>ಕೌಶಲ / ನಕ್ಷೆ (Skill)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-2 border-t">
+          <button type="button" onclick="saveManualQuestionEditSubmit(${qIndex})" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow cursor-pointer transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-floppy-disk"></i> <span>ಪ್ರಶ್ನೆ & ಕೀ ಉತ್ತರ ಅಪ್ಡೇಟ್ ಮಾಡಿ (Update Question)</span>
+          </button>
+          <button type="button" onclick="closeAuthModal()" class="px-4 py-3 bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer">
+            ರದ್ದು (Cancel)
+          </button>
+        </div>
+      </div>
+
+    </div>
+  `;
+};
+
+// ಟ್ಯಾಬ್ ಸ್ವಿಚಿಂಗ್
+window.switchQEditTab = function(tab) {
+  const isBank = tab === 'bank';
+  document.getElementById('qedit-view-bank')?.classList.toggle('hidden', !isBank);
+  document.getElementById('qedit-view-manual')?.classList.toggle('hidden', isBank);
+
+  document.getElementById('qedit-tab-bank')?.classList.toggle('auth-tab-active', isBank);
+  document.getElementById('qedit-tab-bank')?.classList.toggle('text-white', isBank);
+
+  document.getElementById('qedit-tab-manual')?.classList.toggle('auth-tab-active', !isBank);
+  document.getElementById('qedit-tab-manual')?.classList.toggle('text-white', !isBank);
+};
+
+// ಪರ್ಯಾಯ ಪ್ರಶ್ನೆಗಳ ಪಟ್ಟಿ ರೆಂಡರರ್
+function renderAlternativeBankListHtml(list, targetQIndex, isMCQ) {
+  if (!list || list.length === 0) {
+    return `<div class="p-8 text-center bg-slate-50 border rounded-2xl text-slate-500 font-bold text-xs">ಈ ಪ್ರಕಾರದ ಹಾಗೂ ಅಂಕದ ಯಾವುದೇ ಹೆಚ್ಚುವರಿ ಪ್ರಶ್ನೆಗಳು ಬ್ಯಾಂಕ್‌ನಲ್ಲಿ ಲಭ್ಯವಿಲ್ಲ. ಪಕ್ಕದ ಟ್ಯಾಬ್‌ನಲ್ಲಿ ನಿಮ್ಮದೇ ಸ್ವಂತ ಪ್ರಶ್ನೆ ಟೈಪ್ ಮಾಡಿಕೊಳ್ಳಿ.</div>`;
+  }
+
+  return list.map((altQ) => {
+    const rawBankIndex = (appState.activeSubjectQuestions || []).indexOf(altQ);
+    return `
+      <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 hover:border-amber-400 hover:bg-white transition shadow-sm">
+        <div class="flex items-start justify-between gap-2">
+          <div class="text-xs font-extrabold text-slate-900 leading-snug">
+            ${formatQuestionTextForDisplay(altQ.q)}
+          </div>
+          <button type="button" onclick="swapQuestionWithBankItem(${targetQIndex}, ${rawBankIndex})" class="shrink-0 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:shadow text-slate-950 font-black text-xs rounded-xl shadow cursor-pointer transition flex items-center gap-1">
+            <i class="fa-solid fa-rotate"></i> <span>ಆಯ್ಕೆಮಾಡಿ</span>
+          </button>
+        </div>
+
+        ${isMCQ ? `
+          <div class="grid grid-cols-2 gap-1 text-[11px] text-slate-600 font-semibold bg-white p-2 rounded-xl border border-slate-100">
+            <div>(A) ${escapeHtml(altQ.a || '')}</div>
+            <div>(B) ${escapeHtml(altQ.b || '')}</div>
+            <div>(C) ${escapeHtml(altQ.c || '')}</div>
+            <div>(D) ${escapeHtml(altQ.d || '')}</div>
+          </div>
+        ` : ''}
+
+        <div class="flex items-center justify-between text-[11px] pt-1 text-slate-500 font-bold border-t border-slate-200/60">
+          <span>📖 ಪಾಠ: <b>${escapeHtml(altQ.chapter || 'ಸಾಮಾನ್ಯ')}</b></span>
+          <span class="text-emerald-700">ಉತ್ತರ: <b>${escapeHtml(altQ.ans || 'ಲಭ್ಯವಿದೆ')}</b></span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ಬ್ಯಾಂಕ್‌ನಿಂದ ಪ್ರಶ್ನೆ ಬದಲಾಯಿಸುವ ನೇರ ಫಂಕ್ಷನ್
+window.swapQuestionWithBankItem = function(targetIdx, bankIdx) {
+  const bankQ = (appState.activeSubjectQuestions || [])[bankIdx];
+  if (!bankQ) return;
+
+  // ಪ್ರಶ್ನೆಯನ್ನು ಬದಲಾಯಿಸುವುದು
+  appState.activeGeneratedQuestions[targetIdx] = JSON.parse(JSON.stringify(bankQ));
+
+  // ಪತ್ರಿಕೆ, ಕೀ ಉತ್ತರ ಮತ್ತು ನೀಲನಕಾಶೆ ತಕ್ಷಣ ರಿಫ್ರೆಶ್
+  refreshAllPaperViewsAndBlueprint();
+  closeAuthModal();
+
+  showToast(`✅ ಪ್ರಶ್ನೆ #${targetIdx + 1} ಯಶಸ್ವಿಯಾಗಿ ಬದಲಾಗಿದೆ ಮತ್ತು ಎಲ್ಲಾ ಕಡೆ ಅಪ್ಡೇಟ್ ಆಗಿದೆ!`, 'success');
+};
+
+// ಸ್ವಂತ ಪ್ರಶ್ನೆ/ಉತ್ತರ ಎಡಿಟ್ ಮಾಡಿ ಸೇವ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+window.saveManualQuestionEditSubmit = function(targetIdx) {
+  const currentQ = (appState.activeGeneratedQuestions || [])[targetIdx];
+  if (!currentQ) return;
+
+  const newText = document.getElementById('manual-q-text')?.value.trim();
+  const newAns = document.getElementById('manual-q-ans')?.value.trim();
+  const newChap = document.getElementById('manual-q-chap')?.value.trim();
+  const newObj = document.getElementById('manual-q-obj')?.value;
+
+  if (!newText) return alert('⚠️ ಪ್ರಶ್ನೆಯ ಪಠ್ಯ ಖಾಲಿ ಇರುವಂತಿಲ್ಲ.');
+
+  currentQ.q = newText;
+  currentQ.ans = newAns || '';
+  currentQ.chapter = newChap || currentQ.chapter || 'ಸಾಮಾನ್ಯ ಘಟಕ';
+  currentQ.obj = newObj || currentQ.obj || 'ಗ್ರಹಿಕೆ';
+
+  if (document.getElementById('manual-q-a')) {
+    currentQ.a = document.getElementById('manual-q-a').value.trim();
+    currentQ.b = document.getElementById('manual-q-b').value.trim();
+    currentQ.c = document.getElementById('manual-q-c').value.trim();
+    currentQ.d = document.getElementById('manual-q-d').value.trim();
+  }
+
+  appState.activeGeneratedQuestions[targetIdx] = currentQ;
+
+  // ಪತ್ರಿಕೆ, ಕೀ ಉತ್ತರ ಮತ್ತು ನೀಲನಕಾಶೆ ತಕ್ಷಣ ರಿಫ್ರೆಶ್
+  refreshAllPaperViewsAndBlueprint();
+  closeAuthModal();
+
+  showToast(`✅ ಪ್ರಶ್ನೆ #${targetIdx + 1} ಮತ್ತು ಕೀ ಉತ್ತರ ಯಶಸ್ವಿಯಾಗಿ ಅಪ್ಡೇಟ್ ಆಗಿದೆ!`, 'success');
+};
+
+// ಬ್ಯಾಂಕ್ ಪಟ್ಟಿಯ ಲೈವ್ ಸರ್ಚ್ ಫಿಲ್ಟರ್
+window.filterQEditBankList = function(targetQIndex) {
+  const query = document.getElementById('qedit-bank-search')?.value.toLowerCase().trim() || '';
+  const currentQ = (appState.activeGeneratedQuestions || [])[targetQIndex];
+  if (!currentQ) return;
+
+  const qType = getCanonicalQuestionType(currentQ);
+  const qMarks = getExactQuestionMarks(currentQ);
+  const isMCQ = (qType === 'mcq') || (currentQ.a && currentQ.b);
+
+  const activeBank = appState.activeSubjectQuestions || [];
+  const filtered = activeBank.filter(q => {
+    if (!q || q === currentQ) return false;
+    const sameType = getCanonicalQuestionType(q) === qType;
+    const sameMarks = getExactQuestionMarks(q) === qMarks;
+    const notInPaper = !appState.activeGeneratedQuestions.includes(q);
+    const matchesSearch = (q.q && q.q.toLowerCase().includes(query)) || (q.chapter && q.chapter.toLowerCase().includes(query));
+    return sameType && sameMarks && notInPaper && matchesSearch;
+  });
+
+  const container = document.getElementById('qedit-alternatives-container');
+  if (container) {
+    container.innerHTML = renderAlternativeBankListHtml(filtered, targetQIndex, isMCQ);
+  }
+};
+
+// =========================================================================
+// 🎯 STRICT SELECTED-CHAPTERS-ONLY QUESTION BANK SWAP FILTER
+// =========================================================================
+
+// ೧. ಪತ್ರಿಕೆ ರಚಿಸುವಾಗ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳನ್ನು ಮೆಮೊರಿಯಲ್ಲಿ ಸೇವ್ ಮಾಡುವ ಹುಕ್
+const origGeneratorBeforeFilter = window.generateExamPackageFromBank;
+window.generateExamPackageFromBank = function() {
+  const selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+  appState.activeSelectedChapters = Array.from(selectedBoxes).map(b => b.value);
+
+  if (origGeneratorBeforeFilter) origGeneratorBeforeFilter();
+};
+
+// ೨. ಕೇವಲ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳ ಪ್ರಶ್ನೆಗಳನ್ನು ಮಾತ್ರ ತೋರಿಸುವ ಎಡಿಟರ್ ವಿಂಡೋ
+window.openPopupQuestionEditor = function(qIndex) {
+  const currentQ = (appState.activeGeneratedQuestions || [])[qIndex];
+  if (!currentQ) return;
+
+  const wrapper = document.getElementById('auth-modal-wrapper');
+  if (!wrapper) return;
+
+  wrapper.className = 'auth-modal-overlay';
+  wrapper.style.display = 'flex';
+
+  const qType = getCanonicalQuestionType(currentQ);
+  const qMarks = getExactQuestionMarks(currentQ);
+  const isMCQ = (qType === 'mcq') || (currentQ.a && currentQ.b);
+
+  // 🌟 ಬಳಕೆದಾರರು Step 2 ರಲ್ಲಿ ಆಯ್ಕೆ ಮಾಡಿದ ಪಾಠಗಳ ಪಟ್ಟಿ
+  const selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+  const selectedChapters = appState.activeSelectedChapters || Array.from(selectedBoxes).map(b => b.value);
+
+  // 🌟 ಫಿಲ್ಟರ್: ಕೇವಲ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳು + ಅದೇ ಪ್ರಶ್ನೆ ಪ್ರಕಾರ + ಅದೇ ಅಂಕಗಳು
+  const activeBank = appState.activeSubjectQuestions || [];
+  const alternativeQuestions = activeBank.filter(q => {
+    if (!q || q === currentQ) return false;
+    
+    // ೧. ಅದೇ ಪ್ರಕಾರ ಮತ್ತು ಅಂಕ
+    const sameType = getCanonicalQuestionType(q) === qType;
+    const sameMarks = getExactQuestionMarks(q) === qMarks;
+    const notAlreadyInPaper = !appState.activeGeneratedQuestions.includes(q);
+
+    // ೨. 🌟 ಕಡ್ಡಾಯವಾಗಿ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಿಗೆ ಮಾತ್ರ ಮ್ಯಾಚ್ ಆಗುವುದು
+    const isFromSelectedChapter = (selectedChapters.length === 0) || 
+      selectedChapters.some(sc => safeCleanMatch(sc) === safeCleanMatch(q.chapter));
+
+    return sameType && sameMarks && notAlreadyInPaper && isFromSelectedChapter;
+  });
+
+  const displayChaptersText = selectedChapters.length > 0 
+    ? selectedChapters.map(c => c.length > 15 ? c.substring(0, 15) + '..' : c).join(', ') 
+    : 'ಎಲ್ಲಾ ಪಾಠಗಳು';
+
+  wrapper.innerHTML = `
+    <div class="auth-modal-card p-6 space-y-4 max-w-2xl" style="max-height: 90vh;" onclick="event.stopPropagation()">
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shadow">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-base text-slate-900 leading-tight">ಪ್ರಶ್ನೆ ಬದಲಾವಣೆ & ಸಂಪಾದನೆ (Question Editor)</h3>
+            <div class="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mt-0.5 flex-wrap">
+              <span class="bg-indigo-50 text-indigo-800 border border-indigo-200 px-2 py-0.2 rounded-md">ಪ್ರಶ್ನೆ ಸಂಖ್ಯೆ: ${qIndex + 1}</span>
+              <span class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.2 rounded-md">${qMarks} ಅಂಕ</span>
+              <span class="bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.2 rounded-md truncate max-w-[200px]" title="${escapeHtml(currentQ.chapter)}">ಘಟಕ: ${escapeHtml(currentQ.chapter || 'ಸಾಮಾನ್ಯ')}</span>
+            </div>
+          </div>
+        </div>
+        <button type="button" onclick="closeAuthModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">✕</button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex bg-slate-100 p-1 rounded-2xl text-xs font-bold gap-1">
+        <button id="qedit-tab-bank" onclick="switchQEditTab('bank')" class="flex-1 py-2 rounded-xl transition auth-tab-active text-white">
+          <i class="fa-solid fa-database"></i> ೧. ಆಯ್ಕೆಮಾಡಿದ ಪಾಠದ ಪ್ರಶ್ನೆಗಳು (${alternativeQuestions.length})
+        </button>
+        <button id="qedit-tab-manual" onclick="switchQEditTab('manual')" class="flex-1 py-2 rounded-xl transition text-slate-700 hover:bg-white">
+          <i class="fa-solid fa-pen"></i> ೨. ಸ್ವಂತ ಪ್ರಶ್ನೆ/ಉತ್ತರ ಟೈಪ್ ಮಾಡಿ
+        </button>
+      </div>
+
+      <!-- 🌟 TAB 1: SWAP FROM SELECTED CHAPTERS ONLY -->
+      <div id="qedit-view-bank" class="space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-950">
+          <span>📖 <b>ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳು:</b> ${escapeHtml(displayChaptersText)}</span>
+          <input type="text" id="qedit-bank-search" oninput="filterQEditBankList(${qIndex})" placeholder="🔍 ಹುಡುಕಿ..." class="px-2.5 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-bold w-36 outline-none" />
+        </div>
+
+        <div id="qedit-alternatives-container" class="space-y-2.5 max-h-[48vh] overflow-y-auto pr-1">
+          ${renderAlternativeBankListHtml(alternativeQuestions, qIndex, isMCQ)}
+        </div>
+      </div>
+
+      <!-- 🌟 TAB 2: MANUAL TEXT EDIT -->
+      <div id="qedit-view-manual" class="hidden space-y-3 text-xs font-bold">
+        <div>
+          <label class="block text-slate-700 mb-1">ಪ್ರಶ್ನೆ ಪಠ್ಯ (Question Text)</label>
+          <textarea id="manual-q-text" rows="3" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:bg-white focus:border-amber-500 outline-none leading-relaxed">${escapeHtml(currentQ.q || '')}</textarea>
+        </div>
+
+        ${isMCQ ? `
+          <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border">
+            <div>
+              <label class="block text-slate-600 mb-0.5">(A) ಆಯ್ಕೆ</label>
+              <input type="text" id="manual-q-a" value="${escapeHtml(currentQ.a || '')}" class="w-full px-2.5 py-1.5 bg-white border rounded-lg font-bold" />
+            </div>
+            <div>
+              <label class="block text-slate-600 mb-0.5">(B) ಆಯ್ಕೆ</label>
+              <input type="text" id="manual-q-b" value="${escapeHtml(currentQ.b || '')}" class="w-full px-2.5 py-1.5 bg-white border rounded-lg font-bold" />
+            </div>
+            <div>
+              <label class="block text-slate-600 mb-0.5">(C) ಆಯ್ಕೆ</label>
+              <input type="text" id="manual-q-c" value="${escapeHtml(currentQ.c || '')}" class="w-full px-2.5 py-1.5 bg-white border rounded-lg font-bold" />
+            </div>
+            <div>
+              <label class="block text-slate-600 mb-0.5">(D) ಆಯ್ಕೆ</label>
+              <input type="text" id="manual-q-d" value="${escapeHtml(currentQ.d || '')}" class="w-full px-2.5 py-1.5 bg-white border rounded-lg font-bold" />
+            </div>
+          </div>
+        ` : ''}
+
+        <div>
+          <label class="block text-slate-700 mb-1">ಕೀ ಉತ್ತರ (Key Answer)</label>
+          <textarea id="manual-q-ans" rows="2" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-emerald-950 focus:bg-white focus:border-emerald-500 outline-none leading-relaxed">${escapeHtml(currentQ.ans || '')}</textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-700 mb-1">ಘಟಕದ ಹೆಸರು (Chapter)</label>
+            <input type="text" id="manual-q-chap" value="${escapeHtml(currentQ.chapter || 'ಸಾಮಾನ್ಯ ಘಟಕ')}" class="w-full px-2.5 py-1.5 bg-slate-50 border rounded-lg font-bold" />
+          </div>
+          <div>
+            <label class="block text-slate-700 mb-1">ಉದ್ದಿಷ್ಟ (Objective)</label>
+            <select id="manual-q-obj" class="w-full px-2.5 py-1.5 bg-slate-50 border rounded-lg font-bold">
+              <option value="ಜ್ಞಾನ" ${currentQ.obj==='ಜ್ಞಾನ'?'selected':''}>ಜ್ಞಾನ (Knowledge)</option>
+              <option value="ಗ್ರಹಿಕೆ" ${(!currentQ.obj || currentQ.obj==='ಗ್ರಹಿಕೆ')?'selected':''}>ಗ್ರಹಿಕೆ (Understanding)</option>
+              <option value="ಅನ್ವಯ" ${currentQ.obj==='ಅನ್ವಯ'?'selected':''}>ಅನ್ವಯ (Application)</option>
+              <option value="ಕೌಶಲ" ${currentQ.obj==='ಕೌಶಲ'?'selected':''}>ಕೌಶಲ / ನಕ್ಷೆ (Skill)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-2 border-t">
+          <button type="button" onclick="saveManualQuestionEditSubmit(${qIndex})" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow cursor-pointer transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-floppy-disk"></i> <span>ಪ್ರಶ್ನೆ & ಕೀ ಉತ್ತರ ಅಪ್ಡೇಟ್ ಮಾಡಿ (Update Question)</span>
+          </button>
+          <button type="button" onclick="closeAuthModal()" class="px-4 py-3 bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer">
+            ರದ್ದು (Cancel)
+          </button>
+        </div>
+      </div>
+
+    </div>
+  `;
+};
+
+// ೩. ಸರ್ಚ್ ಮಾಡುವಾಗಲೂ ಕೇವಲ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲೇ ಹುಡುಕುವುದು
+window.filterQEditBankList = function(targetQIndex) {
+  const query = document.getElementById('qedit-bank-search')?.value.toLowerCase().trim() || '';
+  const currentQ = (appState.activeGeneratedQuestions || [])[targetQIndex];
+  if (!currentQ) return;
+
+  const qType = getCanonicalQuestionType(currentQ);
+  const qMarks = getExactQuestionMarks(currentQ);
+  const isMCQ = (qType === 'mcq') || (currentQ.a && currentQ.b);
+
+  const selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+  const selectedChapters = appState.activeSelectedChapters || Array.from(selectedBoxes).map(b => b.value);
+
+  const activeBank = appState.activeSubjectQuestions || [];
+  const filtered = activeBank.filter(q => {
+    if (!q || q === currentQ) return false;
+    const sameType = getCanonicalQuestionType(q) === qType;
+    const sameMarks = getExactQuestionMarks(q) === qMarks;
+    const notInPaper = !appState.activeGeneratedQuestions.includes(q);
+    
+    // ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳ ನಿಯಮ
+    const isFromSelectedChapter = (selectedChapters.length === 0) || 
+      selectedChapters.some(sc => safeCleanMatch(sc) === safeCleanMatch(q.chapter));
+
+    const matchesSearch = (q.q && q.q.toLowerCase().includes(query)) || (q.chapter && q.chapter.toLowerCase().includes(query));
+
+    return sameType && sameMarks && notInPaper && isFromSelectedChapter && matchesSearch;
+  });
+
+  const container = document.getElementById('qedit-alternatives-container');
+  if (container) {
+    container.innerHTML = renderAlternativeBankListHtml(filtered, targetQIndex, isMCQ);
+  }
+};
+
+
+
   </script>
 </body>
 </html>

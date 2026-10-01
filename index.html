@@ -12125,120 +12125,99 @@ document.addEventListener('input', async function(e) {
   }
 });
 
-// =========================================================================
-// 🚀 SUCCESSFUL NEW SUBMIT HANDLERS (ಕೇವಲ ಹೊಸ ನಂಬರ್‌ಗೆ ಮಾತ್ರ WhatsApp)
-// =========================================================================
-window.handleTeacherSignUpSubmit = async function() {
-  const name = document.getElementById('t-reg-name')?.value.trim();
-  const school = document.getElementById('t-reg-school')?.value.trim();
-  const mobile = getRaw10DigitPhone(document.getElementById('t-reg-mobile')?.value);
 
-  const selectedClasses = Array.from(document.querySelectorAll('input[name="t_reg_class"]:checked')).map(c => c.value);
-  const selectedSubjs = Array.from(document.querySelectorAll('input[name="t_reg_subj"]:checked')).map(s => s.value);
+// =========================================================================
+// 🔒 STRICT SCHOOL NAME PERMANENT LOCK (USER TAMPER-PROOF GUARD)
+// =========================================================================
 
-  if (!name || !school || mobile.length !== 10 || selectedClasses.length === 0 || selectedSubjs.length === 0) {
-    return alert('⚠️ ದಯವಿಟ್ಟು ಎಲ್ಲಾ ವಿವರಗಳನ್ನು ಸರಿಯಾಗಿ ಭರ್ತಿ ಮಾಡಿ.');
+(function enforceSchoolNamePermanentLock() {
+  // ೧. ಶಾಲೆಯ ಹೆಸರು ಬದಲಾಯಿಸದಂತೆ ಲಾಕ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಫಂಕ್ಷನ್
+  function lockSchoolNameInput() {
+    const schoolInp = document.getElementById('cfg-school-name');
+    if (!schoolInp) return;
+
+    const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+    const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+
+    if (isAdmin) {
+      // 👑 ಕೇವಲ ಮಾಸ್ಟರ್ ಅಡ್ಮಿನ್‌ಗೆ ಮಾತ್ರ ಎಡಿಟ್ ಮಾಡಲು ಅವಕಾಶ
+      schoolInp.readOnly = false;
+      schoolInp.removeAttribute('readonly');
+      schoolInp.classList.remove('bg-slate-100', 'cursor-not-allowed', 'border-amber-400');
+      schoolInp.classList.add('bg-slate-50');
+      schoolInp.title = "👑 Admin: ಶಾಲೆಯ ಹೆಸರನ್ನು ಸಂಪಾದಿಸಬಹುದು";
+      
+      const badge = document.getElementById('wy-school-lock-badge');
+      if (badge) badge.remove();
+    } else {
+      // 🚫 ಸಾಮಾನ್ಯ ಶಿಕ್ಷಕರು / ಶಾಲೆಗಳಿಗೆ ಸಂಪೂರ್ಣ ಲಾಕ್
+      if (session && session.isLoggedIn && session.school) {
+        schoolInp.value = session.school; // ರಿಜಿಸ್ಟರ್ ಆದ ಅಧಿಕೃತ ಶಾಲೆಯ ಹೆಸರನ್ನೇ ಕಡ್ಡಾಯವಾಗಿ ಫಿಕ್ಸ್ ಮಾಡುವುದು
+      }
+
+      schoolInp.readOnly = true;
+      schoolInp.setAttribute('readonly', 'true');
+      schoolInp.classList.remove('bg-slate-50');
+      schoolInp.classList.add('bg-slate-100', 'cursor-not-allowed', 'text-slate-800', 'border-slate-300', 'font-black');
+      schoolInp.title = "🔒 ಶಾಲೆಯ ಹೆಸರನ್ನು ಲಾಕ್ ಮಾಡಲಾಗಿದೆ. ಬದಲಾಯಿಸಲು Admin ಸಂಪರ್ಕಿಸಿ: 9902090911";
+
+      // ಶಾಲೆಯ ಇನ್‌ಪುಟ್ ಬಾಕ್ಸ್ ಕೆಳಗೆ ಅಧಿಕೃತ ಲಾಕ್ ಬ್ಯಾಡ್ಜ್ ತೋರಿಸುವುದು
+      let lockBadge = document.getElementById('wy-school-lock-badge');
+      if (!lockBadge && schoolInp.parentNode) {
+        lockBadge = document.createElement('div');
+        lockBadge.id = 'wy-school-lock-badge';
+        lockBadge.className = 'text-[10px] font-black text-amber-900 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg mt-1 flex items-center justify-between no-print';
+        lockBadge.innerHTML = `
+          <span class="flex items-center gap-1.5">
+            <i class="fa-solid fa-lock text-amber-700"></i>
+            <span>ಶಾಲೆಯ ಹೆಸರು ನೋಂದಣಿಗೆ ಅನುಗುಣವಾಗಿ ಲಾಕ್ ಆಗಿದೆ</span>
+          </span>
+          <span class="text-[9px] text-slate-500">ಬದಲಾವಣೆಗೆ WhatsApp: 9902090911</span>
+        `;
+        schoolInp.parentNode.appendChild(lockBadge);
+      }
+    }
   }
 
-  if (isAlreadyRegisteredSync(mobile) || await isAlreadyRegisteredCloud(mobile, 'teacher')) {
-    return alert(`❌ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (${mobile}) ಈಗಾಗಲೇ ನೋಂದಣಿಯಾಗಿದೆ! ದಯವಿಟ್ಟು ಲಾಗಿನ್ ಮಾಡಿ.`);
-  }
+  // ೨. ಕೀಬೋರ್ಡ್ ಅಥವಾ ಇನ್ಸ್‌ಪೆಕ್ಟ್ ಎಲಿಮೆಂಟ್ ಮೂಲಕ ತಿದ್ದಲು ಯತ್ನಿಸಿದರೆ ತಕ್ಷಣ ರಿವರ್ಟ್ ಮಾಡುವುದು
+  document.addEventListener('keydown', function(e) {
+    if (e.target && e.target.id === 'cfg-school-name') {
+      const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+      if (!isAdmin) {
+        e.preventDefault();
+        showToast('🔒 ಶಾಲೆಯ ಹೆಸರನ್ನು ಬದಲಾಯಿಸಲು ಅನುಮತಿ ಇಲ್ಲ!', 'error');
+      }
+    }
+  }, true);
 
-  // ಈ ಮೊಬೈಲ್‌ನಲ್ಲಿ ಶಾಶ್ವತವಾಗಿ ಲಾಕ್ ಮಾಡುವುದು
-  localStorage.setItem('wy_submitted_' + mobile, 'true');
+  document.addEventListener('input', function(e) {
+    if (e.target && e.target.id === 'cfg-school-name') {
+      const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+      const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+      if (!isAdmin && session && session.school) {
+        e.target.value = session.school;
+      }
+    }
+  });
 
-  const reqId = Date.now();
-  const requestData = {
-    id: reqId,
-    type: 'teacher',
-    name, school, mobile,
-    classes: selectedClasses.join(', '),
-    subjects: selectedSubjs.join(', '),
-    date: new Date().toLocaleDateString(),
-    status: 'pending'
+  // ೩. ಲಾಗಿನ್, ಪ್ರೊಫೈಲ್ ಲೋಡ್ ಮತ್ತು ಪೇಜ್ ಲೋಡ್ ಆದಾಗಲೆಲ್ಲಾ ಆಟೋ ಲಾಕ್ ರನ್ ಮಾಡುವುದು
+  document.addEventListener('DOMContentLoaded', lockSchoolNameInput);
+  setTimeout(lockSchoolNameInput, 200);
+  setTimeout(lockSchoolNameInput, 800);
+
+  const prevNavLock = window.navigateToSection;
+  window.navigateToSection = function(sec) {
+    if (prevNavLock) prevNavLock(sec);
+    setTimeout(lockSchoolNameInput, 100);
   };
 
-  try {
-    fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/requests/${reqId}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestData)
-    });
-  } catch (e) {}
-
-  let reqs = [];
-  try { reqs = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]'); } catch(e){}
-  reqs.unshift(requestData);
-  localStorage.setItem('wy_admin_requests', JSON.stringify(reqs));
-
-  const msg = `*ನಮಸ್ಕಾರ, With You QP Generator ಶಿಕ್ಷಕರ ಹೊಸ ನೋಂದಣಿ (Teacher Sign Up):*\n\n` +
-              `👤 *ಶಿಕ್ಷಕರ ಹೆಸರು:* ${name}\n` +
-              `🏫 *ಶಾಲೆಯ ಹೆಸರು:* ${school}\n` +
-              `📱 *ಮೊಬೈಲ್ ಸಂಖ್ಯೆ:* ${mobile}\n` +
-              `🎒 *ತರಗತಿಗಳು:* ${selectedClasses.join(', ')}\n` +
-              `📚 *ವಿಷಯಗಳು:* ${selectedSubjs.join(', ')}\n\n` +
-              `ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ ನನ್ನ ಲಾಗಿನ್ *Secret Key* ಅನ್ನು ಕಳುಹಿಸಿಕೊಡಿ. ಧನ್ಯವಾದಗಳು!`;
-
-  // ಕೇವಲ ಹೊಸ ನಂಬರ್‌ಗೆ ಮಾತ್ರ WhatsApp ಓಪನ್ ಆಗುತ್ತದೆ
-  const waUrl = `https://wa.me/919902090911?text=${encodeURIComponent(msg)}`;
-  window.location.href = waUrl;
-  if (typeof closeAuthModal === 'function') closeAuthModal();
-};
-
-window.handleSchoolSignUpSubmit = async function() {
-  const hmName = document.getElementById('s-reg-hm')?.value.trim();
-  const schoolName = document.getElementById('s-reg-name')?.value.trim();
-  const dise = document.getElementById('s-reg-dise')?.value.trim().toLowerCase().replace(/\s+/g, '');
-  const mobile = getRaw10DigitPhone(document.getElementById('s-reg-mobile')?.value);
-
-  if (!hmName || !schoolName || !dise || mobile.length !== 10) {
-    return alert('⚠️ ದಯವಿಟ್ಟು ಎಲ್ಲಾ ವಿವರಗಳನ್ನು ಸರಿಯಾಗಿ ಭರ್ತಿ ಮಾಡಿ.');
-  }
-
-  if (isAlreadyRegisteredSync(dise) || isAlreadyRegisteredSync(mobile) || 
-      await isAlreadyRegisteredCloud(dise, 'school') || await isAlreadyRegisteredCloud(mobile, 'school')) {
-    return alert(`❌ ಈ ಶಾಲೆ (${dise}) ಈಗಾಗಲೇ ನೋಂದಣಿಯಾಗಿದೆ! ದಯವಿಟ್ಟು ಲಾಗಿನ್ ಮಾಡಿ.`);
-  }
-
-  localStorage.setItem('wy_submitted_' + dise, 'true');
-  localStorage.setItem('wy_submitted_' + mobile, 'true');
-
-  const reqId = Date.now();
-  const requestData = {
-    id: reqId,
-    type: 'school',
-    name: hmName,
-    school: schoolName,
-    dise: dise,
-    mobile: mobile,
-    date: new Date().toLocaleDateString(),
-    status: 'pending'
+  const prevProfileLock = window.renderTopUserProfileBar;
+  window.renderTopUserProfileBar = function() {
+    if (prevProfileLock) prevProfileLock();
+    setTimeout(lockSchoolNameInput, 100);
   };
+})();
 
-  try {
-    fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/requests/${reqId}.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestData)
-    });
-  } catch (e) {}
-
-  let reqs = [];
-  try { reqs = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]'); } catch(e){}
-  reqs.unshift(requestData);
-  localStorage.setItem('wy_admin_requests', JSON.stringify(reqs));
-
-  const msg = `*ನಮಸ್ಕಾರ, With You QP Generator ಶಾಲಾ ವಾರ್ಷಿಕ ನೋಂದಣಿ (School Sign Up):*\n\n` +
-              `🏫 *ಶಾಲೆಯ ಹೆಸರು:* ${schoolName}\n` +
-              `🔢 *DISE Code:* ${dise}\n` +
-              `👔 *ಮುಖ್ಯೋಪಾಧ್ಯಾಯರ ಹೆಸರು:* ${hmName}\n` +
-              `📱 *ಸಂಪರ್ಕ ಸಂಖ್ಯೆ:* ${mobile}\n\n` +
-              `ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ ನಮ್ಮ ಶಾಲೆಗೆ ವಾರ್ಷಿಕ ಲಾಗಿನ್ *School Secret Key* ಅನ್ನು ಕಳುಹಿಸಿಕೊಡಿ. ಧನ್ಯವಾದಗಳು!`;
-
-  const waUrl = `https://wa.me/919902090911?text=${encodeURIComponent(msg)}`;
-  window.location.href = waUrl;
-  if (typeof closeAuthModal === 'function') closeAuthModal();
-};
 
   </script>
 </body>

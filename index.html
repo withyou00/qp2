@@ -11555,59 +11555,159 @@ window.navigateToSection = function(sec) {
 
 
 // =========================================================================
-// 🚫 STRICT DUPLICATE REGISTRATION PREVENTER (MOBILE & DISE CODE GUARD)
+// 🌐 100% REAL-TIME CLOUD DUPLICATE PREVENTER (FIREBASE LIVE CHECK)
 // =========================================================================
 
-// ೧. ಮೊಬೈಲ್ ಅಥವಾ DISE ಕೋಡ್ ಈಗಾಗಲೇ ಇದೆಯೇ ಎಂದು ಪರಿಶೀಲಿಸುವ ಮಾಸ್ಟರ್ ಫಂಕ್ಷನ್
-function checkIsAlreadyRegistered(identifier, type = 'teacher') {
+const CLOUD_DB_URL = 'https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+// ೧. Firebase Cloud ಮತ್ತು ಲೋಕಲ್ ಮೆಮೊರಿ ಎರಡರಲ್ಲೂ ಲೈವ್ ಚೆಕ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಫಂಕ್ಷನ್
+async function verifyIfAlreadyRegisteredLive(identifier, type = 'teacher') {
   if (!identifier) return { exists: false };
 
   const cleanPhone = String(identifier).replace(/\D/g, '').slice(-10);
   const cleanDise = String(identifier).trim().toLowerCase().replace(/\s+/g, '');
+  const searchKey = (type === 'school' && cleanDise.length >= 5) ? cleanDise : cleanPhone;
 
-  // ೧. ಸಕ್ರಿಯ ಸದಸ್ಯರ ಡೇಟಾಬೇಸ್ (Active Users DB) ಪರಿಶೀಲನೆ
-  let activeUsers = [];
+  // 🌟 ಹಂತ ೧: ಲೋಕಲ್ ಮೆಮೊರಿ ಚೆಕ್
   try {
-    const raw = localStorage.getItem('wy_admin_users_db');
-    if (raw) {
-      const p = JSON.parse(raw);
-      activeUsers = Array.isArray(p) ? p : Object.values(p);
+    const localUsers = getSafeLocalUsersList();
+    const localMatch = localUsers.find(u => {
+      if (!u) return false;
+      const uMob = String(u.mobile || u.phone || '').replace(/\D/g, '').slice(-10);
+      const uDise = String(u.dise || u.diseCode || '').trim().toLowerCase().replace(/\s+/g, '');
+      return (type === 'school') ? (uDise === cleanDise || uMob === cleanPhone) : (uMob === cleanPhone);
+    });
+    if (localMatch) return { exists: true, status: 'active', data: localMatch };
+  } catch (e) {}
+
+  // 🌟 ಹಂತ ೨: Firebase Cloud ನಲ್ಲಿ ನೇರ ಲೈವ್ ಚೆಕ್ (DIRECT CLOUD FETCH)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+    // Users ನೋಡ್ ಪರಿಶೀಲನೆ
+    const userRes = await fetch(`${CLOUD_DB_URL}/users/${searchKey}.json?t=${Date.now()}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (userRes.ok) {
+      const cloudUser = await userRes.json();
+      if (cloudUser && (cloudUser.secretKey || cloudUser.key || cloudUser.mobile || cloudUser.dise)) {
+        return { exists: true, status: 'active', data: cloudUser };
+      }
     }
-  } catch (e) {}
 
-  const activeMatch = activeUsers.find(u => {
-    if (!u) return false;
-    const uMob = String(u.mobile || u.phone || '').replace(/\D/g, '').slice(-10);
-    const uDise = String(u.dise || u.diseCode || '').trim().toLowerCase().replace(/\s+/g, '');
-    return (type === 'school') ? (uDise === cleanDise || uMob === cleanPhone) : (uMob === cleanPhone);
-  });
-
-  if (activeMatch) {
-    return { exists: true, status: 'active', data: activeMatch };
-  }
-
-  // ೨. ಹೊಸ ಕೋರಿಕೆಗಳ ಕ್ಯೂ (Pending Requests) ಪರಿಶೀಲನೆ
-  let pendingRequests = [];
-  try {
-    pendingRequests = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]');
-  } catch (e) {}
-
-  const pendingMatch = pendingRequests.find(r => {
-    if (!r) return false;
-    const rMob = String(r.mobile || '').replace(/\D/g, '').slice(-10);
-    const rDise = String(r.dise || '').trim().toLowerCase().replace(/\s+/g, '');
-    return (type === 'school') ? (rDise === cleanDise || rMob === cleanPhone) : (rMob === cleanPhone);
-  });
-
-  if (pendingMatch) {
-    return { exists: true, status: 'pending', data: pendingMatch };
+    // Requests (ಪೆಂಡಿಂಗ್ ಕೋರಿಕೆಗಳು) ನೋಡ್ ಪರಿಶೀಲನೆ
+    const reqRes = await fetch(`${CLOUD_DB_URL}/requests.json?t=${Date.now()}`);
+    if (reqRes.ok) {
+      const allReqs = await reqRes.json();
+      if (allReqs) {
+        const reqList = Array.isArray(allReqs) ? allReqs : Object.values(allReqs);
+        const reqMatch = reqList.find(r => {
+          if (!r) return false;
+          const rMob = String(r.mobile || '').replace(/\D/g, '').slice(-10);
+          const rDise = String(r.dise || '').trim().toLowerCase().replace(/\s+/g, '');
+          return (type === 'school') ? (rDise === cleanDise || rMob === cleanPhone) : (rMob === cleanPhone);
+        });
+        if (reqMatch) return { exists: true, status: 'pending', data: reqMatch };
+      }
+    }
+  } catch (err) {
+    console.warn("Live check offline fallback:", err);
   }
 
   return { exists: false };
 }
 
 // =========================================================================
-// 👨‍🏫 ೨. ಶಿಕ್ಷಕರ ಸೈನ್-ಅಪ್ ಡಬಲ್ ನೋಂದಣಿ ತಡೆ (TEACHER SIGN UP GUARD)
+// ⚡ ೨. ಟೈಪ್ ಮಾಡುವಾಗಲೇ ಇನ್‌ಪುಟ್ ಬಾಕ್ಸ್ ಕೆಳಗೆ ಲೈವ್ ವಾರ್ನಿಂಗ್ ತೋರಿಸುವುದು
+// =========================================================================
+
+// ಶಿಕ್ಷಕರ ಮೊಬೈಲ್ ನಂಬರ್ ಲೈವ್ ಚೆಕ್
+let tCheckTimer = null;
+document.addEventListener('input', function(e) {
+  if (e.target && e.target.id === 't-reg-mobile') {
+    const mobile = e.target.value.replace(/\D/g, '').trim();
+    const inputEl = e.target;
+    
+    // ಸ್ಟೇಟಸ್ ಮೆಸೇಜ್ ಬಾಕ್ಸ್ ತಯಾರಿಕೆ
+    let msgBox = document.getElementById('t-reg-live-warn');
+    if (!msgBox) {
+      msgBox = document.createElement('div');
+      msgBox.id = 't-reg-live-warn';
+      inputEl.parentNode.appendChild(msgBox);
+    }
+
+    if (mobile.length === 10) {
+      msgBox.innerHTML = `<div class="text-[11px] font-bold text-amber-600 mt-1 flex items-center gap-1"><i class="fa-solid fa-spinner fa-spin"></i> ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...</div>`;
+      
+      clearTimeout(tCheckTimer);
+      tCheckTimer = setTimeout(async () => {
+        const result = await verifyIfAlreadyRegisteredLive(mobile, 'teacher');
+        if (result.exists) {
+          inputEl.classList.add('border-rose-500', 'bg-rose-50');
+          inputEl.classList.remove('border-emerald-500', 'bg-emerald-50');
+          
+          msgBox.innerHTML = `
+            <div class="p-2 mt-1.5 bg-rose-100 border border-rose-300 rounded-xl text-rose-900 text-xs font-black flex items-center justify-between gap-2 animate-bounce">
+              <span>❌ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಈಗಾಗಲೇ ನೋಂದಣಿಯಾಗಿದೆ!</span>
+              <button type="button" onclick="switchTeacherTab('login'); document.getElementById('t-login-mobile').value='${mobile}';" class="px-2 py-1 bg-rose-700 text-white rounded-lg text-[10px] font-black cursor-pointer">ಲಾಗಿನ್ ಮಾಡಿ</button>
+            </div>
+          `;
+        } else {
+          inputEl.classList.remove('border-rose-500', 'bg-rose-50');
+          inputEl.classList.add('border-emerald-500', 'bg-emerald-50');
+          msgBox.innerHTML = `<div class="text-[11px] font-black text-emerald-700 mt-1">✅ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಹೊಸ ನೋಂದಣಿಗೆ ಲಭ್ಯವಿದೆ.</div>`;
+        }
+      }, 300);
+    } else {
+      inputEl.classList.remove('border-rose-500', 'bg-rose-50', 'border-emerald-500', 'bg-emerald-50');
+      if (msgBox) msgBox.innerHTML = '';
+    }
+  }
+
+  // ಶಾಲೆಯ DISE ಕೋಡ್ ಲೈವ್ ಚೆಕ್
+  if (e.target && e.target.id === 's-reg-dise') {
+    const dise = e.target.value.trim().toLowerCase().replace(/\s+/g, '');
+    const inputEl = e.target;
+
+    let msgBox = document.getElementById('s-reg-live-warn');
+    if (!msgBox) {
+      msgBox = document.createElement('div');
+      msgBox.id = 's-reg-live-warn';
+      inputEl.parentNode.appendChild(msgBox);
+    }
+
+    if (dise.length >= 8) {
+      msgBox.innerHTML = `<div class="text-[11px] font-bold text-amber-600 mt-1 flex items-center gap-1"><i class="fa-solid fa-spinner fa-spin"></i> ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...</div>`;
+      
+      clearTimeout(tCheckTimer);
+      tCheckTimer = setTimeout(async () => {
+        const result = await verifyIfAlreadyRegisteredLive(dise, 'school');
+        if (result.exists) {
+          inputEl.classList.add('border-rose-500', 'bg-rose-50');
+          inputEl.classList.remove('border-emerald-500', 'bg-emerald-50');
+          
+          msgBox.innerHTML = `
+            <div class="p-2 mt-1.5 bg-rose-100 border border-rose-300 rounded-xl text-rose-900 text-xs font-black flex items-center justify-between gap-2 animate-bounce">
+              <span>❌ ಈ DISE ಕೋಡ್ ಈಗಾಗಲೇ ನೋಂದಣಿಯಾಗಿದೆ!</span>
+              <button type="button" onclick="switchSchoolTab('login'); document.getElementById('s-login-dise').value='${dise}';" class="px-2 py-1 bg-rose-700 text-white rounded-lg text-[10px] font-black cursor-pointer">ಲಾಗಿನ್ ಮಾಡಿ</button>
+            </div>
+          `;
+        } else {
+          inputEl.classList.remove('border-rose-500', 'bg-rose-50');
+          inputEl.classList.add('border-emerald-500', 'bg-emerald-50');
+          msgBox.innerHTML = `<div class="text-[11px] font-black text-emerald-700 mt-1">✅ ಈ DISE ಕೋಡ್ ಲಭ್ಯವಿದೆ.</div>`;
+        }
+      }, 300);
+    } else {
+      inputEl.classList.remove('border-rose-500', 'bg-rose-50', 'border-emerald-500', 'bg-emerald-50');
+      if (msgBox) msgBox.innerHTML = '';
+    }
+  }
+});
+
+// =========================================================================
+// 👨‍🏫 ೩. ಶಿಕ್ಷಕರ ಸೈನ್-ಅಪ್ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಹಾರ್ಡ್ ಬ್ಲಾಕರ್ (HARD SUBMIT GUARD)
 // =========================================================================
 window.handleTeacherSignUpSubmit = async function() {
   const name = document.getElementById('t-reg-name')?.value.trim();
@@ -11623,32 +11723,33 @@ window.handleTeacherSignUpSubmit = async function() {
   if (selectedClasses.length === 0) return alert('⚠️ ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ತರಗತಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
   if (selectedSubjs.length === 0) return alert('⚠️ ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ವಿಷಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
 
-  // 🌟 ಡಬಲ್ ರಿಜಿಸ್ಟ್ರೇಷನ್ ಪರಿಶೀಲನೆ (DUPLICATE CHECK)
-  const check = checkIsAlreadyRegistered(mobile, 'teacher');
+  showToast('⚡ ನೋಂದಣಿ ವಿವರ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+  // 🌟 ಕ್ಲೌಡ್ ಲೈವ್ ಪರಿಶೀಲನೆ
+  const check = await verifyIfAlreadyRegisteredLive(mobile, 'teacher');
 
   if (check.exists) {
     if (check.status === 'active') {
       alert(
-        `⚠️ ಈಗಾಗಲೇ ನೋಂದಣಿಯಾಗಿದೆ (Already Registered)!\n\n` +
+        `❌ ನೋಂದಣಿ ತಿರಸ್ಕರಿಸಲಾಗಿದೆ (Already Registered)!\n\n` +
         `ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (${mobile}) ಈಗಾಗಲೇ ನೋಂದಣಿಯಾಗಿ ಸಕ್ರಿಯವಾಗಿದೆ (Active).\n\n` +
-        `ದಯವಿಟ್ಟು ನಿಮ್ಮ Secret Key ಬಳಸಿ ಲಾಗಿನ್ ಮಾಡಿ ಅಥವಾ Secret Key ಮರೆತಿದ್ದರೆ 'Key ಮರೆತಿದೆಯೇ?' ಆಯ್ಕೆ ಬಳಸಿ.`
+        `ದಯವಿಟ್ಟು ನಿಮ್ಮ Secret Key ಬಳಸಿ ಲಾಗಿನ್ ಮಾಡಿ. Secret Key ಮರೆತಿದ್ದರೆ 'Key ಮರೆತಿದೆಯೇ?' ಆಯ್ಕೆ ಬಳಸಿ.`
       );
-      // ತಕ್ಷಣ ಲಾಗಿನ್ ಟ್ಯಾಬ್‌ಗೆ ಕರೆದೊಯ್ಯುವುದು
       if (typeof switchTeacherTab === 'function') switchTeacherTab('login');
       const loginMob = document.getElementById('t-login-mobile');
       if (loginMob) loginMob.value = mobile;
-      return;
-    } else if (check.status === 'pending') {
+      return; // ⛔ ನೋಂದಣಿ ಸಂಪೂರ್ಣ ಬ್ಲಾಕ್!
+    } else {
       alert(
-        `⏳ ಅನುಮೋದನೆ ಬಾಕಿ ಇದೆ (Approval Pending)!\n\n` +
-        `ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯ (${mobile}) ನೋಂದಣಿ ಕೋರಿಕೆಯನ್ನು ಈಗಾಗಲೇ ಸಲ್ಲಿಸಲಾಗಿದೆ.\n\n` +
-        `Secret Key ಪಡೆಯಲು ದಯವಿಟ್ಟು Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`
+        `⏳ ಅನುಮೋದನೆ ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿದೆ (Already Submitted)!\n\n` +
+        `ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯ (${mobile}) ನೋಂದಣಿ ಕೋರಿಕೆಯನ್ನು ಈಗಾಗಲೇ ಸ್ವೀಕರಿಸಲಾಗಿದೆ.\n\n` +
+        `Secret Key ಪಡೆಯಲು Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`
       );
-      return;
+      return; // ⛔ ನೋಂದಣಿ ಸಂಪೂರ್ಣ ಬ್ಲಾಕ್!
     }
   }
 
-  // ಹೊಸ ಯೂಸರ್ ಆಗಿದ್ದರೆ ಮಾತ್ರ ನೋಂದಣಿ ಮುಂದುವರಿಯುತ್ತದೆ
+  // ✅ ಹೊಸ ಯೂಸರ್ ಆಗಿದ್ದರೆ ಮಾತ್ರ ನೋಂದಣಿ ಮುಂದುವರಿಕೆ
   const reqId = Date.now();
   const requestData = {
     id: reqId,
@@ -11660,11 +11761,12 @@ window.handleTeacherSignUpSubmit = async function() {
     status: 'pending'
   };
 
-  // Firebase Cloud ಗೆ ಸೇರ್ಪಡೆ
   try {
-    if (typeof FirebaseCloud !== 'undefined') {
-      await FirebaseCloud.set(`requests/${reqId}`, requestData);
-    }
+    await fetch(`${CLOUD_DB_URL}/requests/${reqId}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestData)
+    });
   } catch (e) {}
 
   let reqs = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]');
@@ -11685,11 +11787,10 @@ window.handleTeacherSignUpSubmit = async function() {
   window.open(`https://wa.me/919902090911?text=${encodeURIComponent(msg)}`, '_blank');
   showToast('📲 WhatsApp ಮೂಲಕ ನೋಂದಣಿ ವಿವರ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ...', 'info');
   if (typeof closeAuthModal === 'function') closeAuthModal();
-  if (typeof checkAdminBadgeStatus === 'function') checkAdminBadgeStatus();
 };
 
 // =========================================================================
-// 🏫 ೩. ಶಾಲಾ ಸೈನ್-ಅಪ್ ಡಬಲ್ ನೋಂದಣಿ ತಡೆ (SCHOOL SIGN UP GUARD)
+// 🏫 ೪. ಶಾಲಾ ಸೈನ್-ಅಪ್ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಹಾರ್ಡ್ ಬ್ಲಾಕರ್ (HARD SUBMIT GUARD)
 // =========================================================================
 window.handleSchoolSignUpSubmit = async function() {
   const hmName = document.getElementById('s-reg-hm')?.value.trim();
@@ -11702,32 +11803,23 @@ window.handleSchoolSignUpSubmit = async function() {
   if (!dise || dise.length < 5) return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲೆಯ ಸರಿಯಾದ DISE ಕೋಡ್ ನಮೂದಿಸಿ.');
   if (mobile.length !== 10) return alert('⚠️ ದಯವಿಟ್ಟು 10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.');
 
-  // 🌟 DISE Code ಮತ್ತು Mobile ಎರಡರ ಡಬಲ್ ರಿಜಿಸ್ಟ್ರೇಷನ್ ಪರಿಶೀಲನೆ
-  const checkDise = checkIsAlreadyRegistered(dise, 'school');
-  const checkMob = checkIsAlreadyRegistered(mobile, 'school');
+  showToast('⚡ ಶಾಲಾ ವಿವರ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+  const checkDise = await verifyIfAlreadyRegisteredLive(dise, 'school');
+  const checkMob = await verifyIfAlreadyRegisteredLive(mobile, 'school');
 
   if (checkDise.exists || checkMob.exists) {
-    const isPending = (checkDise.status === 'pending' || checkMob.status === 'pending');
-    if (isPending) {
-      return alert(
-        `⏳ ಅನುಮೋದನೆ ಬಾಕಿ ಇದೆ (Approval Pending)!\n\n` +
-        `ಈ ಶಾಲೆಯ ನೋಂದಣಿ ಕೋರಿಕೆಯನ್ನು ಈಗಾಗಲೇ ಸ್ವೀಕರಿಸಲಾಗಿದೆ.\n\n` +
-        `Secret Key ಪಡೆಯಲು Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`
-      );
-    } else {
-      alert(
-        `⚠️ ಶಾಲೆ ಈಗಾಗಲೇ ನೋಂದಣಿಯಾಗಿದೆ (Already Registered)!\n\n` +
-        `ಈ DISE Code (${dise}) ಅಥವಾ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮ್ಮ ಸಿಸ್ಟಂನಲ್ಲಿ ಈಗಾಗಲೇ ಸಕ್ರಿಯವಾಗಿದೆ.\n\n` +
-        `ದಯವಿಟ್ಟು ನಿಮ್ಮ ಶಾಲಾ Secret Key ಬಳಸಿ ಲಾಗಿನ್ ಮಾಡಿ.`
-      );
-      if (typeof switchSchoolTab === 'function') switchSchoolTab('login');
-      const loginDise = document.getElementById('s-login-dise');
-      if (loginDise) loginDise.value = dise;
-      return;
-    }
+    alert(
+      `❌ ಶಾಲೆ ಈಗಾಗಲೇ ನೋಂದಣಿಯಾಗಿದೆ (Already Registered)!\n\n` +
+      `ಈ DISE Code (${dise}) ಅಥವಾ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮ್ಮ ಸಿಸ್ಟಂನಲ್ಲಿ ಈಗಾಗಲೇ ಸಕ್ರಿಯವಾಗಿದೆ.\n\n` +
+      `ದಯವಿಟ್ಟು ನಿಮ್ಮ ಶಾಲಾ Secret Key ಬಳಸಿ ಲಾಗಿನ್ ಮಾಡಿ.`
+    );
+    if (typeof switchSchoolTab === 'function') switchSchoolTab('login');
+    const loginDise = document.getElementById('s-login-dise');
+    if (loginDise) loginDise.value = dise;
+    return; // ⛔ ಸಂಪೂರ್ಣ ಬ್ಲಾಕ್!
   }
 
-  // ಹೊಸ ಶಾಲೆ ನೋಂದಣಿ ಮುಂದುವರಿಕೆ
   const reqId = Date.now();
   const requestData = {
     id: reqId,
@@ -11741,9 +11833,11 @@ window.handleSchoolSignUpSubmit = async function() {
   };
 
   try {
-    if (typeof FirebaseCloud !== 'undefined') {
-      await FirebaseCloud.set(`requests/${reqId}`, requestData);
-    }
+    await fetch(`${CLOUD_DB_URL}/requests/${reqId}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestData)
+    });
   } catch (e) {}
 
   let reqs = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]');
@@ -11763,35 +11857,7 @@ window.handleSchoolSignUpSubmit = async function() {
   window.open(`https://wa.me/919902090911?text=${encodeURIComponent(msg)}`, '_blank');
   showToast('📲 ಶಾಲಾ ನೋಂದಣಿ ವಿವರ WhatsApp ಗೆ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ...', 'info');
   if (typeof closeAuthModal === 'function') closeAuthModal();
-  if (typeof checkAdminBadgeStatus === 'function') checkAdminBadgeStatus();
 };
-
-// =========================================================================
-// ⚡ ೪. ಟೈಪ್ ಮಾಡುವಾಗಲೇ ಲೈವ್ ಎಚ್ಚರಿಕೆ ಕೊಡುವ ಇನ್‌ಪುಟ್ ಲಿಸನರ್‌ಗಳು
-// =========================================================================
-document.addEventListener('input', function(e) {
-  // ಶಿಕ್ಷಕರ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ 10 ಅಂಕಿ ತುಂಬಿದಾಗ ಲೈವ್ ಚೆಕ್
-  if (e.target && e.target.id === 't-reg-mobile') {
-    const val = e.target.value.replace(/\D/g, '').trim();
-    if (val.length === 10) {
-      const chk = checkIsAlreadyRegistered(val, 'teacher');
-      if (chk.exists) {
-        showToast('⚠️ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಈಗಾಗಲೇ ನೋಂದಣಿಯಾಗಿದೆ! ದಯವಿಟ್ಟು ಲಾಗಿನ್ ಮಾಡಿ.', 'info');
-      }
-    }
-  }
-
-  // ಶಾಲೆಯ DISE ಕೋಡ್ 11 ಅಂಕಿ ತುಂಬಿದಾಗ ಲೈವ್ ಚೆಕ್
-  if (e.target && e.target.id === 's-reg-dise') {
-    const val = e.target.value.trim().toLowerCase();
-    if (val.length >= 8) {
-      const chk = checkIsAlreadyRegistered(val, 'school');
-      if (chk.exists) {
-        showToast('⚠️ ಈ DISE ಕೋಡ್ ಈಗಾಗಲೇ ನೋಂದಣಿಯಾಗಿದೆ! ದಯವಿಟ್ಟು ಲಾಗಿನ್ ಮಾಡಿ.', 'info');
-      }
-    }
-  }
-});
 
   </script>
 </body>

@@ -9909,6 +9909,684 @@ window.filterQEditBankList = function(targetQIndex) {
 };
 
 
+// =========================================================================
+// 📄 UNIVERSAL CONTINUOUS PAGE-FLOW & ZERO-BLANK-SPACE MASTER FIX
+// =========================================================================
+
+(function injectZeroBlankSpaceContinuousCSS() {
+  const styleEl = document.createElement('style');
+  styleEl.innerHTML = `
+    /* ೧. ಬೋರ್ಡ್ ಶೀಟ್ - ಯಾವುದೇ ಪುಟದಲ್ಲಿ ಅನಗತ್ಯ ಜಾಗ ಬಿಡದೆ ಕಂಟಿನ್ಯೂ ಆಗುವ ನಿಯಮ */
+    .a4-board-sheet {
+      page-break-inside: auto !important;
+      break-inside: auto !important;
+      page-break-before: auto !important;
+      page-break-after: auto !important;
+      break-after: auto !important;
+      break-before: auto !important;
+      padding: 5mm 8mm !important;
+      margin: 0 auto 12px auto !important;
+      box-sizing: border-box !important;
+    }
+
+    /* ೨. ಮುಖ್ಯ ರೋಮನ್ ಸೆಕ್ಷನ್ - ಕಡ್ಡಾಯವಾಗಿ ಪುಟ ಒಡೆಯದೆ ಇರುವುದನ್ನು ರದ್ದುಪಡಿಸಿ ಫ್ರೀ ಫ್ಲೋ ನೀಡುವುದು */
+    .main-roman-section-block {
+      display: block !important;
+      width: 100% !important;
+      page-break-inside: auto !important;
+      break-inside: auto !important;
+      page-break-after: auto !important;
+      break-after: auto !important;
+      margin-bottom: 3px !important;
+    }
+
+    /* ೩. ಹೆಡಿಂಗ್ ಬಾರ್ ಮಾತ್ರ ಒಂಟಿಯಾಗಿ ಕೆಳಗೆ ಉಳಿಯದಂತೆ ರಕ್ಷಣೆ (Heading sticks to next question) */
+    .board-heading-row-table {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+      margin-top: 5px !important;
+      margin-bottom: 2px !important;
+      border-bottom: 1.5px solid #000 !important;
+    }
+
+    /* ೪. ಕೇವಲ ಆಯಾ ನಿರ್ದಿಷ್ಟ ಪ್ರಶ್ನೆ ಮಾತ್ರ ಅರ್ಧಕ್ಕೆ ಕಟ್ ಆಗದಂತೆ ತಡೆ (Individual Question Protection) */
+    .q-indivisible-block {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      margin-bottom: 3px !important;
+      display: block !important;
+      width: 100% !important;
+      clear: both !important;
+    }
+
+    /* ೫. ಉತ್ತರದ ಗೆರೆಗಳ ಕಾಂಪ್ಯಾಕ್ಟ್ ವಿನ್ಯಾಸ (ಪುಟದ ಜಾಗ ಉಳಿಸುವ ನಿಖರ ಗೆರೆಗಳು) */
+    .answer-writing-space-line {
+      width: 100% !important;
+      border-bottom: 1px dashed #64748b !important;
+      height: 22px !important;
+      margin-top: 1px !important;
+      margin-bottom: 2px !important;
+      box-sizing: border-box !important;
+    }
+
+    .answer-lines-container {
+      margin-top: 2px !important;
+      margin-bottom: 4px !important;
+      width: 100% !important;
+    }
+
+    /* ೬. ಪ್ರಿಂಟ್ ಮತ್ತು PDF ನಲ್ಲಿ ಗರಿಷ್ಠ ಜಾಗ ಬಳಕೆ (Max Page Utilization) */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 5mm 6mm !important;
+      }
+      .a4-board-sheet {
+        border: 2px solid #000 !important;
+        padding: 4mm 7mm !important;
+        margin: 0 !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+      }
+      .main-roman-section-block {
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+      }
+      .q-indivisible-block {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .board-heading-row-table {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+    }
+  `;
+  document.head.appendChild(styleEl);
+})();
+
+// ರೆಂಡರಿಂಗ್ ಎಂಜಿನ್‌ನಲ್ಲಿ ಕಂಟಿನ್ಯೂಯಸ್ ಫ್ಲೋ ಅನ್ವಯಿಸುವುದು
+const origContinuousRenderEngine = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  if (origContinuousRenderEngine) origContinuousRenderEngine(headerHtml);
+
+  // ಎಲ್ಲಾ ರೋಮನ್ ಸೆಕ್ಷನ್‌ಗಳನ್ನು ಫ್ರೀ-ಫ್ಲೋ ಆಗಿ ಪರಿವರ್ತಿಸುವುದು
+  document.querySelectorAll('.main-roman-section-block').forEach(el => {
+    el.style.pageBreakInside = 'auto';
+    el.style.breakInside = 'auto';
+  });
+};
+
+// =========================================================================
+// 🔥 FIREBASE REALTIME CLOUD DATABASE MASTER SYNC ENGINE
+// =========================================================================
+
+const FIREBASE_DB_BASE_URL = 'https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+// ೧. Firebase REST Cloud API Helper
+const FirebaseCloud = {
+  // ಡೇಟಾ ಓದುವುದು (GET)
+  async get(endpoint) {
+    try {
+      const res = await fetch(`${FIREBASE_DB_BASE_URL}/${endpoint}.json?t=${Date.now()}`);
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.warn(`Firebase read error at ${endpoint}:`, e);
+    }
+    return null;
+  },
+
+  // ಡೇಟಾ ಬರೆಯುವುದು/ಅಪ್ಡೇಟ್ ಮಾಡುವುದು (PUT)
+  async set(endpoint, data) {
+    try {
+      const res = await fetch(`${FIREBASE_DB_BASE_URL}/${endpoint}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      return res.ok;
+    } catch (e) {
+      console.error(`Firebase write error at ${endpoint}:`, e);
+      return false;
+    }
+  },
+
+  // ಡೇಟಾ ಡಿಲೀಟ್ ಮಾಡುವುದು (DELETE)
+  async remove(endpoint) {
+    try {
+      const res = await fetch(`${FIREBASE_DB_BASE_URL}/${endpoint}.json`, {
+        method: 'DELETE'
+      });
+      return res.ok;
+    } catch (e) {
+      console.error(`Firebase delete error at ${endpoint}:`, e);
+      return false;
+    }
+  }
+};
+
+// ೨. ವೆಬ್‌ಸೈಟ್ ಲೋಡ್ ಆದಾಗ Firebase ನಿಂದ ಎಲ್ಲಾ ಡೇಟಾ ಕ್ಲೌಡ್ ಸಿಂಕ್ ಮಾಡುವುದು
+async function syncAllDataFromFirebaseCloud() {
+  try {
+    // 👥 ಸಕ್ರಿಯ ಸದಸ್ಯರ ಸಿಂಕ್
+    const cloudUsers = await FirebaseCloud.get('users');
+    if (cloudUsers) {
+      const usersList = Object.values(cloudUsers);
+      localStorage.setItem('wy_admin_users_db', JSON.stringify(usersList));
+    }
+
+    // 🔔 ಹೊಸ ಕೋರಿಕೆಗಳ ಸಿಂಕ್
+    const cloudRequests = await FirebaseCloud.get('requests');
+    if (cloudRequests) {
+      const reqsList = Object.values(cloudRequests);
+      localStorage.setItem('wy_admin_requests', JSON.stringify(reqsList));
+      if (typeof checkAdminBadgeStatus === 'function') checkAdminBadgeStatus();
+    }
+
+    // 📢 ಲೈವ್ ಪ್ರಕಟಣೆ ಸಿಂಕ್
+    const cloudAnnouncement = await FirebaseCloud.get('announcement');
+    if (cloudAnnouncement) {
+      localStorage.setItem('wy_live_announcement', JSON.stringify(cloudAnnouncement));
+      if (typeof renderLiveAnnouncementBanner === 'function') renderLiveAnnouncementBanner();
+    }
+
+    // ಸಕ್ರಿಯ ಯೂಸರ್ ಸೆಷನ್ ನವೀಕರಣ
+    const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+    if (session && session.isLoggedIn && cloudUsers) {
+      const userKey = session.mobile || session.dise;
+      const liveUser = cloudUsers[userKey];
+      if (liveUser) {
+        session.allowedClasses = liveUser.allowedClasses;
+        session.allowedSubjects = liveUser.allowedSubjects;
+        session.validityDate = liveUser.validityDate;
+        session.school = liveUser.school;
+        session.name = liveUser.name;
+        localStorage.setItem('wy_active_session', JSON.stringify(session));
+        if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar();
+      }
+    }
+  } catch (err) {
+    console.log("Firebase sync fallback to local cache");
+  }
+}
+
+// =========================================================================
+// 🔄 CLOUD INTEGRATION HOOKS (REGISTRATION, LOGIN & ADMIN ACTIONS)
+// =========================================================================
+
+// ೧. ಶಿಕ್ಷಕರ ಸೈನ್-ಅಪ್ -> Firebase Requests ಗೆ ಸೇರ್ಪಡೆ
+const origTeacherSignUpWithCloud = window.handleTeacherSignUpSubmit;
+window.handleTeacherSignUpSubmit = async function() {
+  const name = document.getElementById('t-reg-name')?.value.trim();
+  const school = document.getElementById('t-reg-school')?.value.trim();
+  const mobile = document.getElementById('t-reg-mobile')?.value.trim();
+  const selectedClasses = Array.from(document.querySelectorAll('input[name="t_reg_class"]:checked')).map(c => c.value);
+  const selectedSubjs = Array.from(document.querySelectorAll('input[name="t_reg_subj"]:checked')).map(s => s.value);
+
+  if (!name || !school || mobile.length !== 10 || selectedClasses.length === 0 || selectedSubjs.length === 0) {
+    return origTeacherSignUpWithCloud ? origTeacherSignUpWithCloud() : null;
+  }
+
+  const reqId = Date.now();
+  const requestData = {
+    id: reqId,
+    type: 'teacher',
+    name, school, mobile,
+    classes: selectedClasses.join(', '),
+    subjects: selectedSubjs.join(', '),
+    date: new Date().toLocaleDateString(),
+    status: 'pending'
+  };
+
+  // Firebase Cloud ಗೆ ರವಾನೆ
+  await FirebaseCloud.set(`requests/${reqId}`, requestData);
+
+  let reqs = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]');
+  reqs.unshift(requestData);
+  localStorage.setItem('wy_admin_requests', JSON.stringify(reqs));
+
+  if (origTeacherSignUpWithCloud) origTeacherSignUpWithCloud();
+};
+
+// ೨. ಶಾಲಾ ಸೈನ್-ಅಪ್ -> Firebase Requests ಗೆ ಸೇರ್ಪಡೆ
+const origSchoolSignUpWithCloud = window.handleSchoolSignUpSubmit;
+window.handleSchoolSignUpSubmit = async function() {
+  const hmName = document.getElementById('s-reg-hm')?.value.trim();
+  const schoolName = document.getElementById('s-reg-name')?.value.trim();
+  const dise = document.getElementById('s-reg-dise')?.value.trim();
+  const mobile = document.getElementById('s-reg-mobile')?.value.trim();
+
+  if (!hmName || !schoolName || !dise || mobile.length !== 10) {
+    return origSchoolSignUpWithCloud ? origSchoolSignUpWithCloud() : null;
+  }
+
+  const reqId = Date.now();
+  const requestData = {
+    id: reqId,
+    type: 'school',
+    name: hmName,
+    school: schoolName,
+    dise: dise,
+    mobile: mobile,
+    date: new Date().toLocaleDateString(),
+    status: 'pending'
+  };
+
+  // Firebase Cloud ಗೆ ರವಾನೆ
+  await FirebaseCloud.set(`requests/${reqId}`, requestData);
+
+  let reqs = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]');
+  reqs.unshift(requestData);
+  localStorage.setItem('wy_admin_requests', JSON.stringify(reqs));
+
+  if (origSchoolSignUpWithCloud) origSchoolSignUpWithCloud();
+};
+
+// ೩. ಶಿಕ್ಷಕರ ಕ್ಲೌಡ್ ಲಾಗಿನ್ (ಯಾವುದೇ ಕಂಪ್ಯೂಟರ್/ಮೊಬೈಲ್‌ನಲ್ಲೂ ಲಾಗಿನ್ ಆಗಲು)
+window.handleTeacherLoginSubmit = async function() {
+  const mobile = document.getElementById('t-login-mobile')?.value.trim();
+  const key = document.getElementById('t-login-key')?.value.trim();
+
+  if (mobile.length !== 10) return alert('⚠️ ದಯವಿಟ್ಟು ಸರಿಯಾದ 10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.');
+  if (!key || key.length < 3) return alert('⚠️ ದಯವಿಟ್ಟು Secret Key ನಮೂದಿಸಿ.');
+
+  showToast('🔄 Firebase Cloud ನಿಂದ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+  // Firebase ನಿಂದ ಲೈವ್ ಯೂಸರ್ ಚೆಕ್
+  let user = await FirebaseCloud.get(`users/${mobile}`);
+
+  // ಸ್ಥಳೀಯ ಡೇಟಾಬೇಸ್ ಫಾಲ್‌ಬ್ಯಾಕ್
+  if (!user) {
+    const localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+    user = localUsers.find(u => (u.mobile === mobile || u.mobile === '91' + mobile) && u.secretKey.toLowerCase() === key.toLowerCase());
+  }
+
+  if (!user || user.secretKey.toLowerCase() !== key.toLowerCase()) {
+    return alert('❌ ತಪ್ಪಾದ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಅಥವಾ Secret Key!\nನೀವು ಇನ್ನೂ ಕೀ ಪಡೆದಿಲ್ಲದಿದ್ದರೆ Sign Up ಮಾಡಿ ಅಥವಾ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.');
+  }
+
+  if (user.validityDate && new Date(user.validityDate) < new Date(new Date().toDateString())) {
+    return alert(`⚠️ ನಿಮ್ಮ ಖಾತೆಯ ಮಾನ್ಯತೆ (${user.validityDate}) ಮುಕ್ತಾಯಗೊಂಡಿದೆ.\nನವೀಕರಣಕ್ಕಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+  }
+
+  const sessionData = {
+    isLoggedIn: true,
+    type: 'teacher',
+    name: user.name,
+    school: user.school,
+    mobile: user.mobile,
+    allowedSubjects: user.allowedSubjects || (user.subjects ? user.subjects.split(',').map(s => s.trim()) : ['all']),
+    allowedClasses: user.allowedClasses || (user.classes ? user.classes.split(',').map(c => c.trim()) : ['all']),
+    validityDate: user.validityDate
+  };
+
+  localStorage.setItem('wy_active_session', JSON.stringify(sessionData));
+
+  const schoolInp = document.getElementById('cfg-school-name');
+  if (schoolInp && user.school) schoolInp.value = user.school;
+
+  if (typeof applyUserSubjectPermissionsToUI === 'function') applyUserSubjectPermissionsToUI(sessionData);
+  if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar();
+
+  // ಕ್ಲೌಡ್‌ನಿಂದ ಹಳೆಯ ಪತ್ರಿಕೆಗಳನ್ನು ಸಿಂಕ್ ಮಾಡುವುದು
+  const cloudHistory = await FirebaseCloud.get(`history/${mobile}`);
+  if (cloudHistory && Array.isArray(cloudHistory)) {
+    localStorage.setItem(`wy_paper_history_${mobile}`, JSON.stringify(cloudHistory));
+    if (typeof renderUserPaperHistoryWidget === 'function') renderUserPaperHistoryWidget();
+  }
+
+  showToast(`✅ ಸುಸ್ವಾಗತ ${user.name}! ನಿಮ್ಮ ಖಾತೆ ಯಶಸ್ವಿಯಾಗಿ ಲಾಗಿನ್ ಆಗಿದೆ.`, 'success');
+  closeAuthModal();
+  navigateToSection('generator');
+};
+
+// ೪. ಶಾಲಾ ಕ್ಲೌಡ್ ಲಾಗಿನ್
+window.handleSchoolLoginSubmit = async function() {
+  const dise = document.getElementById('s-login-dise')?.value.trim();
+  const key = document.getElementById('s-login-key')?.value.trim();
+
+  if (!dise || dise.length < 5) return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲೆಯ ಸರಿಯಾದ DISE ಕೋಡ್ ನಮೂದಿಸಿ.');
+  if (!key || key.length < 3) return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲಾ Secret Key ನಮೂದಿಸಿ.');
+
+  showToast('🔄 Firebase Cloud ನಿಂದ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+  let user = await FirebaseCloud.get(`users/${dise}`);
+  if (!user) {
+    const localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+    user = localUsers.find(u => u.type === 'school' && u.dise === dise && u.secretKey.toLowerCase() === key.toLowerCase());
+  }
+
+  if (!user || user.secretKey.toLowerCase() !== key.toLowerCase()) {
+    return alert('❌ ತಪ್ಪಾದ DISE Code ಅಥವಾ School Secret Key!\nನೋಂದಣಿಗಾಗಿ Sign Up ಮಾಡಿ ಅಥವಾ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.');
+  }
+
+  if (user.validityDate && new Date(user.validityDate) < new Date(new Date().toDateString())) {
+    return alert(`⚠️ ನಿಮ್ಮ ಶಾಲೆಯ ವಾರ್ಷಿಕ ಮಾನ್ಯತೆ (${user.validityDate}) ಮುಕ್ತಾಯಗೊಂಡಿದೆ.\nನವೀಕರಣಕ್ಕಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+  }
+
+  const sessionData = {
+    isLoggedIn: true,
+    type: 'school',
+    name: user.name,
+    school: user.school,
+    dise: user.dise,
+    allowedSubjects: ['all'],
+    allowedClasses: ['all'],
+    validityDate: user.validityDate
+  };
+
+  localStorage.setItem('wy_active_session', JSON.stringify(sessionData));
+
+  const schoolInp = document.getElementById('cfg-school-name');
+  if (schoolInp && user.school) schoolInp.value = user.school;
+
+  if (typeof applyUserSubjectPermissionsToUI === 'function') applyUserSubjectPermissionsToUI(sessionData);
+  if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar();
+
+  showToast(`✅ ${user.school} - ಎಲ್ಲಾ ತರಗತಿ & ವಿಷಯಗಳು ಅನ್‌ಲಾಕ್ ಆಗಿವೆ!`, 'success');
+  closeAuthModal();
+  navigateToSection('generator');
+};
+
+// ೫. ಅಡ್ಮಿನ್ APPROVE ಮಾಡಿದಾಗ Firebase Users ಗೆ ನೇರ ಸೇರ್ಪಡೆ
+const origApproveWithCloud = window.approveRequestDirectly;
+window.approveRequestDirectly = async function(reqId) {
+  let requests = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]');
+  const req = requests.find(r => r.id === reqId);
+  if (!req) return;
+
+  const autoGeneratedKey = typeof generateGuaranteedUniqueKey === 'function' ? generateGuaranteedUniqueKey(req.type) : 'WY-' + Math.floor(100000+Math.random()*900000);
+  const nextYear = new Date();
+  nextYear.setFullYear(nextYear.getFullYear() + 1);
+  const defValidity = nextYear.toISOString().split('T')[0];
+
+  const assignedKey = prompt(`ಅನುಮೋದನೆಗಾಗಿ Auto Secret Key (Unique):`, autoGeneratedKey) || autoGeneratedKey;
+  const assignedValidity = prompt(`ಮಾನ್ಯತೆ ದಿನಾಂಕ (Validity Till YYYY-MM-DD):`, defValidity) || defValidity;
+
+  const userKey = req.type === 'school' ? req.dise : req.mobile;
+
+  const newUser = {
+    ...req,
+    secretKey: assignedKey.trim(),
+    validityDate: assignedValidity,
+    allowedSubjects: req.subjects ? req.subjects.split(',').map(s => s.trim()) : ['all'],
+    allowedClasses: req.classes ? req.classes.split(',').map(c => c.trim()) : ['all'],
+    status: 'active',
+    approvedAt: new Date().toLocaleDateString()
+  };
+
+  // 🔥 Firebase Cloud Users ಗೆ ಬರೆಯುವುದು
+  await FirebaseCloud.set(`users/${userKey}`, newUser);
+  await FirebaseCloud.remove(`requests/${reqId}`);
+
+  let users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+  users = users.filter(u => (u.mobile !== userKey && u.dise !== userKey));
+  users.unshift(newUser);
+  localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+
+  requests = requests.filter(r => r.id !== reqId);
+  localStorage.setItem('wy_admin_requests', JSON.stringify(requests));
+
+  // WhatsApp ಮೆಸೇಜ್ ಕಳುಹಿಸುವುದು
+  const targetPhone = req.mobile || req.dise || '';
+  const subjInfo = req.type === 'school' ? 'ಸಂಪೂರ್ಣ ಶಾಲೆ (ಎಲ್ಲಾ ತರಗತಿ & ವಿಷಯಗಳು)' : (req.subjects || 'ಆಯ್ಕೆಮಾಡಿದ ವಿಷಯಗಳು');
+  const classInfo = req.classes || 'ಆಯ್ಕೆಮಾಡಿದ ತರಗತಿಗಳು';
+
+  const msg = `*🎉 ಅಭಿನಂದನೆಗಳು! With You QP Generator ಖಾತೆ ಸಕ್ರಿಯಗೊಂಡಿದೆ (Approved)*\n\n` +
+              `👤 *ಹೆಸರು:* ${req.name}\n` +
+              `🏫 *ಶಾಲೆ:* ${req.school}\n` +
+              `🎒 *ತರಗತಿಗಳು:* ${classInfo}\n` +
+              `📚 *ವಿಷಯಗಳು:* ${subjInfo}\n` +
+              `🔑 *ನಿಮ್ಮ Secret Key:* ${assignedKey}\n` +
+              `📅 *ಮಾನ್ಯತೆ (Validity Till):* ${assignedValidity}\n\n` +
+              `🌐 *ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್:* https://withyou00.github.io/qp/\n\n` +
+              `ಮೇಲಿನ ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ತೆರೆದು ನಿಮ್ಮ ಮೊಬೈಲ್ ನಂಬರ್ ಮತ್ತು ಈ Secret Key ಬಳಸಿ ಲಾಗಿನ್ ಆಗಿ ಅನಿಯಮಿತ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿಕೊಳ್ಳಬಹುದು. ಧನ್ಯವಾದಗಳು!`;
+
+  const waUrl = targetPhone.length === 10 ? `https://wa.me/91${targetPhone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, '_blank');
+
+  showToast(`✅ ${req.name} ರವರ ಡೇಟಾ Firebase Cloud ನಲ್ಲಿ ಸೇವ್ ಆಗಿದೆ ಮತ್ತು WhatsApp ಗೆ ಕಳುಹಿಸಲಾಗಿದೆ!`, 'success');
+  if (typeof checkAdminBadgeStatus === 'function') checkAdminBadgeStatus();
+  if (typeof openAdminDashboardModal === 'function') openAdminDashboardModal('users');
+};
+
+// ೬. ಅಡ್ಮಿನ್ USER EDIT ಮಾಡಿದಾಗ Firebase ಗೆ ನವೀಕರಣ
+const origSaveEditedUserCloud = window.saveEditedUserSubmit;
+window.saveEditedUserSubmit = async function(index) {
+  let users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+  const u = users[index];
+  if (!u) return;
+
+  const newName = document.getElementById('edit-u-name')?.value.trim();
+  const newMobile = document.getElementById('edit-u-mobile')?.value.trim();
+  const newSchool = document.getElementById('edit-u-school')?.value.trim();
+  const newKey = document.getElementById('edit-u-key')?.value.trim();
+  const newValidity = document.getElementById('edit-u-validity')?.value;
+
+  const checkedClasses = Array.from(document.querySelectorAll('input[name="edit_u_classes"]:checked')).map(cb => cb.value);
+  const checkedSubjs = Array.from(document.querySelectorAll('input[name="edit_u_subjects"]:checked')).map(cb => cb.value);
+
+  if (!newName || !newMobile || !newKey) return alert('⚠️ ಹೆಸರು, ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಮತ್ತು Secret Key ಕಡ್ಡಾಯವಾಗಿದೆ.');
+
+  const oldUserKey = u.mobile || u.dise;
+  
+  u.name = newName;
+  if (u.type === 'school') u.dise = newMobile;
+  else u.mobile = newMobile;
+  u.school = newSchool;
+  u.secretKey = newKey;
+  u.validityDate = newValidity;
+  u.allowedClasses = checkedClasses.length > 0 ? checkedClasses : ['all'];
+  u.classes = u.allowedClasses.join(', ');
+  u.allowedSubjects = checkedSubjs.length > 0 ? checkedSubjs : ['all'];
+  u.subjects = u.allowedSubjects.join(', ');
+
+  users[index] = u;
+  localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+
+  // 🔥 Firebase Cloud Update
+  const newUserKey = u.mobile || u.dise;
+  if (oldUserKey !== newUserKey) {
+    await FirebaseCloud.remove(`users/${oldUserKey}`);
+  }
+  await FirebaseCloud.set(`users/${newUserKey}`, u);
+
+  showToast('✅ ಬಳಕೆದಾರರ ವಿವರಗಳು Firebase Cloud ನಲ್ಲಿ ಯಶಸ್ವಿಯಾಗಿ ಅಪ್ಡೇಟ್ ಆಗಿವೆ!', 'success');
+  if (typeof openAdminDashboardModal === 'function') openAdminDashboardModal('users');
+};
+
+// ೭. ಅಡ್ಮಿನ್ USER DELETE ಮಾಡಿದಾಗ Firebase ನಿಂದ ಡಿಲೀಟ್
+const origDeleteUserCloud = window.deleteActiveUser;
+window.deleteActiveUser = async function(index) {
+  if (!confirm('ಈ ಸದಸ್ಯರನ್ನು Firebase Cloud ನಿಂದ ಸಂಪೂರ್ಣವಾಗಿ ಡಿಲೀಟ್ ಮಾಡಲು ಖಚಿತವೇ?')) return;
+  let users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+  const u = users[index];
+  if (u) {
+    const userKey = u.mobile || u.dise;
+    await FirebaseCloud.remove(`users/${userKey}`);
+  }
+  users.splice(index, 1);
+  localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+  showToast('🗑️ ಸದಸ್ಯರನ್ನು Firebase Cloud ನಿಂದ ತೆಗೆದುಹಾಕಲಾಗಿದೆ.', 'info');
+  if (typeof openAdminDashboardModal === 'function') openAdminDashboardModal('users');
+};
+
+// ೮. ಲೈವ್ ಪ್ರಕಟಣೆ Firebase Cloud ಗೆ ಅಪ್ಡೇಟ್
+const origSaveAnnouncementCloud = window.saveAnnouncementSubmit;
+window.saveAnnouncementSubmit = async function() {
+  const text = document.getElementById('adm-notice-text')?.value.trim();
+  const enabled = document.getElementById('adm-notice-enable')?.checked || false;
+
+  const data = {
+    text: text,
+    enabled: enabled,
+    updatedAt: new Date().toLocaleDateString()
+  };
+
+  await FirebaseCloud.set('announcement', data);
+  localStorage.setItem('wy_live_announcement', JSON.stringify(data));
+  if (typeof renderLiveAnnouncementBanner === 'function') renderLiveAnnouncementBanner();
+  showToast('📢 ಲೈವ್ ಪ್ರಕಟಣೆ Firebase Cloud ಮೂಲಕ ರಾಜ್ಯಾದ್ಯಂತ ಪ್ರಕಟಗೊಂಡಿದೆ!', 'success');
+  if (typeof openAdminDashboardModal === 'function') openAdminDashboardModal('notice');
+};
+
+// ೯. ಜನರೇಟ್ ಆದ ಪತ್ರಿಕೆಯನ್ನು Firebase Cloud History ಗೆ ಸೇವ್ ಮಾಡುವುದು
+const origSaveHistoryCloud = saveCurrentPaperToUserHistory;
+saveCurrentPaperToUserHistory = async function(generatedQuestions, headerHtml) {
+  if (origSaveHistoryCloud) origSaveHistoryCloud(generatedQuestions, headerHtml);
+
+  const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+  if (!session || !session.isLoggedIn) return;
+
+  const userKey = session.mobile || session.dise;
+  const storageKey = `wy_paper_history_${userKey}`;
+  const history = JSON.parse(localStorage.getItem(storageKey) || '[]');
+
+  // Firebase Cloud ಗೆ ಇತ್ತೀಚಿನ ೨ ಪತ್ರಿಕೆಗಳ ಕ್ಲೌಡ್ ಬ್ಯಾಕಪ್
+  await FirebaseCloud.set(`history/${userKey}`, history);
+};
+
+// ಪೇಜ್ ಲೋಡ್ ಆದ ತಕ್ಷಣ Firebase ನಿಂದ ಲೈವ್ ಡೇಟಾ ಲೋಡ್ ಮಾಡುವುದು
+document.addEventListener('DOMContentLoaded', () => {
+  syncAllDataFromFirebaseCloud();
+});
+
+// =========================================================================
+// ⚡ FIREBASE ZERO-BANDWIDTH & SMART STORAGE SAVER OPTIMIZER
+// =========================================================================
+
+// ೧. ರಿಫ್ರೆಶ್ ಮಾಡಿದಾಗ ಕೇವಲ ಅಗತ್ಯವಿರುವ 0.1 KB ಲೈವ್ ಪ್ರಕಟಣೆ ಮಾತ್ರ ಲೋಡ್ ಮಾಡುವ ಸ್ಮಾರ್ಟ್ ಸಿಂಕ್
+async function syncAllDataFromFirebaseCloud() {
+  try {
+    // 📢 ಲೈವ್ ಪ್ರಕಟಣೆ ಮಾತ್ರ ಚೆಕ್ ಮಾಡುವುದು (ಕೇವಲ 0.1 KB ಡೌನ್‌ಲೋಡ್!)
+    const cloudAnnouncement = await FirebaseCloud.get('announcement');
+    if (cloudAnnouncement) {
+      localStorage.setItem('wy_live_announcement', JSON.stringify(cloudAnnouncement));
+      if (typeof renderLiveAnnouncementBanner === 'function') renderLiveAnnouncementBanner();
+    }
+
+    // 👑 ಅಡ್ಮಿನ್ ಮಾತ್ರ ಲಾಗಿನ್ ಆಗಿದ್ದರೆ ಹೊಸ ರಿಕ್ವೆಸ್ಟ್‌ಗಳ ಕೌಂಟ್ ತರುವುದು
+    const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+    if (isAdmin) {
+      const cloudRequests = await FirebaseCloud.get('requests');
+      if (cloudRequests) {
+        localStorage.setItem('wy_admin_requests', JSON.stringify(Object.values(cloudRequests)));
+        if (typeof checkAdminBadgeStatus === 'function') checkAdminBadgeStatus();
+      }
+    }
+  } catch (err) {
+    console.log("Lightweight sync completed.");
+  }
+}
+
+// ೨. ಅಡ್ಮಿನ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ತೆರೆದಾಗ ಮಾತ್ರ ಸಂಪೂರ್ಣ ಯೂಸರ್ ಡೇಟಾ ಲೋಡ್ ಮಾಡುವುದು (ಉಳಿದವರಿಗೆ 0% Bandwidth!)
+const origOpenAdminDashboard = window.openAdminDashboardModal;
+window.openAdminDashboardModal = async function(activeTab = 'users') {
+  showToast('🔄 Firebase ನಿಂದ ಲೈವ್ ಡೇಟಾ ಲೋಡ್ ಆಗುತ್ತಿದೆ...', 'info');
+
+  try {
+    const [cloudUsers, cloudRequests] = await Promise.all([
+      FirebaseCloud.get('users'),
+      FirebaseCloud.get('requests')
+    ]);
+
+    if (cloudUsers) {
+      localStorage.setItem('wy_admin_users_db', JSON.stringify(Object.values(cloudUsers)));
+    }
+    if (cloudRequests) {
+      localStorage.setItem('wy_admin_requests', JSON.stringify(Object.values(cloudRequests)));
+    }
+  } catch (e) {
+    console.warn("Using offline cached admin data");
+  }
+
+  if (origOpenAdminDashboard) origOpenAdminDashboard(activeTab);
+};
+
+// ೩. ಲಾಗಿನ್ ಆಗುವಾಗ ಕೇವಲ ಆ ನಿರ್ದಿಷ್ಟ ಮೊಬೈಲ್ ನಂಬರ್ ಡೇಟಾ ಮಾತ್ರ ಲೋಡ್ ಮಾಡುವುದು (Targeted 0.3 KB Fetch)
+window.handleTeacherLoginSubmit = async function() {
+  const mobile = document.getElementById('t-login-mobile')?.value.trim();
+  const key = document.getElementById('t-login-key')?.value.trim();
+
+  if (mobile.length !== 10) return alert('⚠️ ದಯವಿಟ್ಟು ಸರಿಯಾದ 10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.');
+  if (!key || key.length < 3) return alert('⚠️ ದಯವಿಟ್ಟು Secret Key ನಮೂದಿಸಿ.');
+
+  showToast('🔄 ಲಾಗಿನ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+  // ಕೇವಲ ಈ ಯೂಸರ್‌ನ ಡೇಟಾ ಮಾತ್ರ ಕ್ಲೌಡ್‌ನಿಂದ ಬರುತ್ತದೆ
+  let user = await FirebaseCloud.get(`users/${mobile}`);
+
+  if (!user) {
+    const localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+    user = localUsers.find(u => (u.mobile === mobile || u.mobile === '91' + mobile) && u.secretKey.toLowerCase() === key.toLowerCase());
+  }
+
+  if (!user || user.secretKey.toLowerCase() !== key.toLowerCase()) {
+    return alert('❌ ತಪ್ಪಾದ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಅಥವಾ Secret Key!\nನೋಂದಣಿಗಾಗಿ Sign Up ಮಾಡಿ ಅಥವಾ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.');
+  }
+
+  if (user.validityDate && new Date(user.validityDate) < new Date(new Date().toDateString())) {
+    return alert(`⚠️ ನಿಮ್ಮ ಖಾತೆಯ ಮಾನ್ಯತೆ (${user.validityDate}) ಮುಕ್ತಾಯಗೊಂಡಿದೆ.\nನವೀಕರಣಕ್ಕಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+  }
+
+  const sessionData = {
+    isLoggedIn: true,
+    type: 'teacher',
+    name: user.name,
+    school: user.school,
+    mobile: user.mobile,
+    allowedSubjects: user.allowedSubjects || (user.subjects ? user.subjects.split(',').map(s => s.trim()) : ['all']),
+    allowedClasses: user.allowedClasses || (user.classes ? user.classes.split(',').map(c => c.trim()) : ['all']),
+    validityDate: user.validityDate
+  };
+
+  localStorage.setItem('wy_active_session', JSON.stringify(sessionData));
+
+  const schoolInp = document.getElementById('cfg-school-name');
+  if (schoolInp && user.school) schoolInp.value = user.school;
+
+  if (typeof applyUserSubjectPermissionsToUI === 'function') applyUserSubjectPermissionsToUI(sessionData);
+  if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar();
+
+  showToast(`✅ ಸುಸ್ವಾಗತ ${user.name}! ಲಾಗಿನ್ ಯಶಸ್ವಿಯಾಗಿದೆ.`, 'success');
+  closeAuthModal();
+  navigateToSection('generator');
+};
+
+// ೪. ಹಿಸ್ಟರಿ ಸ್ಟೋರೇಜ್ ಆಪ್ಟಿಮೈಸೇಶನ್ (ಕ್ಲೌಡ್ ಜಾಗ ವ್ಯರ್ಥವಾಗದಂತೆ ಲೋಕಲ್ ಬ್ರೌಸರ್ ಮೆಮೊರಿಯಲ್ಲಿ ಸೇವ್)
+saveCurrentPaperToUserHistory = function(generatedQuestions, headerHtml) {
+  const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+  const userKey = session ? (session.mobile || session.dise || 'user') : 'local_teacher';
+  const storageKey = `wy_paper_history_${userKey}`;
+
+  let history = JSON.parse(localStorage.getItem(storageKey) || '[]');
+
+  const rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಜ್ಞಾನ';
+  const grade = document.getElementById('cfg-class')?.value || '8';
+  const examType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+  const totalMarks = generatedQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+  const newHistoryItem = {
+    id: Date.now(),
+    savedAt: new Date().toLocaleString('kn-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    title: `${grade}ನೇ ತರಗತಿ ${rawSubj} (${examType.split(' ')[0]})`,
+    subject: rawSubj,
+    grade: grade,
+    examType: examType,
+    totalMarks: totalMarks,
+    questionsCount: generatedQuestions.length,
+    headerHtml: headerHtml,
+    questionsSnapshot: JSON.parse(JSON.stringify(generatedQuestions))
+  };
+
+  history.unshift(newHistoryItem);
+  history = history.slice(0, 2); // ಗರಿಷ್ಠ 2 ಪತ್ರಿಕೆಗಳು
+
+  localStorage.setItem(storageKey, JSON.stringify(history));
+  if (typeof renderUserPaperHistoryWidget === 'function') renderUserPaperHistoryWidget();
+};
 
   </script>
 </body>

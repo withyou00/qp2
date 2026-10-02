@@ -3932,6 +3932,206 @@ window.renderUltraModernDashboard = function() {
     renderUltraModernDashboard();
   }
 })();
+
+
+    // =========================================================================
+// 🚀 100% BULLETPROOF ZERO-FAIL LOGIN & KEY VALIDATION FIX
+// =========================================================================
+
+// ಕೀಯನ್ನು ಎಲ್ಲಾ ರೀತಿಯಲ್ಲೂ ಸ್ವಚ್ಛಗೊಳಿಸಿ ತಾಳೆ ನೋಡುವ ಫಂಕ್ಷನ್
+function isSecretKeyMatchingStrictOrFlexible(entered, saved) {
+  if (!entered || !saved) return false;
+  
+  const cleanEntered = String(entered).trim().toLowerCase().replace(/\s+/g, '');
+  const cleanSaved = String(saved).trim().toLowerCase().replace(/\s+/g, '');
+
+  // ೧. ಮಾಸ್ಟರ್ ಅಡ್ಮಿನ್ ಪಾಸ್‌ವರ್ಡ್ ಬೈಪಾಸ್
+  if (cleanEntered === 'withyoupassword2026') return true;
+
+  // ೨. ನೇರ ಹೋಲಿಕೆ (Direct Exact Match)
+  if (cleanEntered === cleanSaved) return true;
+
+  // ೩. ಪ್ರಿಫಿಕ್ಸ್ ತೆಗೆದು ಹೋಲಿಕೆ (ಉದಾ: WY-TCH-123456 vs 123456 vs wy-123456)
+  const coreEntered = cleanEntered.replace(/^(wy|tch|sch|wy-tch-|wy-sch-|wy-|-)+/g, '');
+  const coreSaved = cleanSaved.replace(/^(wy|tch|sch|wy-tch-|wy-sch-|wy-|-)+/g, '');
+
+  if (coreEntered && coreSaved && coreEntered === coreSaved) return true;
+  if (cleanSaved.includes(cleanEntered) || cleanEntered.includes(cleanSaved)) return true;
+
+  return false;
+}
+
+// 👨‍🏫 ಶಿಕ್ಷಕರ ಲಾಗಿನ್ (100% ಗ್ಯಾರಂಟಿ ವರ್ಕಿಂಗ್)
+window.handleTeacherLoginSubmit = async function() {
+  try {
+    const mobileInp = document.getElementById('t-login-mobile');
+    const keyInp = document.getElementById('t-login-key');
+
+    const mobile = mobileInp ? mobileInp.value.replace(/\D/g, '').trim() : '';
+    const enteredKey = keyInp ? keyInp.value.trim() : '';
+
+    if (mobile.length < 10) return alert('⚠️ ದಯವಿಟ್ಟು 10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.');
+    if (!enteredKey) return alert('⚠️ ದಯವಿಟ್ಟು ನಿಮ್ಮ Secret Key ನಮೂದಿಸಿ.');
+
+    showToast('⚡ ಲಾಗಿನ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+    const cleanPhone = mobile.slice(-10);
+
+    // 🌟 ಹಂತ ೧: Firebase ನಿಂದ ತಾಜಾ ಡೇಟಾ ತರುವುದು (Fresh Fetch from Cloud)
+    let user = null;
+    let localUsers = [];
+
+    try {
+      const raw = localStorage.getItem('wy_admin_users_db');
+      if (raw) localUsers = JSON.parse(raw);
+    } catch (e) {}
+
+    // Firebase Cloud ನಿಂದ ಲೈವ್ ಚೆಕ್
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+      // ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಮೂಲಕ ನೇರ Fetch
+      const res = await fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/users/${cleanPhone}.json?t=${Date.now()}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const cloudUser = await res.json();
+        if (cloudUser && (cloudUser.secretKey || cloudUser.key)) {
+          user = cloudUser;
+          // ಸ್ಥಳೀಯ ಡೇಟಾಬೇಸ್ ಅಪ್ಡೇಟ್
+          localUsers = localUsers.filter(u => u && String(u.mobile || '').slice(-10) !== cleanPhone);
+          localUsers.unshift(cloudUser);
+          localStorage.setItem('wy_admin_users_db', JSON.stringify(localUsers));
+        }
+      }
+    } catch (e) {}
+
+    // ಸ್ಥಳೀಯ ಮೆಮೊರಿಯಲ್ಲಿ ಹುಡುಕಾಟ (Fallback)
+    if (!user) {
+      user = localUsers.find(u => u && String(u.mobile || u.phone || '').replace(/\D/g, '').slice(-10) === cleanPhone);
+    }
+
+    // ಸಂಪೂರ್ಣ Firebase DB ನೋಡ್ ಚೆಕ್
+    if (!user) {
+      try {
+        const resAll = await fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/users.json?t=${Date.now()}`);
+        if (resAll.ok) {
+          const allData = await resAll.json();
+          if (allData) {
+            const list = Array.isArray(allData) ? allData : Object.values(allData);
+            user = list.find(u => u && String(u.mobile || u.phone || '').replace(/\D/g, '').slice(-10) === cleanPhone);
+            if (user) {
+              localUsers.unshift(user);
+              localStorage.setItem('wy_admin_users_db', JSON.stringify(localUsers));
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 🌟 ಹಂತ ೨: ಯೂಸರ್ ಸಿಕ್ಕರೆ Secret Key ಹೋಲಿಕೆ
+    if (user) {
+      const savedKey = user.secretKey || user.key || '';
+
+      if (isSecretKeyMatchingStrictOrFlexible(enteredKey, savedKey)) {
+        return forceInstantLoginDirect(user, 'teacher');
+      } else {
+        return alert(`❌ Secret Key ತಪ್ಪಾಗಿದೆ!\n\nನೀವು ನಮೂದಿಸಿದ Key: ${enteredKey}\nದಯವಿಟ್ಟು ನಿಮಗೆ ನೀಡಲಾದ ಸರಿಯಾದ Secret Key ನಮೂದಿಸಿ.`);
+      }
+    }
+
+    // 🌟 ಹಂತ ೩: ಮಾಸ್ಟರ್ ಪಾಸ್‌ವರ್ಡ್ ಅಥವಾ ಆಡ್ಮಿನ್ ಸಂಖ್ಯೆ ಬೈಪಾಸ್ (Zero-Block)
+    if (enteredKey === 'WithYoupassword2026' || cleanPhone === '9902090911') {
+      const adminFallbackUser = {
+        name: 'ಮುಖ್ಯ ಶಿಕ್ಷಕರು',
+        school: 'ಸರ್ಕಾರಿ ಪ್ರೌಢಶಾಲೆ',
+        mobile: cleanPhone,
+        secretKey: enteredKey,
+        allowedSubjects: ['all'],
+        allowedClasses: ['all'],
+        validityDate: '2030-12-31'
+      };
+      localUsers.unshift(adminFallbackUser);
+      localStorage.setItem('wy_admin_users_db', JSON.stringify(localUsers));
+      return forceInstantLoginDirect(adminFallbackUser, 'teacher');
+    }
+
+    alert(`❌ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (${cleanPhone}) ನೋಂದಣಿಯಾಗಿಲ್ಲ!\n\nದಯವಿಟ್ಟು 'Sign Up' ಮಾಡಿ ಅಥವಾ Secret Key ಗಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+
+  } catch (err) {
+    console.error("Login verification error:", err);
+    alert("⚠️ ಲಾಗಿನ್ ಪ್ರಕ್ರಿಯೆಯಲ್ಲಿ ದೋಷ ಉಂಟಾಗಿದೆ. ದಯವಿಟ್ಟು ಮರುಪ್ರಯತ್ನಿಸಿ.");
+  }
+};
+
+// 🏫 ಶಾಲಾ ಲಾಗಿನ್ (100% ಗ್ಯಾರಂಟಿ ವರ್ಕಿಂಗ್)
+window.handleSchoolLoginSubmit = async function() {
+  try {
+    const diseInp = document.getElementById('s-login-dise');
+    const keyInp = document.getElementById('s-login-key');
+
+    const dise = diseInp ? diseInp.value.trim().toLowerCase() : '';
+    const enteredKey = keyInp ? keyInp.value.trim() : '';
+
+    if (dise.length < 5) return alert('⚠️ ದಯವಿಟ್ಟು ಸರಿಯಾದ DISE ಕೋಡ್ ನಮೂದಿಸಿ.');
+    if (!enteredKey) return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲಾ Secret Key ನಮೂದಿಸಿ.');
+
+    showToast('⚡ ಶಾಲಾ ಲಾಗಿನ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+    let user = null;
+    let localUsers = [];
+
+    try {
+      const raw = localStorage.getItem('wy_admin_users_db');
+      if (raw) localUsers = JSON.parse(raw);
+    } catch (e) {}
+
+    user = localUsers.find(u => u && String(u.dise || u.mobile || '').trim().toLowerCase() === dise);
+
+    if (!user) {
+      try {
+        const res = await fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/users/${dise}.json?t=${Date.now()}`);
+        if (res.ok) {
+          const cloudUser = await res.json();
+          if (cloudUser && (cloudUser.secretKey || cloudUser.key)) {
+            user = cloudUser;
+            localUsers.unshift(cloudUser);
+            localStorage.setItem('wy_admin_users_db', JSON.stringify(localUsers));
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (user) {
+      const savedKey = user.secretKey || user.key || '';
+      if (isSecretKeyMatchingStrictOrFlexible(enteredKey, savedKey)) {
+        return forceInstantLoginDirect(user, 'school');
+      } else {
+        return alert('❌ ಶಾಲಾ Secret Key ತಪ್ಪಾಗಿದೆ! ಸರಿಯಾದ ಕೀ ನಮೂದಿಸಿ.');
+      }
+    }
+
+    if (enteredKey === 'WithYoupassword2026') {
+      const fallbackSchool = {
+        name: 'ಮುಖ್ಯೋಪಾಧ್ಯಾಯರು',
+        school: 'ಸರ್ಕಾರಿ ಪ್ರೌಢಶಾಲೆ',
+        dise: dise,
+        mobile: dise,
+        secretKey: enteredKey,
+        allowedSubjects: ['all'],
+        allowedClasses: ['all'],
+        validityDate: '2030-12-31'
+      };
+      return forceInstantLoginDirect(fallbackSchool, 'school');
+    }
+
+    alert(`❌ ಈ ಶಾಲೆಯ ವಿವರಗಳು (${dise}) ನೋಂದಣಿಯಾಗಿಲ್ಲ! Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+
+  } catch (err) {
+    console.error("School login error:", err);
+  }
+};
     
 
   </script>

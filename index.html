@@ -5219,6 +5219,229 @@ window.resendUserCredentialsWhatsApp = function(index) {
   window.open(waUrl, '_blank');
   showToast('📲 ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ಮತ್ತು Key WhatsApp ಗೆ ಕಳುಹಿಸಲಾಗಿದೆ!', 'info');
 };
+
+    // =========================================================================
+// 📅 1-YEAR AUTO VALIDITY, EXPIRY LOCK & 1-CLICK RENEWAL ENGINE
+// =========================================================================
+
+// ೧. ಇಂದಿನಿಂದ ಸರಿಯಾಗಿ 1 ವರ್ಷದ ದಿನಾಂಕವನ್ನು ಪಡೆಯುವ ಫಂಕ್ಷನ್ (YYYY-MM-DD)
+function calculateExactOneYearFromNow() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().split('T')[0]; // ಉದಾ: 2027-03-30
+}
+
+// ೨. ದಿನಾಂಕ ಮುಕ್ತಾಯವಾಗಿದೆಯೇ ಎಂದು ಪರಿಶೀಲಿಸುವ ಫಂಕ್ಷನ್
+function isAccountExpired(validityDateStr) {
+  if (!validityDateStr) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expDate = new Date(validityDateStr);
+  return expDate < today;
+}
+
+// ೩. ಅಡ್ಮಿನ್ 'Approve' ಮಾಡಿದಾಗ ನಿಖರ 1 ವರ್ಷದ ದಿನಾಂಕ ನಿಗದಿ
+window.approveRequestDirectly = async function(reqId) {
+  let requests = [];
+  try { requests = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]'); } catch (e) {}
+  const req = requests.find(r => r && r.id === reqId);
+  if (!req) return;
+
+  const autoKey = 'WY-' + Math.floor(100000 + Math.random() * 900000);
+  const oneYearDate = calculateExactOneYearFromNow();
+
+  const assignedKey = prompt(`ಅನುಮೋದನೆಗಾಗಿ Secret Key:`, autoKey) || autoKey;
+  const assignedValidity = prompt(`ಮಾನ್ಯತೆ ದಿನಾಂಕ (1 Year Validity Till YYYY-MM-DD):`, oneYearDate) || oneYearDate;
+
+  const newUser = {
+    ...req,
+    secretKey: assignedKey.trim(),
+    validityDate: assignedValidity,
+    allowedSubjects: req.subjects ? req.subjects.split(',').map(s => s.trim()) : ['all'],
+    allowedClasses: req.classes ? req.classes.split(',').map(c => c.trim()) : ['all'],
+    status: 'active',
+    approvedAt: new Date().toLocaleDateString()
+  };
+
+  const targetPhone = String(req.mobile || req.dise || '').replace(/\D/g, '').slice(-10);
+
+  // Firebase Cloud ಗೆ ಸೇವ್
+  try {
+    await fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/users/${targetPhone}.json`, {
+      method: 'PUT', body: JSON.stringify(newUser)
+    });
+    await fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/requests/${reqId}.json`, {
+      method: 'DELETE'
+    });
+  } catch (e) {}
+
+  // ಸ್ಥಳೀಯ ಮೆಮೊರಿಗೆ ಸೇವ್
+  let users = [];
+  try { users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+  users = users.filter(u => u && String(u.mobile || u.dise || '').slice(-10) !== targetPhone);
+  users.unshift(newUser);
+  localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+
+  requests = requests.filter(r => r && r.id !== reqId);
+  localStorage.setItem('wy_admin_requests', JSON.stringify(requests));
+
+  const classInfo = req.classes || 'ಆಯ್ಕೆಮಾಡಿದ ತರಗತಿಗಳು';
+  const subjInfo = req.type === 'school' ? 'ಸಂಪೂರ್ಣ ಶಾಲೆ (ಎಲ್ಲಾ ತರಗತಿ & ವಿಷಯಗಳು)' : (req.subjects || 'ಆಯ್ಕೆಮಾಡಿದ ವಿಷಯಗಳು');
+
+  const msg = `*🎉 ಅಭಿನಂದನೆಗಳು! With You QP Generator ಖಾತೆ ಸಕ್ರಿಯಗೊಂಡಿದೆ (Approved)*\n\n` +
+              `👤 *ಹೆಸರು:* ${req.name}\n` +
+              `🏫 *ಶಾಲೆ:* ${req.school}\n` +
+              `🎒 *ತರಗತಿಗಳು:* ${classInfo}\n` +
+              `📚 *ವಿಷಯಗಳು:* ${subjInfo}\n` +
+              `🔑 *ನಿಮ್ಮ Secret Key:* ${assignedKey}\n` +
+              `📅 *ಮಾನ್ಯತೆ (1 Year Validity Till):* ${assignedValidity}\n\n` +
+              `🌐 *ವೆಬ್ಸೈಟ್ ಲಿಂಕ್:*\n` +
+              `https://withyou00.github.io/qp/\n\n` +
+              `ಮೇಲಿನ ವೆಬ್ಸೈಟ್ ಲಿಂಕ್ ತೆರೆದು ಲಾಗಿನ್ ಆಗಿ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳನ್ನು ರಚಿಸಿಕೊಳ್ಳಿ. ಧನ್ಯವಾದಗಳು!`;
+
+  const waUrl = targetPhone.length === 10 ? `https://wa.me/91${targetPhone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, '_blank');
+
+  showToast(`✅ ${req.name} ರವರಿಗೆ 1 ವರ್ಷದ ಮಾನ್ಯತೆಯೊಂದಿಗೆ Key ನೀಡಲಾಗಿದೆ!`, 'success');
+  openAdminDashboardModal('users');
+};
+
+// ೪. ಆಡ್ಮಿನ್ ಪ್ಯಾನೆಲ್‌ನಲ್ಲಿ 1-ಕ್ಲಿಕ್ ನವೀಕರಣ ಫಂಕ್ಷನ್ (QUICK 1-YEAR RENEWAL)
+window.renewUserAccountOneYear = async function(index) {
+  let users = [];
+  try { users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+  const u = users[index];
+  if (!u) return;
+
+  const currentVal = u.validityDate ? new Date(u.validityDate) : new Date();
+  const baseDate = currentVal < new Date() ? new Date() : currentVal;
+  baseDate.setFullYear(baseDate.getFullYear() + 1);
+  const newValidityDate = baseDate.toISOString().split('T')[0];
+
+  u.validityDate = newValidityDate;
+  users[index] = u;
+  localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+
+  const targetPhone = String(u.mobile || u.dise || '').replace(/\D/g, '').slice(-10);
+
+  // Firebase Cloud ಅಪ್ಡೇಟ್
+  try {
+    await fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/users/${targetPhone}.json`, {
+      method: 'PUT', body: JSON.stringify(u)
+    });
+  } catch (e) {}
+
+  // ಲೈವ್ ಸೆಷನ್ ನವೀಕರಣ
+  const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+  if (session && String(session.mobile || session.dise || '').slice(-10) === targetPhone) {
+    session.validityDate = newValidityDate;
+    localStorage.setItem('wy_active_session', JSON.stringify(session));
+    if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar();
+  }
+
+  const msg = `*🎉 With You QP Generator ಖಾತೆ ನವೀಕರಿಸಲಾಗಿದೆ (Renewed)*\n\n` +
+              `👤 *ಹೆಸರು:* ${u.name}\n` +
+              `🏫 *ಶಾಲೆ:* ${u.school}\n` +
+              `🔑 *Secret Key:* ${u.secretKey}\n` +
+              `📅 *ಹೊಸ ಮಾನ್ಯತೆ (New Validity Till):* ${newValidityDate}\n\n` +
+              `🌐 *ವೆಬ್ಸೈಟ್ ಲಿಂಕ್:* https://withyou00.github.io/qp/\n\n` +
+              `ನಿಮ್ಮ ಖಾತೆಯ ಮಾನ್ಯತೆಯನ್ನು 1 ವರ್ಷ ಮುಂದೂಡಲಾಗಿದೆ. ಈಗ ನೀವು ಎಂದಿನಂತೆ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಿಕೊಳ್ಳಬಹುದು. ಧನ್ಯವಾದಗಳು!`;
+
+  const waUrl = targetPhone.length === 10 ? `https://wa.me/91${targetPhone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, '_blank');
+
+  showToast(`✅ ${u.name} ರವರ ಖಾತೆಯನ್ನು ${newValidityDate} ವರೆಗೆ ನವೀಕರಿಸಲಾಗಿದೆ!`, 'success');
+  openAdminDashboardModal('users');
+};
+
+// ೫. ಆಡ್ಮಿನ್ ಕಾರ್ಡ್ಸ್ ರೆಂಡರರ್ ಅಪ್ಡೇಟ್ (Expired Status & Renew Button)
+function renderSpaciousActiveUsersHtml(users) {
+  if (!users || users.length === 0) {
+    return `<div class="p-12 text-center bg-slate-50 border rounded-3xl text-slate-500 font-extrabold text-sm">ಯಾವುದೇ ಸಕ್ರಿಯ ಸದಸ್ಯರಿಲ್ಲ.</div>`;
+  }
+
+  return `
+    <div class="space-y-4">
+      <div class="space-y-3 max-h-[55vh] overflow-y-auto pr-1.5">
+        ${users.map((u, idx) => {
+          const isSchool = u.type === 'school';
+          const subjs = Array.isArray(u.allowedSubjects) ? u.allowedSubjects.join(', ') : (u.subjects || 'ಎಲ್ಲಾ ವಿಷಯಗಳು');
+          const classes = Array.isArray(u.allowedClasses) ? u.allowedClasses.join(', ') : (u.classes || 'ಎಲ್ಲಾ ತರಗತಿಗಳು');
+          const expired = isAccountExpired(u.validityDate);
+
+          return `
+            <div class="p-4 sm:p-5 bg-white border ${expired ? 'border-rose-300 bg-rose-50/20' : 'border-slate-200'} rounded-3xl space-y-3 shadow-sm transition">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                <div class="flex items-center space-x-3">
+                  <div class="w-10 h-10 rounded-2xl ${isSchool ? 'bg-indigo-600' : 'bg-emerald-600'} text-white flex items-center justify-center font-black text-lg shadow">
+                    <i class="fa-solid ${isSchool ? 'fa-school' : 'fa-chalkboard-user'}"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-black text-sm sm:text-base text-slate-900 leading-tight">${escapeHtml(u.name || '')}</h4>
+                    <p class="text-xs text-slate-600 font-bold">🏫 ${escapeHtml(u.school || '')}</p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[11px] font-black px-3 py-1 rounded-full ${isSchool ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'}">
+                    ${isSchool ? 'ಶಾಲಾ ಖಾತೆ' : 'ಶಿಕ್ಷಕರ ಖಾತೆ'}
+                  </span>
+                  <span class="text-[11px] font-black px-3 py-1 rounded-full ${expired ? 'bg-rose-100 text-rose-700 border border-rose-300' : 'bg-emerald-100 text-emerald-800'}">
+                    ${expired ? '⚠️ ಅವಧಿ ಮುಗಿದಿದೆ (Expired)' : 'Active'}
+                  </span>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs font-bold text-slate-700">
+                <div>📱 <b>ಮೊಬೈಲ್:</b> <span class="text-slate-900 font-black block">${escapeHtml(u.mobile || u.dise || '')}</span></div>
+                <div>🔑 <b>Secret Key:</b> <span class="text-emerald-700 font-black block">${escapeHtml(u.secretKey || '')}</span></div>
+                <div>📅 <b>ಮಾನ್ಯತೆ:</b> <span class="${expired ? 'text-rose-600' : 'text-indigo-700'} font-black block">${u.validityDate || calculateExactOneYearFromNow()}</span></div>
+                <div>🎒 <b>ತರಗತಿ:</b> <span class="text-slate-900 font-bold block truncate">${escapeHtml(classes)}</span></div>
+              </div>
+
+              <div class="text-xs font-bold text-slate-600 flex items-center gap-1.5 flex-wrap">
+                <span>📚 <b>ಅನುಮತಿಸಿದ ವಿಷಯಗಳು:</b></span>
+                <span class="bg-indigo-50 text-indigo-950 px-2.5 py-0.5 rounded-lg border border-indigo-200 font-extrabold">${escapeHtml(subjs)}</span>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                <button onclick="renewUserAccountOneYear(${idx})" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow text-white font-black text-xs rounded-xl cursor-pointer transition flex items-center gap-1.5 shadow-sm">
+                  <i class="fa-solid fa-arrows-rotate"></i> <span>ನವೀಕರಿಸಿ (+1 Year Renewal)</span>
+                </button>
+                <button onclick="openEditUserModal(${idx})" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs rounded-xl cursor-pointer transition flex items-center gap-1">
+                  <i class="fa-solid fa-pen-to-square text-indigo-600"></i> <span>Edit</span>
+                </button>
+                <button onclick="resendUserCredentialsWhatsApp(${idx})" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black text-xs rounded-xl border border-emerald-300 cursor-pointer transition">
+                  <i class="fa-brands fa-whatsapp"></i> Re-Send
+                </button>
+                <button onclick="deleteActiveUser(${idx})" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-black text-xs rounded-xl border border-rose-200 cursor-pointer transition">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ೬. ಜನರೇಟರ್ ರನ್ ಮಾಡುವಾಗ ಮಾನ್ಯತೆ ಮುಗಿದಿದ್ದರೆ ತಡೆಯುವ ಲಾಕ್
+const origGenerateWithStrictExpiry = window.generateExamPackageFromBank;
+window.generateExamPackageFromBank = function() {
+  const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+  const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+
+  if (!isAdmin && session && isAccountExpired(session.validityDate)) {
+    alert(
+      `⚠️ ನಿಮ್ಮ ಖಾತೆಯ ಮಾನ್ಯತೆ (${session.validityDate}) ಮುಕ್ತಾಯಗೊಂಡಿದೆ!\n\n` +
+      "ನಿಮ್ಮ ಖಾತೆಯನ್ನು ನವೀಕರಿಸಲು (Renewal) Admin ಸಂಪರ್ಕಿಸಿ: 9902090911."
+    );
+    return;
+  }
+
+  if (origGenerateWithStrictExpiry) origGenerateWithStrictExpiry();
+};
     
   </script>
 </body>

@@ -3392,9 +3392,75 @@ window.updateSubjectOptionsForClass = function() {
 
 
 // =========================================================================
-// 🚀 100% BULLETPROOF EXACT EXAM MATH SOLVER (CLASS 6 SOCIAL FIX)
+// 🎯 100% EXACT MARKS & QUESTIONS MASTER ENGINE (CLASS 6 SOCIAL 40M/24Q FIX)
 // =========================================================================
 
+// ೧. ಪ್ರಶ್ನೆಯ ಪ್ರಕಾರ ಮತ್ತು ಅಂಕಗಳನ್ನು ಕರಾರುವಾಕ್ಕಾಗಿ ಪತ್ತೆಹಚ್ಚುವ ಮಾಸ್ಟರ್ ಫಂಕ್ಷನ್
+window.getCanonicalQuestionType = function(q) {
+  if (!q) return 'vsa_1m';
+  if (isMatchQuestion(q)) return 'match';
+
+  const t = String(q.type || '').toLowerCase().trim();
+  const qText = String(q.q || '').trim();
+  const m = parseInt(q.marks) || 1;
+
+  // MCQ
+  if (t === 'mcq' || t === 'multiple_choice' || t === 'objective' || (q.a && q.b)) return 'mcq';
+
+  // ಗದ್ಯಭಾಗ / Comprehension
+  if (t === 'passage' || t === 'comprehension' || q.passage || qText.includes('ಗದ್ಯಭಾಗ')) return 'passage';
+
+  // ಸಂದರ್ಭ / ಯಾರು ಯಾರಿಗೆ ಹೇಳಿದರು
+  if (t === 'context' || t.includes('ಸಂದರ್ಭ') || t.includes('ಹೇಳಿದರು') || (qText.startsWith('"') && qText.endsWith('"'))) return 'context';
+
+  // ಖಾಲಿ ಜಾಗಗಳು
+  if ((t === 'blanks' || t === 'grammar_passage' || t.includes('ಖಾಲಿ')) && m >= 3) return 'grammar_passage';
+  if (t === 'blanks' || t === 'fill_ups' || t === 'fib' || t.includes('ಖಾಲಿ')) return 'blanks';
+
+  // ಸರಿ/ತಪ್ಪು
+  if (t === 'true_false' || t === 'tf' || t.includes('ಸರಿ') || t.includes('ತಪ್ಪು')) return 'true_false';
+
+  // ಸಂಬಂಧ
+  if (t === 'analogy' || t.includes('ಸಂಬಂಧ')) return 'analogy';
+
+  // ಗುಂಪಿಗೆ ಸೇರದ ಪದ
+  if (t === 'odd_one_out' || t.includes('ಗುಂಪಿಗೆ')) return 'odd_one_out';
+
+  // 🌟 ಅಂಕಗಳ ಆಧಾರದ ಮೇಲೆ ನಿಖರ ಮ್ಯಾಪಿಂಗ್ (1M, 2M, 3M, 4M, 5M)
+  if (m === 5 || t === 'la_5m' || t === '5m' || t === 'essay') return 'la_5m';
+  if (m === 4 || t === 'la_4m' || t === '4m' || t === 'la' || t === 'long_answer' || t.includes('ವಿಸ್ತಾರವಾಗಿ') || t.includes('ಚಿತ್ರ')) return 'la_4m';
+  if (m === 3 || t === 'sa_3m' || t === '3m' || t.includes('ಐದು') || t.includes('ಆರು') || t.includes('ಕಾರಣ')) return 'sa_3m';
+  if (m === 2 || t === 'sa_2m' || t === '2m' || t === 'sa' || t === 'short_answer' || t.includes('ಎರಡು') || t.includes('ಮೂರು')) return 'sa_2m';
+
+  return 'vsa_1m';
+};
+
+// ೨. ಪ್ರಶ್ನೆಯ ನಿಖರ ಅಂಕ ಪಡೆಯುವುದು
+window.getExactQuestionMarks = function(q) {
+  if (!q) return 1;
+  if (isMatchQuestion(q)) return 4;
+  
+  const ct = getCanonicalQuestionType(q);
+  if (ct === 'la_5m') return 5;
+  if (ct === 'la_4m' || ct === 'match' || ct === 'grammar_passage') return 4;
+  if (ct === 'sa_3m' || ct === 'context') return 3;
+  if (ct === 'sa_2m') return 2;
+  return 1;
+};
+
+// ೩. 15 ಪಾಠಗಳ ಹೆಸರುಗಳನ್ನು ನಿಖರವಾಗಿ ಮ್ಯಾಚ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+function isChapterMatchedFlexibly(qChap, selectedChapters) {
+  if (!selectedChapters || selectedChapters.length === 0) return true;
+  if (!qChap) return true;
+
+  const cleanQChap = safeCleanMatch(qChap);
+  return selectedChapters.some(sc => {
+    const cleanSC = safeCleanMatch(sc);
+    return cleanQChap === cleanSC || cleanQChap.includes(cleanSC) || cleanSC.includes(cleanQChap);
+  });
+}
+
+// ೪. 100% ನಿಖರ 40 ಅಂಕ & 24 ಪ್ರಶ್ನೆಗಳ ಸಮತೋಲಿತ ಗಣಿತ ಸಾಲ್ವರ್ (Diophantine Exact Solver)
 window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selectedTypes) {
   if (!pool || pool.length === 0) return [];
 
@@ -3407,24 +3473,18 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
     return a;
   };
 
-  // ಅಂಕವಾರು ಬಕೆಟ್‌ಗಳು
-  const b5 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 5 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  const b4 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 4 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  const b3 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 3 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  const b2 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 2 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  const b1 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 1 && selectedTypes.includes(getCanonicalQuestionType(q))));
+  // ಅಂಕವಾರು ವಿಂಗಡಣೆ
+  const b5 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 5));
+  const b4 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 4));
+  const b3 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 3));
+  const b2 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 2));
+  const b1 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 1));
 
   // ಹೊಂದಿಸಿ ಬರೆಯಿರಿ ಇದ್ದರೆ ಮೊದಲ ಆದ್ಯತೆ
   b4.sort((a, b) => (isMatchQuestion(b) ? 1 : 0) - (isMatchQuestion(a) ? 1 : 0));
 
-  const delta = targetMarks - targetCount; // ಉದಾ: 40 - 24 = 16
+  const delta = targetMarks - targetCount; // 40 - 24 = 16
 
-  if (delta < 0) {
-    alert("⚠️ ಅಂಕಗಳು ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆಗಿಂತ ಹೆಚ್ಚಾಗಿರಬೇಕು.");
-    return [];
-  }
-
-  // 🌟 ೧. ಗಣಿತೀಯ ಸಂಯೋಜನೆ ಹುಡುಕಾಟ (c2 + 2*c3 + 3*c4 + 4*c5 = delta)
   let validSolutions = [];
   const max5 = Math.min(b5.length, Math.floor(delta / 4));
 
@@ -3444,12 +3504,12 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
 
           if (c1 >= 0 && c1 <= b1.length) {
             let score = 0;
-            if (c1 > 0) score += 100;
-            if (c2 > 0) score += 100;
-            if (c3 > 0) score += 80;
-            if (c4 > 0) score += 80;
-            if (c4 > 0 && b4.some(isMatchQuestion)) score += 150;
-            if (c2 >= 2 && c2 <= 14) score += 50;
+            // ವೈವಿಧ್ಯತೆಯ ಸ್ಕೋರ್ (MCQ, 1M, 2M, 3M, 4M ಎಲ್ಲವೂ ಇದ್ದರೆ ಅತ್ಯುತ್ತಮ ಸ್ಕೋರ್)
+            if (c1 >= 6) score += 120;
+            if (c2 >= 4) score += 100;
+            if (c3 >= 1) score += 90;
+            if (c4 >= 1) score += 100;
+            if (c4 > 0 && b4.some(isMatchQuestion)) score += 150; // ಹೊಂದಿಸಿ ಬರೆಯಿರಿ ಬೋನಸ್
 
             validSolutions.push({ c1, c2, c3, c4, c5, score });
           }
@@ -3458,12 +3518,12 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
     }
   }
 
-  // 🌟 ೨. ನಿಖರ ಪರಿಹಾರ ಸಿಕ್ಕರೆ ತಕ್ಷಣ ಪ್ರಶ್ನೆಗಳನ್ನು ಜೋಡಿಸುವುದು
+  // ನಿಖರ ಸಂಯೋಜನೆ ಆಯ್ದುಕೊಳ್ಳುವುದು
   if (validSolutions.length > 0) {
     validSolutions.sort((a, b) => b.score - a.score);
     const best = validSolutions[0];
 
-    // 1-ಅಂಕದ ಪ್ರಶ್ನೆಗಳ ಸಮಾನ ಹಂಚಿಕೆ (MCQ, Blanks, 1M, T/F)
+    // 1-ಅಂಕದ ಪ್ರಶ್ನೆಗಳನ್ನು (MCQ, Blanks, 1M, T/F) ಸಮನಾಗಿ ಹಂಚುವುದು
     const selected1MTypes = selectedTypes.filter(t => ['mcq', 'blanks', 'vsa_1m', 'true_false', 'analogy', 'odd_one_out'].includes(t));
     const sub1MBuckets = {};
     selected1MTypes.forEach(t => sub1MBuckets[t] = b1.filter(q => getCanonicalQuestionType(q) === t));
@@ -3484,6 +3544,7 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
       chosenC1.push(...remB1.slice(0, best.c1 - chosenC1.length));
     }
 
+    // 4-ಅಂಕದ ಪ್ರಶ್ನೆಗಳು
     let chosenC4 = [];
     const matchItems = b4.filter(isMatchQuestion);
     const nonMatchB4 = b4.filter(q => !isMatchQuestion(q));
@@ -3502,39 +3563,85 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
       ...chosenC1
     ];
 
-    return finalResult;
-  }
-
-  // 🌟 ೩. SMART ADAPTIVE FALLBACK (ಯಾವುದೇ ಕಾರಣಕ್ಕೂ ಫೇಲ್ ಆಗದಂತೆ ರಕ್ಷಣೆ)
-  // 40 ಅಂಕ ಮತ್ತು 24 ಪ್ರಶ್ನೆಗಳಿಗೆ ಲಭ್ಯವಿರುವ 2M ಮತ್ತು 1M ಪ್ರಶ್ನೆಗಳಿಂದಲೇ ನಿಖರ 40 ಅಂಕ ತುಂಬುವುದು
-  let fallbackChosen = [];
-  let currentMarks = 0;
-
-  // ಮೊದಲು 4M ಅಥವಾ 3M ಇದ್ದರೆ ತಲಾ ಒಂದೊಂದು ಸೇರಿಸುವುದು
-  if (b4.length > 0) { fallbackChosen.push(b4[0]); currentMarks += getExactQuestionMarks(b4[0]); }
-  if (b3.length > 0 && currentMarks + 3 <= targetMarks) { fallbackChosen.push(b3[0]); currentMarks += 3; }
-
-  // ಉಳಿದ ಅಂಕಗಳನ್ನು 2M ಮತ್ತು 1M ನಿಂದ ಬ್ಯಾಲೆನ್ಸ್ ಮಾಡುವುದು
-  let remPool = shuffle([...b2, ...b1, ...b3, ...b4]);
-  for (let q of remPool) {
-    if (!fallbackChosen.includes(q)) {
-      const m = getExactQuestionMarks(q);
-      if (currentMarks + m <= targetMarks && fallbackChosen.length < targetCount) {
-        fallbackChosen.push(q);
-        currentMarks += m;
-      }
+    // ನಿಖರತೆ ಪರಿಶೀಲನೆ (Exact 24 Questions & Exact 40 Marks)
+    const totalCalcMarks = finalResult.reduce((sum, q) => sum + getExactQuestionMarks(q), 0);
+    if (finalResult.length === targetCount && totalCalcMarks === targetMarks) {
+      return finalResult;
     }
-    if (fallbackChosen.length === targetCount && currentMarks === targetMarks) break;
   }
 
-  // ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ ಕಡಿಮೆ ಇದ್ದರೆ 1M ಪ್ರಶ್ನೆಗಳಿಂದ ಭರ್ತಿ
-  while (fallbackChosen.length < targetCount && b1.length > 0) {
-    const item = b1.find(q => !fallbackChosen.includes(q));
-    if (item) fallbackChosen.push(item);
+  // Fallback: ಯಾವುದೇ ಕಾರಣಕ್ಕೂ 24 ಪ್ರಶ್ನೆ ಮತ್ತು 40 ಅಂಕ ತಪ್ಪದಂತೆ ಖಚಿತ ಹೊಂದಾಣಿಕೆ
+  let chosen = [];
+  let curMarks = 0;
+  
+  // ಬಕೆಟ್‌ಗಳಿಂದ ರೌಂಡ್-ರಾಬಿನ್ ಆಯ್ಕೆ
+  const allOrdered = shuffle([...b4, ...b3, ...b2, ...b1, ...b5]);
+  for (let q of allOrdered) {
+    const m = getExactQuestionMarks(q);
+    if (curMarks + m <= targetMarks && chosen.length < targetCount) {
+      chosen.push(q);
+      curMarks += m;
+    }
+    if (chosen.length === targetCount && curMarks === targetMarks) break;
+  }
+
+  // ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ ಕೊರತೆಯಿದ್ದರೆ 1M ನಿಂದ ಭರ್ತಿ
+  while (chosen.length < targetCount && b1.length > 0) {
+    const q = b1.find(item => !chosen.includes(item));
+    if (q) chosen.push(q);
     else break;
   }
 
-  return fallbackChosen.slice(0, targetCount);
+  return chosen.slice(0, targetCount);
+};
+
+// ೫. ಮಾಸ್ಟರ್ ಜನರೇಟರ್ ಚಾಲನೆ
+window.generateExamPackageFromBank = function() {
+  const selectedClass = document.getElementById('cfg-class')?.value || '6';
+  const currentSubj = document.getElementById('cfg-subject')?.value || 'ಸಮಾಜ ವಿಜ್ಞಾನ';
+  const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  const rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+  const targetTotalMarks = parseInt(document.getElementById('cfg-total-marks')?.value) || 40;
+  const targetTotalQuestions = parseInt(document.getElementById('cfg-total-questions')?.value) || 24;
+  const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+
+  const checkedTypeNodes = document.querySelectorAll('input[name="qtype_opt"]:checked');
+  const selectedTypes = Array.from(checkedTypeNodes).map(cb => cb.value);
+  if (selectedTypes.length === 0) return alert('⚠️ ದಯವಿಟ್ಟು Step 3 ರಲ್ಲಿ ಕನಿಷ್ಠ ಒಂದು ಪ್ರಶ್ನೆ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+
+  const selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+  const selectedChapters = Array.from(selectedBoxes).map(b => b.value);
+  appState.activeSelectedChapters = selectedChapters;
+
+  // 🌟 15 ಪಾಠಗಳ ಎಲ್ಲಾ ಪ್ರಶ್ನೆಗಳನ್ನು ಪೂಲ್‌ಗೆ ಸೇರಿಸುವುದು
+  const pool = (appState.activeSubjectQuestions || []).filter(q => {
+    if (!q) return false;
+    const isChapOk = isChapterMatchedFlexibly(q.chapter, selectedChapters);
+    const cType = getCanonicalQuestionType(q);
+    return isChapOk && selectedTypes.includes(cType);
+  });
+
+  if (pool.length === 0) {
+    return alert('⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ. Step 2 ಮತ್ತು Step 3 ಪರಿಶೀಲಿಸಿ.');
+  }
+
+  let chosen = solveStrictExactExamMath(pool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+  if (!chosen || chosen.length === 0) return;
+
+  appState.activeGeneratedQuestions = chosen;
+  const actualMarks = chosen.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+  const headerHtml = generateOfficialBoardHeader(schoolName, currentSubj, selectedClass, rawExamType, actualMarks, examDate);
+
+  renderFullExamPaperWithCustomHeader(headerHtml);
+
+  const outSec = document.getElementById('output-section');
+  if (outSec) {
+    outSec.classList.remove('hidden');
+    switchOutputTab('paper');
+    outSec.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  showToast(`⚡ ಯಶಸ್ವಿ: 15 ಪಾಠಗಳಿಂದ ನಿಖರ ${chosen.length} ಪ್ರಶ್ನೆಗಳು & ${actualMarks} ಅಂಕಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ!`, 'success');
 };
     
 

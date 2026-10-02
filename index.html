@@ -3244,6 +3244,152 @@ window.filterQEditBankList = function(targetQIndex) {
   }
 };
 
+
+    // =========================================================================
+// 🎯 FIX: ಸಮಾಜ ವಿಜ್ಞಾನ & ವಿಜ್ಞಾನ SUBJECT MATCHING & DROPDOWN FIX
+// =========================================================================
+
+// ೧. ಸಮಾಜ ವಿಜ್ಞಾನವನ್ನು ಮೊದಲು ಗುರುತಿಸುವ ನಿಖರ ಫಂಕ್ಷನ್ (ಸಮಾಜ ವಿಜ್ಞಾನ ಮಿಸ್ ಆಗದಂತೆ ಫಿಕ್ಸ್)
+window.normalizeSubjectMatchText = function(str) {
+  if (!str) return '';
+  const s = String(str).toLowerCase().trim();
+  
+  // 🌟 'ಸಮಾಜ' ಪದವನ್ನು 'ವಿಜ್ಞಾನ'ಕ್ಕಿಂತ ಮೊದಲೇ ಪರಿಶೀಲಿಸಬೇಕು
+  if (s.includes('ಸಮಾಜ') || s.includes('social')) return 'social_science';
+  if (s.includes('ವಿಜ್ಞಾನ') || s.includes('science')) return 'science';
+  if (s.includes('ಗಣಿತ') || s.includes('math')) return 'mathematics';
+  if (s.includes('ಕನ್ನಡ') || s.includes('kannada')) return 'kannada';
+  if (s.includes('ಇಂಗ್ಲಿಷ್') || s.includes('english')) return 'english';
+  if (s.includes('ಹಿಂದಿ') || s.includes('hindi')) return 'hindi';
+  if (s.includes('ಪರಿಸರ') || s.includes('evs')) return 'evs';
+  return s;
+};
+
+// ೨. GitHub ಕೀ ಮ್ಯಾಪಿಂಗ್‌ನಲ್ಲೂ ಸಮಾಜ ವಿಜ್ಞಾನ ಮೊದಲು ಪರಿಶೀಲನೆ
+window.getNormalizedSubjectKey = function(subjectStr) {
+  if (!subjectStr) return 'general';
+  const s = String(subjectStr).toLowerCase().trim();
+  if (s.includes('ಸಮಾಜ') || s.includes('social')) return 'social_science';
+  if (s.includes('ವಿಜ್ಞಾನ') || s.includes('science')) return 'science';
+  if (s.includes('ಪರಿಸರ') || s.includes('evs') || s.includes('environment')) return 'evs';
+  if (s.includes('ಹಿಂದಿ') || s.includes('hindi')) return 'hindi';
+  if (s.includes('ಗಣಿತ') || s.includes('math')) return 'mathematics';
+  if (s.includes('ಕನ್ನಡ') || s.includes('kannada')) return 'kannada';
+  if (s.includes('ಇಂಗ್ಲಿಷ್') || s.includes('english')) return 'english';
+  return safeCleanMatch(subjectStr);
+};
+
+// ೩. ಡ್ರಾಪ್‌ಡೌನ್‌ನಲ್ಲಿ ಎರಡೂ ವಿಷಯಗಳನ್ನು (ವಿಜ್ಞಾನ & ಸಮಾಜ ವಿಜ್ಞಾನ) ಸರಿಯಾಗಿ ತರುವ ಅಪ್ಡೇಟ್
+window.updateSubjectOptionsForClass = function() {
+  const classSelect = document.getElementById('cfg-class');
+  const subjSelect = document.getElementById('cfg-subject');
+  if (!classSelect || !subjSelect) return;
+
+  const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+  const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+  const isFullAccess = isAdmin || (session && session.type === 'school') || (session && session.allowedSubjects && session.allowedSubjects.includes('all'));
+
+  // 🎒 ೧. ತರಗತಿಗಳ ಪಟ್ಟಿ
+  const allClassOptions = [
+    { val: "1", label: "1 ನೇ ತರಗತಿ (Class 1)" },
+    { val: "2", label: "2 ನೇ ತರಗತಿ (Class 2)" },
+    { val: "3", label: "3 ನೇ ತರಗತಿ (Class 3)" },
+    { val: "4", label: "4 ನೇ ತರಗತಿ (Class 4)" },
+    { val: "5", label: "5 ನೇ ತರಗತಿ (Class 5)" },
+    { val: "6", label: "6 ನೇ ತರಗತಿ (Class 6)" },
+    { val: "7", label: "7 ನೇ ತರಗತಿ (Class 7)" },
+    { val: "8", label: "8 ನೇ ತರಗತಿ (Class 8)" },
+    { val: "9", label: "9 ನೇ ತರಗತಿ (Class 9)" },
+    { val: "10", label: "10 ನೇ ತರಗತಿ (SSLC)" }
+  ];
+
+  let allowedClassesList = [];
+  if (session && session.allowedClasses) {
+    allowedClassesList = Array.isArray(session.allowedClasses) 
+      ? session.allowedClasses 
+      : String(session.allowedClasses).split(',').map(s => s.trim());
+  }
+
+  let filteredClasses = allClassOptions;
+  if (!isFullAccess && allowedClassesList.length > 0 && !allowedClassesList.includes('all')) {
+    filteredClasses = allClassOptions.filter(opt => {
+      return allowedClassesList.some(ac => String(ac).replace(/\D/g, '') === opt.val);
+    });
+  }
+
+  if (filteredClasses.length === 0) filteredClasses = [allClassOptions[5]]; // Default 6th
+
+  const curSelectedClass = classSelect.value;
+  classSelect.innerHTML = filteredClasses.map(c => `<option value="${c.val}">${c.label}</option>`).join('');
+
+  if (filteredClasses.some(c => c.val === curSelectedClass)) {
+    classSelect.value = curSelectedClass;
+  } else {
+    classSelect.value = filteredClasses[0].val;
+  }
+
+  // 📚 ೨. ವಿಷಯಗಳ ಪಟ್ಟಿ
+  const activeGrade = parseInt(classSelect.value) || 6;
+  let availableSubjects = [];
+
+  if (activeGrade >= 1 && activeGrade <= 5) {
+    availableSubjects = [
+      { val: "ಕನ್ನಡ (Kannada)", key: "kannada" },
+      { val: "English", key: "english" },
+      { val: "ಗಣಿತ (Mathematics)", key: "mathematics" },
+      { val: "ಪರಿಸರ ಅಧ್ಯಯನ (EVS)", key: "evs" }
+    ];
+  } else {
+    availableSubjects = [
+      { val: "ವಿಜ್ಞಾನ (Science)", key: "science" },
+      { val: "ಕನ್ನಡ (Kannada)", key: "kannada" },
+      { val: "ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)", key: "social_science" },
+      { val: "ಗಣಿತ (Mathematics)", key: "mathematics" },
+      { val: "English", key: "english" },
+      { val: "ಹಿಂದಿ (Hindi)", key: "hindi" }
+    ];
+  }
+
+  let allowedSubjsList = [];
+  if (session && session.allowedSubjects) {
+    const rawArr = Array.isArray(session.allowedSubjects)
+      ? session.allowedSubjects
+      : String(session.allowedSubjects).split(',');
+
+    allowedSubjsList = rawArr.map(s => normalizeSubjectMatchText(s.trim())).filter(Boolean);
+  }
+
+  // ಕೇವಲ ಬಳಕೆದಾರರಿಗೆ ಅನುಮತಿಸಿದ ಎಲ್ಲಾ ವಿಷಯಗಳನ್ನು ಫಿಲ್ಟರ್ ಮಾಡುವುದು
+  let filteredSubjects = availableSubjects;
+  if (!isFullAccess && allowedSubjsList.length > 0 && !allowedSubjsList.includes('all')) {
+    filteredSubjects = availableSubjects.filter(subj => allowedSubjsList.includes(subj.key));
+  }
+
+  if (filteredSubjects.length === 0) {
+    subjSelect.innerHTML = `<option value="">🔒 ವಿಷಯ ಲಭ್ಯವಿಲ್ಲ (Not Subscribed)</option>`;
+    return;
+  }
+
+  const curSelectedSubj = subjSelect.value;
+  subjSelect.innerHTML = filteredSubjects.map(s => `<option value="${s.val}">${s.val}</option>`).join('');
+
+  if (filteredSubjects.some(s => s.val === curSelectedSubj)) {
+    subjSelect.value = curSelectedSubj;
+  } else {
+    subjSelect.value = filteredSubjects[0].val;
+  }
+};
+
+// ೪. ತಕ್ಷಣ UI ರಿಫ್ರೆಶ್ ಮಾಡುವುದು
+(function applyInstantSubjectDropdownFix() {
+  const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+  if (session && typeof applyUserSubjectPermissionsToUI === 'function') {
+    applyUserSubjectPermissionsToUI(session);
+  } else if (typeof updateSubjectOptionsForClass === 'function') {
+    updateSubjectOptionsForClass();
+  }
+})();
+
   </script>
 </body>
 </html>

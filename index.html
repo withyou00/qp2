@@ -5123,6 +5123,102 @@ window.handleAdminChangePassword = async function() {
     }
   });
 })();
+
+    // =========================================================================
+// 🌐 MANDATORY WEBSITE LINK ATTACHMENT IN WHATSAPP CREDENTIAL MESSAGES
+// =========================================================================
+
+const OFFICIAL_QP_WEBSITE_URL = 'https://withyou00.github.io/qp/';
+
+// ೧. ಅಡ್ಮಿನ್ 'Approve & Send Key' ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಲಿಂಕ್ ಕಳುಹಿಸುವ ಫಂಕ್ಷನ್
+window.approveRequestDirectly = async function(reqId) {
+  let requests = [];
+  try { requests = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]'); } catch (e) {}
+  const req = requests.find(r => r && r.id === reqId);
+  if (!req) return;
+
+  const autoKey = 'WY-' + Math.floor(100000 + Math.random() * 900000);
+  const assignedKey = prompt(`ಅನುಮೋದನೆಗಾಗಿ Secret Key:`, autoKey) || autoKey;
+
+  const newUser = {
+    ...req,
+    secretKey: assignedKey.trim(),
+    validityDate: '2030-12-31',
+    allowedSubjects: req.subjects ? req.subjects.split(',').map(s => s.trim()) : ['all'],
+    allowedClasses: req.classes ? req.classes.split(',').map(c => c.trim()) : ['all'],
+    status: 'active',
+    approvedAt: new Date().toLocaleDateString()
+  };
+
+  const targetPhone = String(req.mobile || req.dise || '').replace(/\D/g, '').slice(-10);
+
+  // Firebase Cloud ಗೆ ಸೇವ್
+  try {
+    await fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/users/${targetPhone}.json`, {
+      method: 'PUT', body: JSON.stringify(newUser)
+    });
+    await fetch(`https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app/requests/${reqId}.json`, {
+      method: 'DELETE'
+    });
+  } catch (e) {}
+
+  // ಸ್ಥಳೀಯ ಮೆಮೊರಿಗೆ ಸೇವ್
+  let users = [];
+  try { users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+  users.unshift(newUser);
+  localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+
+  requests = requests.filter(r => r && r.id !== reqId);
+  localStorage.setItem('wy_admin_requests', JSON.stringify(requests));
+
+  const classInfo = req.classes || 'ಆಯ್ಕೆಮಾಡಿದ ತರಗತಿಗಳು';
+  const subjInfo = req.type === 'school' ? 'ಸಂಪೂರ್ಣ ಶಾಲೆ (ಎಲ್ಲಾ ತರಗತಿ & ವಿಷಯಗಳು)' : (req.subjects || 'ಆಯ್ಕೆಮಾಡಿದ ವಿಷಯಗಳು');
+
+  // 🌟 ಕಡ್ಡಾಯವಾಗಿ ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ಒಳಗೊಂಡ ಅಧಿಕೃತ WhatsApp ಸಂದೇಶ
+  const msg = `*🎉 ಅಭಿನಂದನೆಗಳು! With You QP Generator ಖಾತೆ ಸಕ್ರಿಯಗೊಂಡಿದೆ (Approved)*\n\n` +
+              `👤 *ಹೆಸರು:* ${req.name}\n` +
+              `🏫 *ಶಾಲೆ:* ${req.school}\n` +
+              `🎒 *ತರಗತಿಗಳು:* ${classInfo}\n` +
+              `📚 *ವಿಷಯಗಳು:* ${subjInfo}\n` +
+              `🔑 *ನಿಮ್ಮ Secret Key:* ${assignedKey}\n` +
+              `📅 *ಮಾನ್ಯತೆ (Validity):* 2030-12-31\n\n` +
+              `🌐 *ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ (Website Link):*\n` +
+              `${OFFICIAL_QP_WEBSITE_URL}\n\n` +
+              `👉 *ಸೂಚನೆ:* ಮೇಲಿನ ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ತೆರೆದು ನಿಮ್ಮ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (${targetPhone}) ಮತ್ತು Secret Key (${assignedKey}) ಬಳಸಿ ಲಾಗಿನ್ ಆಗಿ ಅನಿಯಮಿತ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿಕೊಳ್ಳಬಹುದು. ಧನ್ಯವಾದಗಳು!`;
+
+  const waUrl = targetPhone.length === 10 ? `https://wa.me/91${targetPhone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, '_blank');
+
+  showToast('✅ ಯಶಸ್ವಿಯಾಗಿ Approve ಮಾಡಲಾಗಿದೆ ಮತ್ತು ಲಿಂಕ್ ಸಹಿತ Key ಕಳುಹಿಸಲಾಗಿದೆ!', 'success');
+  openAdminDashboardModal('users');
+};
+
+// ೨. ಅಡ್ಮಿನ್ 'Re-Send Key' ಕ್ಲಿಕ್ ಮಾಡಿದಾಗಲೂ ಲಿಂಕ್ ಕಳುಹಿಸುವ ಫಂಕ್ಷನ್
+window.resendUserCredentialsWhatsApp = function(index) {
+  let users = [];
+  try { users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+  const u = users[index];
+  if (!u) return alert('⚠️ ಬಳಕೆದಾರರ ವಿವರ ಸಿಗಲಿಲ್ಲ.');
+
+  const targetPhone = String(u.mobile || u.dise || '').replace(/\D/g, '').slice(-10);
+  const subjInfo = Array.isArray(u.allowedSubjects) ? u.allowedSubjects.join(', ') : (u.subjects || 'ಎಲ್ಲಾ ವಿಷಯಗಳು');
+  const classInfo = Array.isArray(u.allowedClasses) ? u.allowedClasses.join(', ') : (u.classes || 'ಎಲ್ಲಾ ತರಗತಿಗಳು');
+
+  const msg = `*With You QP Generator ಲಾಗಿನ್ ವಿವರಗಳು (Login Credentials):*\n\n` +
+              `👤 *ಹೆಸರು:* ${u.name}\n` +
+              `🏫 *ಶಾಲೆ:* ${u.school}\n` +
+              `🎒 *ತರಗತಿಗಳು:* ${classInfo}\n` +
+              `📚 *ವಿಷಯಗಳು:* ${subjInfo}\n` +
+              `🔑 *Secret Key:* ${u.secretKey}\n` +
+              `📅 *ಮಾನ್ಯತೆ (Validity):* ${u.validityDate || '2030-12-31'}\n\n` +
+              `🌐 *ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ (Website Link):*\n` +
+              `${OFFICIAL_QP_WEBSITE_URL}\n\n` +
+              `ಮೇಲಿನ ಲಿಂಕ್ ಕ್ಲಿಕ್ ಮಾಡಿ ನಿಮ್ಮ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ & Secret Key ಬಳಸಿ ಲಾಗಿನ್ ಆಗಿ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳನ್ನು ರಚಿಸಿಕೊಳ್ಳಿ.`;
+
+  const waUrl = targetPhone.length === 10 ? `https://wa.me/91${targetPhone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, '_blank');
+  showToast('📲 ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್ ಮತ್ತು Key WhatsApp ಗೆ ಕಳುಹಿಸಲಾಗಿದೆ!', 'info');
+};
     
   </script>
 </body>

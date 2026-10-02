@@ -12070,152 +12070,148 @@ document.addEventListener('click', async function(e) {
   }
 }, true); // 👈 `true` ಎಂದರೆ Capturing Phase: ಹಳೆಯ ಎಲ್ಲಾ ಕೋಡ್‌ಗಿಂತ ಮುಂಚಿತವಾಗಿ ಇದು ರನ್ ಆಗುತ್ತದೆ!
 
+
 // =========================================================================
-// 🛑 LAYER 3: LIVE INPUT TYPING DISABLER & BANNER
+// 🔒 USER SCHOOL NAME LOCK & STRICT REGISTERED CLASS-SUBJECT RESTRICTOR
 // =========================================================================
-document.addEventListener('input', async function(e) {
-  if (e.target && e.target.id === 't-reg-mobile') {
-    const mobile = getRaw10DigitPhone(e.target.value);
-    const submitBtn = document.querySelector('#t-view-signup button[onclick*="TeacherSignUp"]') ||
-                      document.querySelector('#t-view-signup button');
 
-    let alertBox = document.getElementById('t-reg-hard-alert');
-    if (!alertBox && e.target.parentNode) {
-      alertBox = document.createElement('div');
-      alertBox.id = 't-reg-hard-alert';
-      e.target.parentNode.appendChild(alertBox);
-    }
+(function installStrictSchoolAndClassSubjectLock() {
 
-    if (mobile.length === 10) {
-      const isDup = isAlreadyRegisteredSync(mobile) || await isAlreadyRegisteredCloud(mobile, 'teacher');
-
-      if (isDup) {
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.style.opacity = '0.35';
-          submitBtn.style.pointerEvents = 'none';
-        }
-        alertBox.innerHTML = `
-          <div class="p-3 mt-2 bg-rose-100 border-2 border-rose-600 rounded-2xl text-rose-950 text-xs font-black shadow animate-pulse">
-            <div class="flex items-center gap-1.5 text-rose-700 font-black">
-              <i class="fa-solid fa-circle-xmark text-base"></i>
-              <span>ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (${mobile}) ಈಗಾಗಲೇ ನೋಂದಣಿಯಾಗಿದೆ!</span>
-            </div>
-            <button type="button" onclick="switchTeacherTab('login'); document.getElementById('t-login-mobile').value='${mobile}';" class="w-full mt-2 py-2 bg-rose-700 hover:bg-rose-800 text-white rounded-xl text-xs font-black cursor-pointer shadow">
-              🔑 ಲಾಗಿನ್ ಪುಟಕ್ಕೆ ಹೋಗಿ (Login Now)
-            </button>
-          </div>
-        `;
-      } else {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.style.opacity = '1';
-          submitBtn.style.pointerEvents = 'auto';
-        }
-        alertBox.innerHTML = `<div class="text-[11px] font-black text-emerald-700 mt-1">✅ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಲಭ್ಯವಿದೆ.</div>`;
-      }
-    } else {
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
-        submitBtn.style.pointerEvents = 'auto';
-      }
-      if (alertBox) alertBox.innerHTML = '';
-    }
+  // ೧. ತರಗತಿಯನ್ನು ಡಿಜಿಟ್ (1-10) ರೂಪಕ್ಕೆ ಪರಿವರ್ತಿಸುವ ಸಹಾಯಕ ಫಂಕ್ಷನ್
+  function normalizeClassNumber(clsStr) {
+    if (!clsStr) return '';
+    const m = String(clsStr).match(/\d+/);
+    return m ? m[0] : '';
   }
-});
 
-
-// =========================================================================
-// 🔒 STRICT SCHOOL NAME PERMANENT LOCK (USER TAMPER-PROOF GUARD)
-// =========================================================================
-
-(function enforceSchoolNamePermanentLock() {
-  // ೧. ಶಾಲೆಯ ಹೆಸರು ಬದಲಾಯಿಸದಂತೆ ಲಾಕ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಫಂಕ್ಷನ್
-  function lockSchoolNameInput() {
-    const schoolInp = document.getElementById('cfg-school-name');
-    if (!schoolInp) return;
-
+  // ೨. ಶಾಲೆಯ ಹೆಸರು, ತರಗತಿ ಮತ್ತು ವಿಷಯಗಳನ್ನು ಬಳಕೆದಾರರ ಖಾತೆಗೆ ತಕ್ಕಂತೆ ಕಟ್ಟುನಿಟ್ಟಾಗಿ ಲಾಕ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಫಂಕ್ಷನ್
+  window.applyStrictUserPermissionsAndLockUI = function() {
     const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
     const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+    
+    const schoolInput = document.getElementById('cfg-school-name');
+    const classSelect = document.getElementById('cfg-class');
+    const subjSelect = document.getElementById('cfg-subject');
 
-    if (isAdmin) {
-      // 👑 ಕೇವಲ ಮಾಸ್ಟರ್ ಅಡ್ಮಿನ್‌ಗೆ ಮಾತ್ರ ಎಡಿಟ್ ಮಾಡಲು ಅವಕಾಶ
-      schoolInp.readOnly = false;
-      schoolInp.removeAttribute('readonly');
-      schoolInp.classList.remove('bg-slate-100', 'cursor-not-allowed', 'border-amber-400');
-      schoolInp.classList.add('bg-slate-50');
-      schoolInp.title = "👑 Admin: ಶಾಲೆಯ ಹೆಸರನ್ನು ಸಂಪಾದಿಸಬಹುದು";
+    // ಅಡ್ಮಿನ್ ಲಾಗಿನ್ ಆಗಿದ್ದರೆ ಅಥವಾ ಶಾಲಾ ಲಾಗಿನ್ ಆಗಿದ್ದರೆ ಸಂಪೂರ್ಣ ಮುಕ್ತ ಪ್ರವೇಶ
+    if (isAdmin || (session && session.type === 'school')) {
+      if (schoolInput) {
+        schoolInput.readOnly = false;
+        schoolInput.disabled = false;
+        schoolInput.style.backgroundColor = '';
+        schoolInput.style.cursor = 'text';
+      }
+      if (classSelect) {
+        Array.from(classSelect.options).forEach(opt => { opt.disabled = false; opt.hidden = false; });
+      }
+      if (subjSelect) {
+        Array.from(subjSelect.options).forEach(opt => { opt.disabled = false; opt.hidden = false; });
+      }
+      return;
+    }
+
+    // ಶಿಕ್ಷಕರು ಲಾಗಿನ್ ಆಗಿದ್ದಾಗ:
+    if (session && session.isLoggedIn && session.type === 'teacher') {
       
-      const badge = document.getElementById('wy-school-lock-badge');
-      if (badge) badge.remove();
-    } else {
-      // 🚫 ಸಾಮಾನ್ಯ ಶಿಕ್ಷಕರು / ಶಾಲೆಗಳಿಗೆ ಸಂಪೂರ್ಣ ಲಾಕ್
-      if (session && session.isLoggedIn && session.school) {
-        schoolInp.value = session.school; // ರಿಜಿಸ್ಟರ್ ಆದ ಅಧಿಕೃತ ಶಾಲೆಯ ಹೆಸರನ್ನೇ ಕಡ್ಡಾಯವಾಗಿ ಫಿಕ್ಸ್ ಮಾಡುವುದು
+      // 🔒 ೧. ಶಾಲೆಯ ಹೆಸರನ್ನು ಕಡ್ಡಾಯವಾಗಿ ಲಾಕ್ ಮಾಡುವುದು (Readonly / Edit Block)
+      if (schoolInput) {
+        schoolInput.value = session.school || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+        schoolInput.readOnly = true;
+        schoolInput.style.backgroundColor = '#f1f5f9';
+        schoolInput.style.cursor = 'not-allowed';
+        schoolInput.style.borderColor = '#cbd5e1';
+        schoolInput.title = '🔒 ಶಾಲೆಯ ಹೆಸರನ್ನು ಬದಲಾಯಿಸಲು ಅನುಮತಿ ಇಲ್ಲ (Admin Locked)';
       }
 
-      schoolInp.readOnly = true;
-      schoolInp.setAttribute('readonly', 'true');
-      schoolInp.classList.remove('bg-slate-50');
-      schoolInp.classList.add('bg-slate-100', 'cursor-not-allowed', 'text-slate-800', 'border-slate-300', 'font-black');
-      schoolInp.title = "🔒 ಶಾಲೆಯ ಹೆಸರನ್ನು ಲಾಕ್ ಮಾಡಲಾಗಿದೆ. ಬದಲಾಯಿಸಲು Admin ಸಂಪರ್ಕಿಸಿ: 9902090911";
+      // 🎒 ೨. ಅನುಮತಿಸಿದ ತರಗತಿಗಳನ್ನು ಮಾತ್ರ ತೋರಿಸುವುದು (Strict Class Filtering)
+      const allowedClassesRaw = session.allowedClasses || [];
+      const isAllClasses = allowedClassesRaw.includes('all') || allowedClassesRaw.length === 0;
+      
+      if (!isAllClasses && classSelect) {
+        const allowedClassNums = allowedClassesRaw.map(c => normalizeClassNumber(c)).filter(Boolean);
+        let firstAvailableClass = null;
 
-      // ಶಾಲೆಯ ಇನ್‌ಪುಟ್ ಬಾಕ್ಸ್ ಕೆಳಗೆ ಅಧಿಕೃತ ಲಾಕ್ ಬ್ಯಾಡ್ಜ್ ತೋರಿಸುವುದು
-      let lockBadge = document.getElementById('wy-school-lock-badge');
-      if (!lockBadge && schoolInp.parentNode) {
-        lockBadge = document.createElement('div');
-        lockBadge.id = 'wy-school-lock-badge';
-        lockBadge.className = 'text-[10px] font-black text-amber-900 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg mt-1 flex items-center justify-between no-print';
-        lockBadge.innerHTML = `
-          <span class="flex items-center gap-1.5">
-            <i class="fa-solid fa-lock text-amber-700"></i>
-            <span>ಶಾಲೆಯ ಹೆಸರು ನೋಂದಣಿಗೆ ಅನುಗುಣವಾಗಿ ಲಾಕ್ ಆಗಿದೆ</span>
-          </span>
-          <span class="text-[9px] text-slate-500">ಬದಲಾವಣೆಗೆ WhatsApp: 9902090911</span>
-        `;
-        schoolInp.parentNode.appendChild(lockBadge);
+        Array.from(classSelect.options).forEach(opt => {
+          const optClassNum = normalizeClassNumber(opt.value);
+          const isAllowed = allowedClassNums.includes(optClassNum);
+          
+          if (isAllowed) {
+            opt.disabled = false;
+            opt.hidden = false;
+            if (!firstAvailableClass) firstAvailableClass = opt.value;
+          } else {
+            opt.disabled = true;
+            opt.hidden = true; // ಡ್ರಾಪ್‌ಡೌನ್‌ನಲ್ಲಿ ಕಾಣಿಸದಂತೆ ಮರೆಮಾಡುವುದು
+          }
+        });
+
+        // ಪ್ರಸ್ತುತ ಆಯ್ಕೆಮಾಡಿದ ತರಗತಿ ಲಿಸ್ಟ್‌ನಲ್ಲಿ ಇಲ್ಲದಿದ್ದರೆ ಮೊದಲ ಅನುಮತಿಸಿದ ತರಗತಿಯನ್ನು ಸೆಲೆಕ್ಟ್ ಮಾಡುವುದು
+        if (!allowedClassNums.includes(normalizeClassNumber(classSelect.value)) && firstAvailableClass) {
+          classSelect.value = firstAvailableClass;
+        }
+      }
+
+      // 📚 ೩. ಅನುಮತಿಸಿದ ವಿಷಯಗಳನ್ನು ಮಾತ್ರ ತೋರಿಸುವುದು (Strict Subject Filtering)
+      const allowedSubjsRaw = session.allowedSubjects || [];
+      const isAllSubjs = allowedSubjsRaw.includes('all') || allowedSubjsRaw.length === 0;
+
+      if (!isAllSubjs && subjSelect) {
+        const allowedNormalized = allowedSubjsRaw.map(s => typeof normalizeSubjectMatchText === 'function' ? normalizeSubjectMatchText(s) : s.toLowerCase());
+        let firstAvailableSubj = null;
+
+        Array.from(subjSelect.options).forEach(opt => {
+          const optNorm = typeof normalizeSubjectMatchText === 'function' ? normalizeSubjectMatchText(opt.value) : opt.value.toLowerCase();
+          const isAllowed = allowedNormalized.some(sub => optNorm.includes(sub) || sub.includes(optNorm));
+
+          if (isAllowed) {
+            opt.disabled = false;
+            opt.hidden = false;
+            if (!firstAvailableSubj) firstAvailableSubj = opt.value;
+          } else {
+            opt.disabled = true;
+            opt.hidden = true; // ಡ್ರಾಪ್‌ಡೌನ್‌ನಲ್ಲಿ ಕಾಣಿಸದಂತೆ ಮರೆಮಾಡುವುದು
+          }
+        });
+
+        // ಪ್ರಸ್ತುತ ವಿಷಯ ಪಟ್ಟಿಯಲ್ಲಿ ಇಲ್ಲದಿದ್ದರೆ ಮೊದಲ ಲಭ್ಯವಿರುವ ವಿಷಯ ಸೆಲೆಕ್ಟ್ ಮಾಡುವುದು
+        const curNorm = typeof normalizeSubjectMatchText === 'function' ? normalizeSubjectMatchText(subjSelect.value) : subjSelect.value.toLowerCase();
+        if (!allowedNormalized.some(sub => curNorm.includes(sub) || sub.includes(curNorm)) && firstAvailableSubj) {
+          subjSelect.value = firstAvailableSubj;
+        }
       }
     }
-  }
+  };
 
-  // ೨. ಕೀಬೋರ್ಡ್ ಅಥವಾ ಇನ್ಸ್‌ಪೆಕ್ಟ್ ಎಲಿಮೆಂಟ್ ಮೂಲಕ ತಿದ್ದಲು ಯತ್ನಿಸಿದರೆ ತಕ್ಷಣ ರಿವರ್ಟ್ ಮಾಡುವುದು
-  document.addEventListener('keydown', function(e) {
-    if (e.target && e.target.id === 'cfg-school-name') {
-      const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
-      if (!isAdmin) {
-        e.preventDefault();
-        showToast('🔒 ಶಾಲೆಯ ಹೆಸರನ್ನು ಬದಲಾಯಿಸಲು ಅನುಮತಿ ಇಲ್ಲ!', 'error');
-      }
-    }
-  }, true);
+  // ೩. ತರಗತಿ ಅಥವಾ ವಿಷಯಗಳು ಬದಲಾದಾಗಲೂ ನಿರ್ಬಂಧ ಚಾಲನೆಯಲ್ಲಿರಲು ಹ್ಯಾಂಡ್ಲರ್ ಓವರ್‌ರೈಡ್
+  const prevUpdateSubjectOptions = window.updateSubjectOptionsForClass;
+  window.updateSubjectOptionsForClass = function() {
+    if (prevUpdateSubjectOptions) prevUpdateSubjectOptions();
+    window.applyStrictUserPermissionsAndLockUI();
+  };
 
-  document.addEventListener('input', function(e) {
-    if (e.target && e.target.id === 'cfg-school-name') {
-      const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
-      const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
-      if (!isAdmin && session && session.school) {
-        e.target.value = session.school;
-      }
-    }
+  // ೪. ಲಾಗಿನ್ ಆದ ತಕ್ಷಣ ಹಾಗೂ ನ್ಯಾವಿಗೇಟ್ ಆದಾಗಲೆಲ್ಲಾ ನಿರ್ಬಂಧ ಅನ್ವಯಿಸುವುದು
+  const prevFinalizeLogin = window.finalizeLoginSuccess;
+  window.finalizeLoginSuccess = function(user, type) {
+    if (prevFinalizeLogin) prevFinalizeLogin(user, type);
+    setTimeout(() => {
+      window.applyStrictUserPermissionsAndLockUI();
+      if (typeof handleSubjectOrPartChange === 'function') handleSubjectOrPartChange();
+    }, 100);
+  };
+
+  const prevForceInstant = window.forceInstantLoginDirect;
+  window.forceInstantLoginDirect = function(userData, type) {
+    if (prevForceInstant) prevForceInstant(userData, type);
+    setTimeout(() => {
+      window.applyStrictUserPermissionsAndLockUI();
+      if (typeof handleSubjectOrPartChange === 'function') handleSubjectOrPartChange();
+    }, 100);
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(window.applyStrictUserPermissionsAndLockUI, 200);
   });
 
-  // ೩. ಲಾಗಿನ್, ಪ್ರೊಫೈಲ್ ಲೋಡ್ ಮತ್ತು ಪೇಜ್ ಲೋಡ್ ಆದಾಗಲೆಲ್ಲಾ ಆಟೋ ಲಾಕ್ ರನ್ ಮಾಡುವುದು
-  document.addEventListener('DOMContentLoaded', lockSchoolNameInput);
-  setTimeout(lockSchoolNameInput, 200);
-  setTimeout(lockSchoolNameInput, 800);
-
-  const prevNavLock = window.navigateToSection;
-  window.navigateToSection = function(sec) {
-    if (prevNavLock) prevNavLock(sec);
-    setTimeout(lockSchoolNameInput, 100);
-  };
-
-  const prevProfileLock = window.renderTopUserProfileBar;
-  window.renderTopUserProfileBar = function() {
-    if (prevProfileLock) prevProfileLock();
-    setTimeout(lockSchoolNameInput, 100);
-  };
 })();
 
 

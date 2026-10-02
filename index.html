@@ -4961,6 +4961,75 @@ document.addEventListener('DOMContentLoaded', () => {
 });
     
 
+    // =========================================================================
+// ✍️ 100% REAL-TIME ANSWER WRITING LINES CONTROLLER (+ LINE / - LINE FIX)
+// =========================================================================
+
+// ೧. ಗೆರೆ ಸೇರಿಸುವ ಫಂಕ್ಷನ್ (+ Line)
+window.addAnswerLineToQuestion = function(qIndex) {
+  const q = (appState.activeGeneratedQuestions || [])[qIndex];
+  if (!q) return;
+
+  const m = getExactQuestionMarks(q);
+  const defLines = (m === 1) ? 1 : (m * 2);
+  
+  // ಹಾಲಿ ಇರುವ ಗೆರೆಗಳ ಸಂಖ್ಯೆಯನ್ನು 1 ಹೆಚ್ಚಿಸುವುದು
+  const currentLines = (q.customLinesCount !== undefined) ? q.customLinesCount : defLines;
+  q.customLinesCount = currentLines + 1;
+
+  // ಸ್ಕ್ರಾಲ್ ಪೊಸಿಷನ್ ಉಳಿಸಿಕೊಂಡು ಪತ್ರಿಕೆ ತಕ್ಷಣ ರಿಫ್ರೆಶ್ ಮಾಡುವುದು
+  const scrollY = window.scrollY;
+  if (typeof refreshAllPaperViewsAndBlueprint === 'function') {
+    refreshAllPaperViewsAndBlueprint();
+  } else {
+    const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+    const grade = document.getElementById('cfg-class')?.value || '8';
+    const rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+    const rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+    const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+    const actualMarks = appState.activeGeneratedQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+    const headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+    renderFullExamPaperWithCustomHeader(headerHtml);
+  }
+  window.scrollTo({ top: scrollY });
+
+  showToast(`➕ 1 ಸಾಲು ಸೇರಿಸಲಾಗಿದೆ (ಪ್ರಶ್ನೆ #${qIndex + 1}: ${q.customLinesCount} ಸಾಲುಗಳು)`, 'info');
+};
+
+// ೨. ಗೆರೆ ಕಡಿಮೆ ಮಾಡುವ ಫಂಕ್ಷನ್ (- Line)
+window.removeAnswerLineFromQuestion = function(qIndex) {
+  const q = (appState.activeGeneratedQuestions || [])[qIndex];
+  if (!q) return;
+
+  const m = getExactQuestionMarks(q);
+  const defLines = (m === 1) ? 1 : (m * 2);
+  const currentLines = (q.customLinesCount !== undefined) ? q.customLinesCount : defLines;
+
+  if (currentLines > 0) {
+    q.customLinesCount = currentLines - 1;
+
+    const scrollY = window.scrollY;
+    if (typeof refreshAllPaperViewsAndBlueprint === 'function') {
+      refreshAllPaperViewsAndBlueprint();
+    } else {
+      const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+      const grade = document.getElementById('cfg-class')?.value || '8';
+      const rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+      const rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+      const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+      const actualMarks = appState.activeGeneratedQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+      const headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+      renderFullExamPaperWithCustomHeader(headerHtml);
+    }
+    window.scrollTo({ top: scrollY });
+
+    showToast(`➖ 1 ಸಾಲು ಕಡಿಮೆ ಮಾಡಲಾಗಿದೆ (ಪ್ರಶ್ನೆ #${qIndex + 1}: ${q.customLinesCount} ಸಾಲುಗಳು)`, 'info');
+  } else {
+    showToast(`⚠️ ಈಗಾಗಲೇ 0 ಸಾಲುಗಳಿವೆ`, 'info');
+  }
+};
+
+    
   </script>
 </body>
 </html>

@@ -4584,6 +4584,142 @@ window.renderCompleteOfficialDSERTBlueprint = function(questions, totalMarks, su
     </div>
   `;
 };
+
+
+    // =========================================================================
+// 🔒 100% STRICT REGISTRATION & LOGIN SECURITY GATEWAY (AIRTIGHT ACCESS)
+// =========================================================================
+
+(function installBulletproofAuthEnforcer() {
+  
+  // ೧. ಯೂಸರ್ ಲಾಗಿನ್ ಆಗಿದ್ದಾರೆಯೇ ಎಂದು ಪರಿಶೀಲಿಸುವ ಸಹಾಯಕ ಫಂಕ್ಷನ್
+  function checkActiveUserAccess() {
+    const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+    if (isAdmin) return { allowed: true, isAdmin: true };
+
+    const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+    
+    // ಲಾಗಿನ್ ಆಗಿಲ್ಲದಿದ್ದರೆ
+    if (!session || !session.isLoggedIn) {
+      return { allowed: false, reason: 'NOT_LOGGED_IN' };
+    }
+
+    // ಮಾನ್ಯತೆ ಅವಧಿ ಮುಗಿದಿದ್ದರೆ
+    if (session.validityDate && new Date(session.validityDate) < new Date(new Date().toDateString())) {
+      return { allowed: false, reason: 'EXPIRED', validity: session.validityDate };
+    }
+
+    return { allowed: true, session: session };
+  }
+
+  // ೨. ನ್ಯಾವಿಗೇಷನ್ ಗಾರ್ಡ್ (ಲಾಗಿನ್ ಇಲ್ಲದೆ ಜನರೇಟರ್ ಪೇಜ್‌ಗೆ ಹೋಗದಂತೆ ತಡೆ)
+  const originalNav = window.navigateToSection;
+  window.navigateToSection = function(section) {
+    if (section === 'generator') {
+      const auth = checkActiveUserAccess();
+      if (!auth.allowed) {
+        if (auth.reason === 'EXPIRED') {
+          alert(`⚠️ ನಿಮ್ಮ ಖಾತೆಯ ಮಾನ್ಯತೆ (${auth.validity}) ಮುಕ್ತಾಯಗೊಂಡಿದೆ. ನವೀಕರಣಕ್ಕಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+          openTeacherAuthModal('login');
+        } else {
+          alert("🔒 ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ (Login / Registration Required)!\n\nಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಲು ದಯವಿಟ್ಟು ಮೊದಲು ಶಿಕ್ಷಕರ ಲಾಗಿನ್ (₹100) ಅಥವಾ ಶಾಲಾ ಲಾಗಿನ್ (₹500) ಮಾಡಿಕೊಳ್ಳಿ.");
+          openTeacherAuthModal('login');
+        }
+        return;
+      }
+    }
+
+    if (originalNav) originalNav(section);
+  };
+
+  // ೩. ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚನೆಯ ಮಾಸ್ಟರ್ ಗಾರ್ಡ್ (Strict Generator Block)
+  window.generateExamPackageFromBank = function() {
+    const auth = checkActiveUserAccess();
+
+    if (!auth.allowed) {
+      if (auth.reason === 'EXPIRED') {
+        alert(`⚠️ ನಿಮ್ಮ ಖಾತೆಯ ಮಾನ್ಯತೆ ಮುಕ್ತಾಯಗೊಂಡಿದೆ (${auth.validity}).\nನವೀಕರಣಕ್ಕಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+        openTeacherAuthModal('login');
+      } else {
+        alert(
+          "🔒 ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ (Login / Registration Required)!\n\n" +
+          "ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಲು ಕಡ್ಡಾಯವಾಗಿ ಮೊದಲು ಶಿಕ್ಷಕರ ಲಾಗಿನ್ (₹100) ಅಥವಾ ಶಾಲಾ ಲಾಗಿನ್ (₹500) ಮಾಡಿಕೊಳ್ಳಬೇಕು.\n\n" +
+          "ಲಾಗಿನ್ ಮಾಡಲು 'OK' ಒತ್ತಿರಿ."
+        );
+        openTeacherAuthModal('login');
+      }
+      return;
+    }
+
+    const session = auth.session;
+    const selectedClass = document.getElementById('cfg-class')?.value || '8';
+    const currentSubj = document.getElementById('cfg-subject')?.value || '';
+    const normalizedCurrent = typeof normalizeSubjectMatchText === 'function' ? normalizeSubjectMatchText(currentSubj) : currentSubj.toLowerCase();
+
+    // ಶಿಕ್ಷಕರ ತರಗತಿ ಹಾಗೂ ವಿಷಯ ಅನುಮತಿ ಪರಿಶೀಲನೆ
+    if (!auth.isAdmin && session && session.type === 'teacher') {
+      const allowedClasses = (session.allowedClasses || []).map(c => String(c).replace(/\D/g, ''));
+      const allowedSubjs = (session.allowedSubjects || []).map(s => typeof normalizeSubjectMatchText === 'function' ? normalizeSubjectMatchText(s) : s.toLowerCase());
+
+      if (!allowedClasses.includes('all') && allowedClasses.length > 0 && !allowedClasses.includes(selectedClass)) {
+        alert(`⚠️ ತರಗತಿ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ!\nನಿಮ್ಮ ಖಾತೆಗೆ ಈ ತರಗತಿಗೆ ಅನುಮತಿ ಇಲ್ಲ. Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+        return;
+      }
+
+      if (!allowedSubjs.includes('all') && allowedSubjs.length > 0 && !allowedSubjs.includes(normalizedCurrent)) {
+        alert(`⚠️ ವಿಷಯ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ!\nನಿಮ್ಮ ಖಾತೆಗೆ ಈ ವಿಷಯಕ್ಕೆ ಅನುಮತಿ ಇಲ್ಲ. Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+        return;
+      }
+    }
+
+    // ✅ ಅನುಮತಿ ಖಚಿತವಾದ ನಂತರ ಪತ್ರಿಕೆ ರಚನೆ
+    const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+    const rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+    const targetTotalMarks = parseInt(document.getElementById('cfg-total-marks')?.value) || 40;
+    const targetTotalQuestions = parseInt(document.getElementById('cfg-total-questions')?.value) || 24;
+    const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+
+    const checkedTypeNodes = document.querySelectorAll('input[name="qtype_opt"]:checked');
+    const selectedTypes = Array.from(checkedTypeNodes).map(cb => cb.value);
+    if (selectedTypes.length === 0) return alert('⚠️ ದಯವಿಟ್ಟು Step 3 ರಲ್ಲಿ ಕನಿಷ್ಠ ಒಂದು ಪ್ರಶ್ನೆ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+
+    const selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+    const selectedChapters = Array.from(selectedBoxes).map(b => b.value);
+    appState.activeSelectedChapters = selectedChapters;
+
+    const pool = (appState.activeSubjectQuestions || []).filter(q => {
+      if (!q) return false;
+      const isChapOk = typeof isChapterMatchedFlexibly === 'function' 
+        ? isChapterMatchedFlexibly(q.chapter, selectedChapters) 
+        : (selectedChapters.length === 0 || selectedChapters.some(sc => safeCleanMatch(sc) === safeCleanMatch(q.chapter)));
+      const cType = getCanonicalQuestionType(q);
+      return isChapOk && selectedTypes.includes(cType);
+    });
+
+    if (pool.length === 0) {
+      return alert('⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ. Step 2 ಮತ್ತು Step 3 ಪರಿಶೀಲಿಸಿ.');
+    }
+
+    let chosen = solveStrictExactExamMath(pool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+    if (!chosen || chosen.length === 0) return;
+
+    appState.activeGeneratedQuestions = chosen;
+    const actualMarks = chosen.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+    const headerHtml = generateOfficialBoardHeader(schoolName, currentSubj, selectedClass, rawExamType, actualMarks, examDate);
+
+    renderFullExamPaperWithCustomHeader(headerHtml);
+
+    const outSec = document.getElementById('output-section');
+    if (outSec) {
+      outSec.classList.remove('hidden');
+      switchOutputTab('paper');
+      outSec.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    showToast(`⚡ ಯಶಸ್ವಿ: ${chosen.length} ಪ್ರಶ್ನೆಗಳು & ${actualMarks} ಅಂಕಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ!`, 'success');
+  };
+
+})();
     
 
   </script>

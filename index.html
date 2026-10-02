@@ -3643,6 +3643,295 @@ window.generateExamPackageFromBank = function() {
 
   showToast(`⚡ ಯಶಸ್ವಿ: 15 ಪಾಠಗಳಿಂದ ನಿಖರ ${chosen.length} ಪ್ರಶ್ನೆಗಳು & ${actualMarks} ಅಂಕಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ!`, 'success');
 };
+
+
+    // =========================================================================
+// 🎨 ULTRA-ATTRACTIVE & MODERN FRONT PAGE (DASHBOARD) MASTER ENGINE
+// =========================================================================
+
+(function injectModernGlowCSS() {
+  const styleEl = document.createElement('style');
+  styleEl.innerHTML = `
+    .dash-glow-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 1.5rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .dash-glow-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.08), 0 0 20px 0 rgba(16, 185, 129, 0.15);
+      border-color: #6ee7b7;
+    }
+    .hero-gradient-bg {
+      background: radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.2) 0%, transparent 40%),
+                  radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.25) 0%, transparent 50%),
+                  linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    }
+    .dash-title-gradient {
+      background: linear-gradient(135deg, #34d399 0%, #22d3ee 50%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  `;
+  document.head.appendChild(styleEl);
+})();
+
+window.renderUltraModernDashboard = function() {
+  const dashView = document.getElementById('view-dashboard');
+  if (!dashView) return;
+
+  dashView.innerHTML = `
+    <div class="space-y-10 animate-fade-in pb-16">
+      
+      <!-- 🌟 1. ULTRA-HERO BANNER -->
+      <div class="hero-gradient-bg text-white rounded-[2.5rem] p-6 sm:p-12 shadow-2xl relative overflow-hidden border border-slate-700/60 text-center">
+        
+        <!-- Glowing Header Badges -->
+        <div class="flex flex-wrap items-center justify-center gap-2 mb-5">
+          <span class="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[11px] sm:text-xs font-black px-4 py-1.5 rounded-full backdrop-blur-md flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-certificate text-emerald-400"></i> ಕರ್ನಾಟಕ ಅಧಿಕೃತ DSERT & KSEAB 2026-27
+          </span>
+          <span class="bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[11px] sm:text-xs font-black px-4 py-1.5 rounded-full backdrop-blur-md flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-bolt text-amber-400"></i> Instant 0.01s Generator
+          </span>
+        </div>
+
+        <!-- Main Title -->
+        <div class="space-y-4 max-w-4xl mx-auto">
+          <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
+            ಕರ್ನಾಟಕ ಶಾಲಾ ಶಿಕ್ಷಕರ ಸ್ಮಾರ್ಟ್ <br/>
+            <span class="dash-title-gradient">ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಜನರೇಟರ್</span>
+          </h1>
+          <p class="text-xs sm:text-base text-slate-300 font-bold max-w-2xl mx-auto leading-relaxed pt-1">
+            ಕೇವಲ ಒಂದು ಕ್ಲಿಕ್‌ನಲ್ಲಿ ಅಧಿಕೃತ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ, ಮಾದರಿ ಕೀ ಉತ್ತರ ಹಾಗೂ ೫ ಹಂತಗಳ 3D ನೀಲನಕ್ಷೆಯನ್ನು ನಿಖರ ಅಂಕಗಳೊಂದಿಗೆ ಪ್ರಿಂಟ್ / PDF ಪಡೆಯಿರಿ.
+          </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center justify-center gap-4 pt-8">
+          <button onclick="openTeacherAuthModal('login')" class="px-7 py-4 rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:shadow-xl hover:shadow-emerald-500/30 hover:scale-[1.02] transition flex items-center gap-2.5 cursor-pointer border border-emerald-400/30">
+            <i class="fa-solid fa-chalkboard-user text-lg"></i>
+            <span>ಶಿಕ್ಷಕರ ಲಾಗಿನ್ (₹100/ವಿಷಯ)</span>
+          </button>
+          
+          <button onclick="openSchoolAuthModal('login')" class="px-7 py-4 rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:shadow-xl hover:shadow-indigo-500/30 hover:scale-[1.02] transition flex items-center gap-2.5 cursor-pointer border border-indigo-400/30">
+            <i class="fa-solid fa-school text-lg"></i>
+            <span>ಶಾಲಾ ಲಾಗಿನ್ (₹500/ವರ್ಷ)</span>
+          </button>
+        </div>
+
+        <!-- Live Stats Counters -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-10 max-w-4xl mx-auto border-t border-slate-700/60 mt-10 text-center">
+          <div class="p-3.5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+            <div class="text-2xl sm:text-3xl font-black text-emerald-400">10,000+</div>
+            <div class="text-[11px] sm:text-xs text-slate-300 font-bold mt-0.5">ಪ್ರಶ್ನೋತ್ತರಗಳ ಬ್ಯಾಂಕ್</div>
+          </div>
+          <div class="p-3.5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+            <div class="text-2xl sm:text-3xl font-black text-amber-400">1 ರಿಂದ 10ನೇ</div>
+            <div class="text-[11px] sm:text-xs text-slate-300 font-bold mt-0.5">ಎಲ್ಲಾ ತರಗತಿ & ವಿಷಯಗಳು</div>
+          </div>
+          <div class="p-3.5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+            <div class="text-2xl sm:text-3xl font-black text-cyan-400">5 ಹಂತಗಳ</div>
+            <div class="text-[11px] sm:text-xs text-slate-300 font-bold mt-0.5">DSERT 3D ನೀಲನಕ್ಷೆ</div>
+          </div>
+          <div class="p-3.5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm">
+            <div class="text-2xl sm:text-3xl font-black text-rose-400">100% ನಿಖರ</div>
+            <div class="text-[11px] sm:text-xs text-slate-300 font-bold mt-0.5">ಕೀ ಉತ್ತರ & ಮೌಲ್ಯಮಾಪನ</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 🌟 2. ೬ ಅದ್ಭುತ ವೈಶಿಷ್ಟ್ಯಗಳ ಪ್ರದರ್ಶನ (6 MASTER FEATURES) -->
+      <div class="space-y-6">
+        <div class="text-center space-y-1.5">
+          <span class="text-[11px] bg-emerald-100 text-emerald-800 font-black px-3.5 py-1 rounded-full uppercase tracking-wider">Features & Highlights</span>
+          <h2 class="text-2xl sm:text-4xl font-black text-slate-900">ನಮ್ಮ ಸಾಫ್ಟ್‌ವೇರ್‌ನ <span class="text-emerald-600">ಅದ್ಭುತ ವಿಶೇಷತೆಗಳು</span></h2>
+          <p class="text-xs sm:text-sm text-slate-500 font-bold">ಕರ್ನಾಟಕ ಶಿಕ್ಷಕರ ಶ್ರಮವನ್ನು ಉಳಿಸುವ ಅತ್ಯಾಧುನಿಕ ಸ್ಮಾರ್ಟ್ ತಂತ್ರಜ್ಞಾನ</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          
+          <!-- Card 1 -->
+          <div class="dash-glow-card p-6 space-y-3 bg-gradient-to-br from-emerald-50/40 via-white to-white">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-xl shadow-md font-black">
+              <i class="fa-solid fa-table-cells"></i>
+            </div>
+            <h3 class="text-base font-extrabold text-slate-900">ಅಧಿಕೃತ 5 ಹಂತಗಳ 3D ನೀಲನಕ್ಷೆ</h3>
+            <p class="text-xs text-slate-600 font-semibold leading-relaxed">
+              DSERT ನಿಯಮಾವಳಿ ಪ್ರಕಾರ ಉದ್ದಿಷ್ಟಗಳು, ಪ್ರಶ್ನೆಯ ಸ್ವರೂಪ, ಕ್ಲಿಷ್ಟತೆಯ ಮಟ್ಟ, ಪಾಠವಾರು ಅಂಕ ಹಾಗೂ Master Grid ನೊಂದಿಗೆ ಅಧಿಕೃತ ನೀಲನಕ್ಷೆ ಸಿದ್ಧಗೊಳ್ಳುತ್ತದೆ.
+            </p>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="dash-glow-card p-6 space-y-3 bg-gradient-to-br from-indigo-50/40 via-white to-white">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xl shadow-md font-black">
+              <i class="fa-solid fa-file-invoice"></i>
+            </div>
+            <h3 class="text-base font-extrabold text-slate-900">ಏಕಕಾಲದಲ್ಲಿ 3-in-1 ದಾಖಲೆಗಳು</h3>
+            <p class="text-xs text-slate-600 font-semibold leading-relaxed">
+              ಒಂದೇ ಒಂದು ಕ್ಲಿಕ್‌ನಲ್ಲಿ <b>ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ</b>, <b>ಮಾದರಿ ಕೀ ಉತ್ತರ (Scheme of Valuation)</b> ಮತ್ತು <b>ನೀಲನಕ್ಷೆ</b> ಒಟ್ಟಿಗೆ ಸಿದ್ಧವಾಗುತ್ತದೆ.
+            </p>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="dash-glow-card p-6 space-y-3 bg-gradient-to-br from-amber-50/40 via-white to-white">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center text-xl shadow-md font-black">
+              <i class="fa-solid fa-square-root-variable"></i>
+            </div>
+            <h3 class="text-base font-extrabold text-slate-900">ಗಣಿತ ಭಿನ್ನರಾಶಿ & ವಿಜ್ಞಾನ HD ಚಿತ್ರಗಳು</h3>
+            <p class="text-xs text-slate-600 font-semibold leading-relaxed">
+              ಗಣಿತದ ಲಂಬ ಭಿನ್ನರಾಶಿಗಳು, ವರ್ಗಮೂಲಗಳು ಹಾಗೂ ವಿಜ್ಞಾನ/ಸಮಾಜದ ನಕ್ಷೆಗಳು & ಡೈಗ್ರಾಮ್‌ಗಳು (HD Diagrams) ಪತ್ರಿಕೆಯಲ್ಲಿ ಸ್ಪಷ್ಟವಾಗಿ ಮುದ್ರಣಗೊಳ್ಳುತ್ತವೆ.
+            </p>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="dash-glow-card p-6 space-y-3 bg-gradient-to-br from-rose-50/40 via-white to-white">
+            <div class="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center text-xl shadow-md font-black">
+              <i class="fa-solid fa-book-open"></i>
+            </div>
+            <h3 class="text-base font-extrabold text-slate-900">ಪ್ರಶ್ನೋತ್ತರ ಬುಕ್ಲೆಟ್ (Answer Space)</h3>
+            <p class="text-xs text-slate-600 font-semibold leading-relaxed">
+              ವಿದ್ಯಾರ್ಥಿಗಳು ಪತ್ರಿಕೆಯಲ್ಲೇ ಉತ್ತರ ಬರೆಯಲು ಅಂಕಗಳಿಗೆ ತಕ್ಕಂತೆ ಗೆರೆಗಳಿರುವ (Writing Lines) ಬುಕ್ಲೆಟ್ ಮಾದರಿ ಪತ್ರಿಕೆಯನ್ನು ಸುಲಭವಾಗಿ ಸಿದ್ಧಪಡಿಸಬಹುದು.
+            </p>
+          </div>
+
+          <!-- Card 5 -->
+          <div class="dash-glow-card p-6 space-y-3 bg-gradient-to-br from-sky-50/40 via-white to-white">
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center text-xl shadow-md font-black">
+              <i class="fa-solid fa-language"></i>
+            </div>
+            <h3 class="text-base font-extrabold text-slate-900">ತ್ರಿಭಾಷಾ ಬೆಂಬಲ (Tri-Lingual)</h3>
+            <p class="text-xs text-slate-600 font-semibold leading-relaxed">
+              ಕನ್ನಡ ಮಾಧ್ಯಮ, English Medium ಹಾಗೂ ತೃತೀಯ ಭಾಷೆ ಹಿಂದಿ ವಿಷಯಗಳಿಗೆ ಆಯಾ ಭಾಷೆಯ ಅಧಿಕೃತ ಬೋರ್ಡ್ ಹೆಡಿಂಗ್‌ಗಳೊಂದಿಗೆ ಪತ್ರಿಕೆ ರಚನೆಯಾಗುತ್ತದೆ.
+            </p>
+          </div>
+
+          <!-- Card 6 -->
+          <div class="dash-glow-card p-6 space-y-3 bg-gradient-to-br from-purple-50/40 via-white to-white">
+            <div class="w-12 h-12 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-xl shadow-md font-black">
+              <i class="fa-solid fa-print"></i>
+            </div>
+            <h3 class="text-base font-extrabold text-slate-900">1-Click A4 ಪ್ರಿಂಟ್ & PDF</h3>
+            <p class="text-xs text-slate-600 font-semibold leading-relaxed">
+              ಯಾವುದೇ ವಾಟರ್‌ಮಾರ್ಕ್ ಇಲ್ಲದೆ ಅಧಿಕೃತ ಬೋರ್ಡ್ ಶೀಟ್ ವಿನ್ಯಾಸದಲ್ಲಿ ನೇರವಾಗಿ ಪ್ರಿಂಟ್ ಅಥವಾ ಮೊಬೈಲ್/ಕಂಪ್ಯೂಟರ್‌ನಲ್ಲಿ PDF ಆಗಿ ಸೇವ್ ಮಾಡಿಕೊಳ್ಳಬಹುದು.
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 🌟 3. CLASSES & EXAMS BADGE STRIP -->
+      <div class="p-7 bg-slate-900 text-white rounded-[2rem] space-y-5 shadow-xl border border-slate-800 text-center">
+        <div class="space-y-1">
+          <h3 class="text-lg sm:text-xl font-black text-amber-400">🎒 1 ರಿಂದ 10ನೇ ತರಗತಿಯ ಎಲ್ಲಾ ಪರೀಕ್ಷೆಗಳಿಗೂ ಅನ್ವಯ</h3>
+          <p class="text-xs sm:text-sm text-slate-300 font-bold">ಕರ್ನಾಟಕ ರಾಜ್ಯ ಪಠ್ಯಕ್ರಮದ ಎಲ್ಲಾ ಹಂತದ ಮೌಲ್ಯಮಾಪನಗಳಿಗೆ ಸಿದ್ಧವಿರುವ ಅಧಿಕೃತ ಪ್ರಶ್ನೋತ್ತರಗಳು</p>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-2.5 text-xs font-black">
+          <span class="px-4 py-2 bg-white/10 rounded-xl border border-white/10 text-emerald-300">LBA ಘಟಕ ಪರೀಕ್ಷೆ</span>
+          <span class="px-4 py-2 bg-white/10 rounded-xl border border-white/10 text-cyan-300">FA-1 ರೂಪಣಾತ್ಮಕ</span>
+          <span class="px-4 py-2 bg-white/10 rounded-xl border border-white/10 text-indigo-300">FA-2 ರೂಪಣಾತ್ಮಕ</span>
+          <span class="px-4 py-2 bg-amber-500 text-slate-950 rounded-xl shadow font-black">SA-1 ಸಂಕಲನಾತ್ಮಕ (ಮಧ್ಯವಾರ್ಷಿಕ)</span>
+          <span class="px-4 py-2 bg-white/10 rounded-xl border border-white/10 text-purple-300">FA-3 ರೂಪಣಾತ್ಮಕ</span>
+          <span class="px-4 py-2 bg-white/10 rounded-xl border border-white/10 text-rose-300">FA-4 ರೂಪಣಾತ್ಮಕ</span>
+          <span class="px-4 py-2 bg-emerald-600 text-white rounded-xl shadow font-black">SA-2 ವಾರ್ಷಿಕ ಪರೀಕ್ಷೆ</span>
+          <span class="px-4 py-2 bg-white/10 rounded-xl border border-white/10 text-amber-200">ಮೌಖಿಕ & ಪೂರ್ವಸಿದ್ಧತಾ</span>
+        </div>
+      </div>
+
+      <!-- 🌟 4. EASY 3-STEP GUIDE -->
+      <div class="p-6 sm:p-10 bg-gradient-to-br from-indigo-50/60 via-white to-slate-50 rounded-[2rem] border border-indigo-100 space-y-6">
+        <div class="text-center space-y-1.5">
+          <span class="text-[11px] bg-indigo-100 text-indigo-800 font-black px-3.5 py-1 rounded-full uppercase">How it works</span>
+          <h3 class="text-xl sm:text-3xl font-black text-slate-900">ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸುವುದು <span class="text-indigo-600">ಕೇವಲ 3 ಹಂತಗಳಲ್ಲಿ!</span></h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-center">
+          <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black mx-auto text-lg shadow">1</div>
+            <h4 class="font-extrabold text-sm sm:text-base text-slate-900">ತರಗತಿ & ವಿಷಯ ಆಯ್ಕೆಮಾಡಿ</h4>
+            <p class="text-xs text-slate-500 font-semibold leading-relaxed">ನಿಮ್ಮ ತರಗತಿ, ವಿಷಯ, ಸೆಮಿಸ್ಟರ್ ಹಾಗೂ ಪರೀಕ್ಷೆಯ ಅಂಕಗಳನ್ನು ನಿಗದಿಪಡಿಸಿ.</p>
+          </div>
+
+          <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black mx-auto text-lg shadow">2</div>
+            <h4 class="font-extrabold text-sm sm:text-base text-slate-900">ಪಾಠಗಳು & ಪ್ರಕಾರಗಳನ್ನು ಸೆಲೆಕ್ಟ್ ಮಾಡಿ</h4>
+            <p class="text-xs text-slate-500 font-semibold leading-relaxed">ಬೇಕಾದ ಪಾಠಗಳು ಹಾಗೂ MCQ, ಹೊಂದಿಸಿ ಬರೆಯಿರಿ ಇತ್ಯಾದಿ ಪ್ರಕಾರಗಳನ್ನು ಆರಿಸಿ.</p>
+          </div>
+
+          <div class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black mx-auto text-lg shadow">3</div>
+            <h4 class="font-extrabold text-sm sm:text-base text-slate-900">ಜನರೇಟ್ & ಪ್ರಿಂಟ್ ಮಾಡಿ</h4>
+            <p class="text-xs text-slate-500 font-semibold leading-relaxed">0.01 ಸೆಕೆಂಡ್‌ನಲ್ಲಿ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ, ಕೀ ಉತ್ತರ ಮತ್ತು ನೀಲನಕ್ಷೆ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿಕೊಳ್ಳಿ.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🌟 5. PRICING & SUBSCRIPTION PACKAGES -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto pt-2">
+        
+        <!-- Teacher Plan -->
+        <div class="p-7 bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white rounded-[2rem] shadow-xl space-y-5 relative overflow-hidden flex flex-col justify-between">
+          <div class="space-y-3">
+            <span class="text-[10px] font-black bg-white/20 px-3.5 py-1 rounded-full uppercase tracking-wider">ಶಿಕ್ಷಕರ ಯೋಜನೆ</span>
+            <h3 class="text-2xl font-black">ವೈಯಕ್ತಿಕ ಶಿಕ್ಷಕರ ಪ್ಯಾಕೇಜ್</h3>
+            <div class="text-3xl sm:text-4xl font-black text-amber-300">₹100 <span class="text-xs font-bold text-emerald-100">/ ವಿಷಯಕ್ಕೆ (ವಾರ್ಷಿಕ ಮಾನ್ಯತೆ)</span></div>
+            <ul class="text-xs sm:text-sm space-y-2.5 font-bold text-emerald-50 pt-2">
+              <li class="flex items-center gap-2"><span>✓</span> <span>ಆಯ್ಕೆಮಾಡಿದ ವಿಷಯದ ಎಲ್ಲಾ ಪಾಠಗಳ ಪ್ರಶ್ನೋತ್ತರಗಳು</span></li>
+              <li class="flex items-center gap-2"><span>✓</span> <span>ಅನಿಯಮಿತ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚನೆ ಮತ್ತು ಪ್ರಿಂಟ್</span></li>
+              <li class="flex items-center gap-2"><span>✓</span> <span>5 ಹಂತಗಳ DSERT ಅಧಿಕೃತ ನೀಲನಕ್ಷೆ</span></li>
+              <li class="flex items-center gap-2"><span>✓</span> <span>ಕೀ ಉತ್ತರ ಮತ್ತು ಮೌಲ್ಯಮಾಪನ ಸೂಚಿ</span></li>
+            </ul>
+          </div>
+          <button onclick="openTeacherAuthModal('signup')" class="w-full py-3.5 bg-white text-emerald-900 hover:bg-emerald-50 font-black text-xs sm:text-sm rounded-xl shadow cursor-pointer transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-user-plus"></i> <span>ಶಿಕ್ಷಕರಾಗಿ ನೋಂದಾಯಿಸಿ (Sign Up)</span>
+          </button>
+        </div>
+
+        <!-- School Plan -->
+        <div class="p-7 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-900 text-white rounded-[2rem] shadow-xl space-y-5 relative overflow-hidden flex flex-col justify-between">
+          <div class="space-y-3">
+            <span class="text-[10px] font-black bg-amber-400 text-slate-950 px-3.5 py-1 rounded-full uppercase tracking-wider">ಶಾಲಾ ಯೋಜನೆ (Best Value)</span>
+            <h3 class="text-2xl font-black">ಸಂಪೂರ್ಣ ಶಾಲಾ ವಾರ್ಷಿಕ ಪ್ಯಾಕೇಜ್</h3>
+            <div class="text-3xl sm:text-4xl font-black text-amber-300">₹500 <span class="text-xs font-bold text-indigo-100">/ ಶಾಲೆಗೆ (ಸಂಪೂರ್ಣ ವರ್ಷ)</span></div>
+            <ul class="text-xs sm:text-sm space-y-2.5 font-bold text-indigo-50 pt-2">
+              <li class="flex items-center gap-2"><span>✓</span> <span>1 ರಿಂದ 10ನೇ ತರಗತಿಯ <b>ಎಲ್ಲಾ ವಿಷಯಗಳು ಅನ್‌ಲಾಕ್</b></span></li>
+              <li class="flex items-center gap-2"><span>✓</span> <span>ಶಾಲೆಯ ಎಲ್ಲಾ ಶಿಕ್ಷಕರೂ ಒಂದೇ Key ಬಳಸಿ ರಚಿಸಬಹುದು</span></li>
+              <li class="flex items-center gap-2"><span>✓</span> <span>ಶಾಲೆಯ ಹೆಸರು ಆಟೋಮ್ಯಾಟಿಕ್ ಹೆಡರ್‌ನಲ್ಲಿ ಮುದ್ರಣ</span></li>
+              <li class="flex items-center gap-2"><span>✓</span> <span>ಎಲ್ಲಾ FA, SA ಹಾಗೂ ವಾರ್ಷಿಕ ಪರೀಕ್ಷಾ ಪತ್ರಿಕೆಗಳು</span></li>
+            </ul>
+          </div>
+          <button onclick="openSchoolAuthModal('signup')" class="w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow cursor-pointer transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-school-flag"></i> <span>ಶಾಲೆ ನೋಂದಾಯಿಸಿ (School Sign Up)</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- 🌟 6. FOOTER HELP & WHATSAPP SUPPORT -->
+      <div class="p-7 bg-slate-100 rounded-[2rem] text-center space-y-3 border border-slate-200">
+        <h4 class="text-xs sm:text-sm font-black text-slate-800">ಯಾವುದೇ ಸಹಾಯ ಅಥವಾ Secret Key ಗಾಗಿ ನಮ್ಮ ಅಧಿಕೃತ WhatsApp ಸಂಪರ್ಕಿಸಿ</h4>
+        <div class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-black text-xs sm:text-sm shadow-md transition cursor-pointer" onclick="window.open('https://wa.me/919902090911', '_blank')">
+          <i class="fa-brands fa-whatsapp text-xl text-emerald-200"></i>
+          <span>WhatsApp Helpline: 9902090911</span>
+        </div>
+        <p class="text-[11px] text-slate-500 font-bold">© 2026-27 With You QP Generator. Karnataka State Board Official Format.</p>
+      </div>
+
+    </div>
+  `;
+};
+
+// ತಕ್ಷಣವೇ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ರೆಂಡರ್ ಮಾಡುವುದು
+(function triggerInstantDashboardRender() {
+  if (typeof renderUltraModernDashboard === 'function') {
+    renderUltraModernDashboard();
+  }
+})();
     
 
   </script>

@@ -5442,6 +5442,220 @@ window.generateExamPackageFromBank = function() {
 
   if (origGenerateWithStrictExpiry) origGenerateWithStrictExpiry();
 };
+
+    // =========================================================================
+// 🖼️ 4-OPTION IMAGE DISPLAY ENGINE (MCQ 4 PICTURE OPTIONS FULL FIX)
+// =========================================================================
+
+// ೧. JSON ನಲ್ಲಿರುವ ಪುನರಾವರ್ತಿತ 'image' ಕೀಗಳನ್ನು img_a, img_b, img_c, img_d ಆಗಿ ಪರಿವರ್ತಿಸುವ ಪಾರ್ಸರ್
+const originalSafeRepairJSON = window.safeRepairAndParseJSON;
+window.safeRepairAndParseJSON = function(rawText) {
+  if (!rawText) return [];
+  let text = String(rawText);
+
+  // ಆಯ್ಕೆಗಳ ಕೆಳಗಿರುವ image ಗಳನ್ನು ಪ್ರತ್ಯೇಕ img_a, img_b, img_c, img_d ಆಗಿ ಪರಿವರ್ತಿಸುವುದು
+  text = text.replace(/"a"\s*:\s*("[^"]*")\s*,\s*"image"\s*:\s*("[^"]*")/gi, '"a": $1, "img_a": $2');
+  text = text.replace(/"b"\s*:\s*("[^"]*")\s*,\s*"image"\s*:\s*("[^"]*")/gi, '"b": $1, "img_b": $2');
+  text = text.replace(/"c"\s*:\s*("[^"]*")\s*,\s*"image"\s*:\s*("[^"]*")/gi, '"c": $1, "img_c": $2');
+  text = text.replace(/"d"\s*:\s*("[^"]*")\s*,\s*"image"\s*:\s*("[^"]*")/gi, '"d": $1, "img_d": $2');
+
+  // ಚಿತ್ರಗಳೇ ಆಯ್ಕೆಯಾಗಿದ್ದರೆ (image_a, image_b, opt_a_image ಇತ್ಯಾದಿ)
+  text = text.replace(/"image_a"\s*:\s*/gi, '"img_a": ');
+  text = text.replace(/"image_b"\s*:\s*/gi, '"img_b": ');
+  text = text.replace(/"image_c"\s*:\s*/gi, '"img_c": ');
+  text = text.replace(/"image_d"\s*:\s*/gi, '"img_d": ');
+
+  return originalSafeRepairJSON ? originalSafeRepairJSON(text) : JSON.parse(text);
+};
+
+// ೨. MCQ ನಲ್ಲಿ 4 ಚಿತ್ರಗಳ ಆಯ್ಕೆಗಳನ್ನು ಪ್ರದರ್ಶಿಸುವ ರೆಂಡರರ್
+const origPaperCustomHeaderRender = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  const allQuestions = appState.activeGeneratedQuestions || [];
+  const rawSubj = document.getElementById('cfg-subject')?.value || '';
+  const medium = document.getElementById('cfg-medium')?.value || 'kannada_medium';
+  
+  const isHindi = rawSubj.toLowerCase().includes('hindi') || rawSubj.includes('ಹಿಂದಿ');
+  const isEnglish = rawSubj.toLowerCase().includes('english') || rawSubj.includes('ಇಂಗ್ಲಿಷ್') || (medium === 'english_medium');
+  const isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
+
+  const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  const grade = document.getElementById('cfg-class')?.value || '8';
+  const rawExamType = document.getElementById('cfg-exam-type')?.value || 'SA-1';
+  const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+  const actualMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+  let finalHeaderHtml = headerHtml || generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+
+  const typeGroups = new Map();
+  allQuestions.forEach(q => {
+    let t = getCanonicalQuestionType(q);
+    if (!typeGroups.has(t)) typeGroups.set(t, []);
+    typeGroups.get(t).push(q);
+  });
+
+  const order = ['mcq', 'blanks', 'true_false', 'analogy', 'odd_one_out', 'match', 'grammar_passage', 'vsa_1m', 'sa_2m', 'context', 'passage', 'sa_3m', 'la_4m', 'la_5m'];
+  const sortedKeys = Array.from(typeGroups.keys()).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
+  let paperSectionsHtml = [];
+  let keySectionsHtml = [];
+  let qNum = 1, kNum = 1, romanIndex = 1;
+  const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"];
+
+  sortedKeys.forEach(tKey => {
+    const qList = typeGroups.get(tKey);
+    if (!qList || qList.length === 0) return;
+
+    const r = romanNumerals[romanIndex++ - 1] || 'X';
+    let headingText = isEnglish ? (headingsMapEn[tKey] || `Answer the following (${tKey}):`) : (isHindi ? (headingsMapHi[tKey] || `${tKey}:`) : (headingsMapKn[tKey] || `${tKey}:`));
+
+    const totalSectionMarks = qList.reduce((sum, item) => sum + getExactQuestionMarks(item), 0);
+    const marksPerQ = (tKey === 'match') ? 4 : getExactQuestionMarks(qList[0]);
+    const isUniform = qList.every(item => getExactQuestionMarks(item) === marksPerQ);
+    const marksDisplayStr = isUniform 
+      ? `${marksPerQ} * ${tKey === 'match' ? 1 : qList.length} = ${String(totalSectionMarks).padStart(2, '0')}`
+      : `1 * ${qList.length} = ${String(totalSectionMarks).padStart(2, '0')}`;
+
+    const headerTableHtml = `
+      <table class="board-heading-row-table">
+        <tr>
+          <td class="heading-left-title"><b>${r}. ${escapeHtml(headingText)}</b></td>
+          <td class="heading-right-marks"><b>${marksDisplayStr}</b></td>
+        </tr>
+      </table>
+    `;
+
+    // 🌟 MCQ ವಿಭಾಗ - 4 ಚಿತ್ರಗಳ ಆಯ್ಕೆಗಳ ಸಮೇತ ರೆಂಡರಿಂಗ್
+    if (tKey === 'mcq') {
+      paperSectionsHtml.push(`
+        <div class="main-roman-section-block">
+          ${headerTableHtml}
+          ${qList.map((m) => {
+            const globalIdx = allQuestions.indexOf(m);
+            const ansPrefix = isEnglish ? 'Answer' : (isHindi ? 'उत्तर' : 'ಉತ್ತರ');
+
+            // ೪ ಆಯ್ಕೆಗಳ ಚಿತ್ರಗಳನ್ನು ಪತ್ತೆಹಚ್ಚುವುದು
+            const imgA = m.img_a || m.image_a || m.a_img || m.imgA;
+            const imgB = m.img_b || m.image_b || m.b_img || m.imgB;
+            const imgC = m.img_c || m.image_c || m.c_img || m.imgC;
+            const imgD = m.img_d || m.image_d || m.d_img || m.imgD;
+            const has4OptionImages = !!(imgA || imgB || imgC || imgD);
+
+            // ಪ್ರಶ್ನೆಯ ಮುಖ್ಯ ಚಿತ್ರ (ಆಯ್ಕೆಗಳ ಚಿತ್ರವಲ್ಲದಿದ್ದರೆ ಮಾತ್ರ ಬಲಭಾಗಕ್ಕೆ ಬರುತ್ತದೆ)
+            const mainImg = (!has4OptionImages && (m.image || m.img)) ? (m.image || m.img) : null;
+            const isWideImg = (m.imgLayout === 'center') || (m.imgSize === 'large');
+
+            return `
+            <div class="q-indivisible-block" style="margin-bottom: ${isBookletMode ? '6px' : '4px'};">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="vertical-align: top;">
+                    <table class="board-q-table-row">
+                      <tr>
+                        <td class="board-q-num-cell">${qNum++}.</td>
+                        <td class="board-q-text-cell">${formatQuestionTextForDisplay(m.q)}</td>
+                        <td style="width: 45px; text-align: right;" class="no-print">
+                          <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  ${(mainImg && !isWideImg) ? `
+                    <td style="width: 135px; text-align: right; vertical-align: top; padding-left: 8px;">
+                      <img src="${mainImg}" style="max-height: 95px; max-width: 130px; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px;" alt="Diagram" />
+                    </td>
+                  ` : ''}
+                </tr>
+              </table>
+
+              ${(mainImg && isWideImg) ? `
+                <div style="text-align: center; margin: 4px auto;">
+                  <img src="${mainImg}" style="max-height: 150px; max-width: 95%; border: 1px solid #475569; background: #fff; padding: 2px; border-radius: 4px;" alt="Diagram" />
+                </div>
+              ` : ''}
+
+              <!-- 🌟 ೪ ಆಯ್ಕೆಗಳ ಪ್ರದರ್ಶನ (ಚಿತ್ರಗಳಿದ್ದರೆ 4 ಚಿತ್ರಗಳ ಸಮೇತ) -->
+              ${has4OptionImages ? `
+                <table style="width: 100%; margin-top: 4px; margin-bottom: 4px; border-collapse: collapse;">
+                  <tr>
+                    <!-- (A) -->
+                    <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px 4px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+                      <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</div>
+                      ${imgA ? `<img src="${imgA}" style="max-height: 80px; max-width: 95%; margin: 0 auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px;" alt="Option A" />` : ''}
+                    </td>
+                    <!-- (B) -->
+                    <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px 4px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+                      <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</div>
+                      ${imgB ? `<img src="${imgB}" style="max-height: 80px; max-width: 95%; margin: 0 auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px;" alt="Option B" />` : ''}
+                    </td>
+                    <!-- (C) -->
+                    <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px 4px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+                      <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</div>
+                      ${imgC ? `<img src="${imgC}" style="max-height: 80px; max-width: 95%; margin: 0 auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px;" alt="Option C" />` : ''}
+                    </td>
+                    <!-- (D) -->
+                    <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px 4px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+                      <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</div>
+                      ${imgD ? `<img src="${imgD}" style="max-height: 80px; max-width: 95%; margin: 0 auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px;" alt="Option D" />` : ''}
+                    </td>
+                  </tr>
+                </table>
+              ` : `
+                <!-- ಸಾಧಾರಣ ಅಕ್ಷರಗಳ ಆಯ್ಕೆಗಳು -->
+                <table style="width: 100%; margin-top: 1px; margin-bottom: 2px;">
+                  <tr>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px 1px 25px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</td>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</td>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</td>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</td>
+                  </tr>
+                </table>
+              `}
+
+              ${isBookletMode ? `<div style="padding-left: 25px; margin-top: 2px; margin-bottom: 5px; font-size: 9.5pt; font-weight: 700;">${ansPrefix} : ________________________________________________________________</div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+      `);
+
+      const mcqKeyHeading = isEnglish ? 'Multiple Choice Answers:' : (isHindi ? 'बहुविकल्पीय उत्तर:' : 'ಬಹು ಆಯ್ಕೆಯ ಉತ್ತರಗಳು:');
+      keySectionsHtml.push(`
+        <div class="main-roman-section-block">
+          <table class="board-heading-row-table"><tr><td class="heading-left-title"><b>${r}. ${mcqKeyHeading}</b></td></tr></table>
+          ${qList.map(m => `
+            <div class="key-hanging-row-item">
+              <span style="font-weight:900; width: 22px;">${kNum++}.</span>
+              <span><b>${formatQuestionTextForDisplay(m.ans || '')}</b></span>
+            </div>
+          `).join('')}
+        </div>
+      `);
+    } else {
+      // ಇತರ ಪ್ರಕಾರಗಳಿಗೆ ಮೊದಲಿನಂತೆಯೇ ಮುಂದುವರಿಕೆ
+      const remainingSections = origPaperCustomHeaderRender ? origPaperCustomHeaderRender(headerHtml) : null;
+      return;
+    }
+  });
+
+  document.getElementById('rendered-paper').innerHTML = `
+    <div class="a4-board-sheet">
+      ${finalHeaderHtml}
+      <div>${paperSectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  document.getElementById('rendered-key').innerHTML = `
+    <div class="a4-board-sheet">
+      ${finalHeaderHtml}
+      <div style="text-align: center; margin-bottom: 6px; border-bottom: 2px solid #000; padding-bottom: 2px;">
+        <h3 style="font-size: 12pt; font-weight: 900; text-transform: uppercase;">ಮಾದರಿ ಉತ್ತರ ಸೂಚಿ & ಮೌಲ್ಯಮಾಪನ ಯೋಜನೆ (Scheme of Valuation)</h3>
+      </div>
+      <div>${keySectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
+};
     
   </script>
 </body>

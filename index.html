@@ -5949,6 +5949,297 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
   // ನೀಲನಕ್ಷೆಯನ್ನು ನಿಖರವಾಗಿ ತೋರಿಸುವುದು
   renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
 };
+
+    // =========================================================================
+// 🎯 ZERO BLANK-SPACE SIDE-IMAGE ALIGNMENT FIX (PERFECT ROW FIT)
+// =========================================================================
+
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  const allQuestions = appState.activeGeneratedQuestions || [];
+  const rawSubj = document.getElementById('cfg-subject')?.value || '';
+  const medium = document.getElementById('cfg-medium')?.value || 'kannada_medium';
+  
+  const isHindi = rawSubj.toLowerCase().includes('hindi') || rawSubj.includes('ಹಿಂದಿ');
+  const isEnglish = rawSubj.toLowerCase().includes('english') || rawSubj.includes('ಇಂಗ್ಲಿಷ್') || (medium === 'english_medium');
+  const isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
+
+  const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  const grade = document.getElementById('cfg-class')?.value || '8';
+  const rawExamType = document.getElementById('cfg-exam-type')?.value || 'SA-1';
+  const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+  const actualMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+  let finalHeaderHtml = headerHtml || generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+
+  const typeGroups = new Map();
+  allQuestions.forEach(q => {
+    let t = getCanonicalQuestionType(q);
+    if (!typeGroups.has(t)) typeGroups.set(t, []);
+    typeGroups.get(t).push(q);
+  });
+
+  const order = ['mcq', 'blanks', 'true_false', 'analogy', 'odd_one_out', 'match', 'grammar_passage', 'vsa_1m', 'sa_2m', 'context', 'passage', 'sa_3m', 'la_4m', 'la_5m'];
+  const sortedKeys = Array.from(typeGroups.keys()).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
+  let paperSectionsHtml = [];
+  let keySectionsHtml = [];
+  let qNum = 1, kNum = 1, romanIndex = 1;
+  const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"];
+
+  sortedKeys.forEach(tKey => {
+    const qList = typeGroups.get(tKey);
+    if (!qList || qList.length === 0) return;
+
+    const r = romanNumerals[romanIndex++ - 1] || 'X';
+    let headingText = isEnglish ? (headingsMapEn[tKey] || `Answer the following (${tKey}):`) : (isHindi ? (headingsMapHi[tKey] || `${tKey}:`) : (headingsMapKn[tKey] || `${tKey}:`));
+
+    const totalSectionMarks = qList.reduce((sum, item) => sum + getExactQuestionMarks(item), 0);
+    const marksPerQ = (tKey === 'match') ? 4 : getExactQuestionMarks(qList[0]);
+    const isUniform = qList.every(item => getExactQuestionMarks(item) === marksPerQ);
+    const marksDisplayStr = isUniform 
+      ? `${marksPerQ} * ${tKey === 'match' ? 1 : qList.length} = ${String(totalSectionMarks).padStart(2, '0')}`
+      : `1 * ${qList.length} = ${String(totalSectionMarks).padStart(2, '0')}`;
+
+    const headerTableHtml = `
+      <table class="board-heading-row-table">
+        <tr>
+          <td class="heading-left-title"><b>${r}. ${escapeHtml(headingText)}</b></td>
+          <td class="heading-right-marks"><b>${marksDisplayStr}</b></td>
+        </tr>
+      </table>
+    `;
+
+    // 🌟 ೧. MCQ ವಿಭಾಗ
+    if (tKey === 'mcq') {
+      paperSectionsHtml.push(`
+        <div class="main-roman-section-block">
+          ${headerTableHtml}
+          ${qList.map((m) => {
+            const globalIdx = allQuestions.indexOf(m);
+            const ansPrefix = isEnglish ? 'Answer' : (isHindi ? 'उत्तर' : 'ಉತ್ತರ');
+
+            const imgA = m.img_a || m.image_a || m.a_img || m.imgA;
+            const imgB = m.img_b || m.image_b || m.b_img || m.imgB;
+            const imgC = m.img_c || m.image_c || m.c_img || m.imgC;
+            const imgD = m.img_d || m.image_d || m.d_img || m.imgD;
+            const has4OptionImages = !!(imgA || imgB || imgC || imgD);
+
+            const mainImg = (!has4OptionImages && (m.image || m.img)) ? (m.image || m.img) : null;
+            const isWideImg = (m.imgLayout === 'center') || (m.imgSize === 'large');
+
+            return `
+            <div class="q-indivisible-block" style="margin-bottom: ${isBookletMode ? '5px' : '3px'};">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="vertical-align: top;">
+                    <table class="board-q-table-row">
+                      <tr>
+                        <td class="board-q-num-cell">${qNum++}.</td>
+                        <td class="board-q-text-cell">${formatQuestionTextForDisplay(m.q)}</td>
+                      </tr>
+                    </table>
+                  </td>
+                  ${(mainImg && !isWideImg) ? `
+                    <td style="width: 120px; text-align: right; vertical-align: middle; padding-left: 6px;">
+                      <img src="${mainImg}" style="max-height: 80px; max-width: 115px; object-fit: contain; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px;" alt="Diagram" />
+                    </td>
+                  ` : ''}
+                  <td style="width: 45px; text-align: right; vertical-align: top;" class="no-print">
+                    <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                  </td>
+                </tr>
+              </table>
+
+              ${(mainImg && isWideImg) ? `
+                <div style="text-align: center; margin: 3px auto;">
+                  <img src="${mainImg}" style="max-height: 140px; max-width: 95%; border: 1px solid #475569; background: #fff; padding: 2px; border-radius: 4px;" alt="Diagram" />
+                </div>
+              ` : ''}
+
+              ${has4OptionImages ? `
+                <table style="width: 100%; margin-top: 3px; margin-bottom: 3px; border-collapse: collapse;">
+                  <tr>
+                    <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+                      <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</div>
+                      ${imgA ? `<img src="${imgA}" style="max-height: 75px; max-width: 95%; margin: 0 auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px;" />` : ''}
+                    </td>
+                    <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+                      <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</div>
+                      ${imgB ? `<img src="${imgB}" style="max-height: 75px; max-width: 95%; margin: 0 auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px;" />` : ''}
+                    </td>
+                    <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+                      <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</div>
+                      ${imgC ? `<img src="${imgC}" style="max-height: 75px; max-width: 95%; margin: 0 auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px;" />` : ''}
+                    </td>
+                    <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 6px;">
+                      <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</div>
+                      ${imgD ? `<img src="${imgD}" style="max-height: 75px; max-width: 95%; margin: 0 auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px;" />` : ''}
+                    </td>
+                  </tr>
+                </table>
+              ` : `
+                <table style="width: 100%; margin-top: 1px; margin-bottom: 2px;">
+                  <tr>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px 1px 25px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</td>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</td>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</td>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</td>
+                  </tr>
+                </table>
+              `}
+
+              ${isBookletMode ? `<div style="padding-left: 25px; margin-top: 2px; margin-bottom: 4px; font-size: 9.5pt; font-weight: 700;">${ansPrefix} : ________________________________________________________________</div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+      `);
+
+      const mcqKeyHeading = isEnglish ? 'Multiple Choice Answers:' : (isHindi ? 'बहुविकल्पीय उत्तर:' : 'ಬಹು ಆಯ್ಕೆಯ ಉತ್ತರಗಳು:');
+      keySectionsHtml.push(`
+        <div class="main-roman-section-block">
+          <table class="board-heading-row-table"><tr><td class="heading-left-title"><b>${r}. ${mcqKeyHeading}</b></td></tr></table>
+          ${qList.map(m => `
+            <div class="key-hanging-row-item">
+              <span style="font-weight:900; width: 22px;">${kNum++}.</span>
+              <span><b>${formatQuestionTextForDisplay(m.ans || '')}</b></span>
+            </div>
+          `).join('')}
+        </div>
+      `);
+    } 
+    // 🌟 ೨. ಹೊಂದಿಸಿ ಬರೆಯಿರಿ ವಿಭಾಗ
+    else if (tKey === 'match') {
+      const mItem = qList[0];
+      let matchTableHtml = isEnglish ? renderOfficial3ColumnMatchTable(mItem, qNum++, true) : (isHindi ? renderHindi3ColumnMatchTable(mItem, qNum++) : renderOfficial3ColumnMatchTable(mItem, qNum++, false));
+
+      paperSectionsHtml.push(`
+        <div class="main-roman-section-block">
+          ${headerTableHtml}
+          <div class="q-indivisible-block">
+            ${matchTableHtml}
+          </div>
+        </div>
+      `);
+
+      const pairs = extractSmartMatchPairs(mItem);
+      const keyHeading = isEnglish ? 'Matching Answers:' : (isHindi ? 'जोड़कर लिखे गए सही उत्तर:' : 'ಹೊಂದಿಸಿ ಬರೆದ ಸರಿಯಾದ ಉತ್ತರಗಳು:');
+      keySectionsHtml.push(`
+        <div class="main-roman-section-block">
+          <table class="board-heading-row-table"><tr><td class="heading-left-title"><b>${r}. ${keyHeading}</b></td></tr></table>
+          <div class="key-hanging-row-item">
+            <span style="font-weight:900;">${kNum++}.</span>
+            <div>${pairs.map((p, i) => `(${i + 1}) ➔ <b>${escapeHtml(p.b || '')}</b>`).join(' &nbsp;|&nbsp; ')}</div>
+          </div>
+        </div>
+      `);
+    } 
+    // 🌟 ೩. ಖಾಲಿ ಜಾಗ, 1M, 2M, 3M, 4M - ಚಿತ್ರಗಳು ನೇರವಾಗಿ ಪ್ರಶ್ನೆಯ ಸಾಲಿನಲ್ಲೇ ಫಿಕ್ಸ್ (No Blank Space!)
+    else {
+      const isTF = (tKey === 'true_false');
+      const passHeading = isEnglish ? 'Passage / Context:' : (isHindi ? 'गद्यांश:' : 'ಗದ್ಯಭಾಗ:');
+
+      paperSectionsHtml.push(`
+        <div class="main-roman-section-block">
+          ${headerTableHtml}
+          ${qList.map((item) => {
+            const globalIdx = allQuestions.indexOf(item);
+            const m = getExactQuestionMarks(item);
+            const defaultLines = (m === 1) ? 1 : (m * 2);
+            const activeLines = (item.customLinesCount !== undefined) ? item.customLinesCount : defaultLines;
+            const imgSrc = item.image || item.img;
+            const isLargeImg = m >= 3 || (item.imgSize === 'large') || (item.imgLayout === 'center') || tKey === 'passage';
+
+            let spaceLinesHtml = '';
+            if (isBookletMode && activeLines > 0 && !isTF) {
+              const lines = Array(activeLines).fill('<div class="answer-writing-space-line"></div>').join('');
+              spaceLinesHtml = `<div class="answer-lines-container">${lines}</div>`;
+            }
+
+            return `
+              <div class="q-indivisible-block" style="margin-bottom: ${isBookletMode ? '4px' : '2.5px'};">
+                ${item.passage ? `
+                  <div style="background-color: #f8fafc; border: 1.5px solid #000; padding: 4px 8px; margin-bottom: 3px; font-size: 9.8pt; line-height: 1.35; text-align: justify;">
+                    <b>${passHeading}</b><br/>${escapeHtml(item.passage)}
+                  </div>
+                ` : ''}
+
+                <!-- ಪ್ರಶ್ನೆ ಮತ್ತು ಬಲಭಾಗದ ಚಿತ್ರ ಒಂದೇ ಟೇಬಲ್ ಸಾಲಿನಲ್ಲಿ (Zero Blank Space) -->
+                <table class="board-q-table-row" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td class="board-q-num-cell">${qNum++}.</td>
+                    <td class="board-q-text-cell">
+                      ${tKey === 'context' && !item.q.startsWith('"') ? `"${formatQuestionTextForDisplay(item.q, isTF)}"` : formatQuestionTextForDisplay(item.q, isTF)}
+                      ${isTF ? ` &nbsp; <b>[ &nbsp;&nbsp;&nbsp;&nbsp; ]</b>` : ""}
+                    </td>
+
+                    <!-- ಚಿತ್ರವಿದ್ದರೆ ನೇರವಾಗಿ ಬಲಭಾಗಕ್ಕೆ ಅಳವಡಿಕೆ -->
+                    ${(imgSrc && !isLargeImg) ? `
+                      <td style="width: 110px; min-width: 95px; text-align: right; vertical-align: middle; padding-left: 6px; padding-right: 4px;">
+                        <img src="${imgSrc}" style="max-height: 75px; max-width: 105px; object-fit: contain; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px; display: inline-block;" alt="Diagram" />
+                      </td>
+                    ` : ''}
+
+                    <td style="width: ${isBookletMode ? '75px' : '45px'}; text-align: right; vertical-align: top;" class="no-print">
+                      <div style="display:inline-flex; align-items:center; gap:2px;">
+                        ${isBookletMode && !isTF ? `
+                          <button type="button" onclick="addAnswerLineToQuestion(${globalIdx})" class="px-1 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-400 rounded font-black text-[9px] cursor-pointer">+ Line</button>
+                          <button type="button" onclick="removeAnswerLineFromQuestion(${globalIdx})" class="px-1 py-0.5 bg-rose-100 text-rose-900 border border-rose-400 rounded font-black text-[9px] cursor-pointer">- Line</button>
+                        ` : ''}
+                        <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- ದೊಡ್ಡ ನಕ್ಷೆ ಅಥವಾ ಜ್ಯಾಮಿತಿ ಚಿತ್ರವಿದ್ದರೆ ಮಧ್ಯದಲ್ಲಿ -->
+                ${(imgSrc && isLargeImg) ? `
+                  <div style="text-align: center; margin: 4px auto; clear: both;">
+                    <img src="${imgSrc}" style="max-height: 180px; max-width: 95%; border: 1px solid #000; background: #fff; padding: 2px; border-radius: 4px;" alt="Diagram" />
+                  </div>
+                ` : ''}
+
+                ${spaceLinesHtml}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `);
+
+      keySectionsHtml.push(`
+        <div class="main-roman-section-block">
+          <table class="board-heading-row-table"><tr><td class="heading-left-title"><b>${r}. ${escapeHtml(headingText)}</b></td></tr></table>
+          ${qList.map(item => `
+            <div class="key-hanging-row-item">
+              <span style="font-weight:900; width: 22px;">${kNum++}.</span>
+              <span>${formatQuestionTextForDisplay(item.ans || '', isTF)}</span>
+            </div>
+          `).join('')}
+        </div>
+      `);
+    }
+  });
+
+  const schemeTitle = isEnglish ? 'MODEL KEY ANSWERS & SCHEME OF VALUATION' : (isHindi ? 'आदर्श उत्तर पत्रिका एवं मूल्यांकन योजना (SCHEME OF VALUATION)' : 'ಮಾದರಿ ಉತ್ತರ ಸೂಚಿ & ಮೌಲ್ಯಮಾಪನ ಯೋಜನೆ (SCHEME OF VALUATION)');
+
+  document.getElementById('rendered-paper').innerHTML = `
+    <div class="a4-board-sheet">
+      ${finalHeaderHtml}
+      <div>${paperSectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  document.getElementById('rendered-key').innerHTML = `
+    <div class="a4-board-sheet">
+      ${finalHeaderHtml}
+      <div style="text-align: center; margin-bottom: 6px; border-bottom: 2px solid #000; padding-bottom: 2px;">
+        <h3 style="font-size: 12pt; font-weight: 900; text-transform: uppercase;">${schemeTitle}</h3>
+      </div>
+      <div>${keySectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
+};
     
   </script>
 </body>

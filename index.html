@@ -6582,6 +6582,267 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
 
   renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
 };
+
+// =========================================================================
+// 🎒 DEDICATED NALI-KALI (CLASSES 1, 2, 3) 2-PAGE WORKSHEET ENGINE
+// =========================================================================
+
+// ೧. ನಲಿಕಲಿ ವರ್ಕ್‌ಶೀಟ್‌ಗಳಿಗೆ ವಿಶೇಷ CSS ಇಂಜೆಕ್ಷನ್
+(function injectNalikaliSpecialCSS() {
+  const styleEl = document.createElement('style');
+  styleEl.innerHTML = `
+    /* ನಲಿಕಲಿ 2-ಪುಟಗಳ ಶೀಟ್ ವಿನ್ಯಾಸ */
+    .sheet-nalikali-mode {
+      padding: 5mm 8mm !important;
+      font-size: 10.5pt !important;
+    }
+    .sheet-nalikali-mode .board-heading-row-table {
+      margin-top: 8px !important;
+      margin-bottom: 5px !important;
+      border-bottom: 1.5px solid #000 !important;
+    }
+    .sheet-nalikali-mode .heading-left-title {
+      font-size: 11pt !important;
+      font-weight: 900 !important;
+    }
+    .sheet-nalikali-mode .q-indivisible-block {
+      margin-bottom: 8px !important;
+    }
+    .sheet-nalikali-mode .board-q-text-cell {
+      font-size: 10.5pt !important;
+      line-height: 1.45 !important;
+      font-weight: 700 !important;
+    }
+    /* ನಲಿಕಲಿ ವರ್ಕ್‌ಶೀಟ್ ಚಿತ್ರಗಳು (Full Width Centered Box) */
+    .nalikali-worksheet-img-box {
+      display: block !important;
+      text-align: center !important;
+      margin: 6px auto !important;
+      width: 100% !important;
+      clear: both !important;
+    }
+    .nalikali-worksheet-img {
+      max-height: 145px !important;
+      max-width: 98% !important;
+      width: auto !important;
+      object-fit: contain !important;
+      border: 1.5px dashed #334155 !important;
+      background: #ffffff !important;
+      padding: 4px !important;
+      border-radius: 6px !important;
+    }
+
+    @media print {
+      .sheet-nalikali-mode {
+        padding: 4mm 7mm !important;
+      }
+      .nalikali-worksheet-img {
+        max-height: 140px !important;
+        border: 1.5px dashed #000 !important;
+      }
+    }
+  `;
+  document.head.appendChild(styleEl);
+})();
+
+// ೨. ಹೆಡರ್ ಜನರೇಟರ್ - 1, 2, 3ನೇ ತರಗತಿಗೆ "ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು" ಸೇರ್ಪಡೆ
+const origOfficialBoardHeader = window.generateOfficialBoardHeader;
+window.generateOfficialBoardHeader = function(schoolName, subject, grade, examType, marks, examDate) {
+  const cleanGrade = String(grade).replace(/\D/g, '');
+  const isNalikali = ['1', '2', '3'].includes(cleanGrade);
+
+  // 4 ರಿಂದ 10ನೇ ತರಗತಿಗೆ ಸಾಮಾನ್ಯ ಹೆಡರ್
+  if (!isNalikali) {
+    return origOfficialBoardHeader(schoolName, subject, grade, examType, marks, examDate);
+  }
+
+  // 🌟 ನಲಿಕಲಿ (1, 2, 3ನೇ ತರಗತಿ) ಅಧಿಕೃತ ಹೆಡರ್
+  return `
+    <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 6px;">
+      <div style="text-align: center; margin-bottom: 2px;">
+        <h1 style="font-size: 13.5pt; font-weight: 900; margin: 0; line-height: 1.2;">${escapeHtml(schoolName)}</h1>
+        <div style="font-size: 11pt; font-weight: 900; margin-top: 1px;">${escapeHtml(examType)}</div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
+        <tr>
+          <td style="width: 32%; text-align: left; font-weight: 800; font-size: 10pt;">ವಿಷಯ : <b>${escapeHtml(subject)}</b></td>
+          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10pt;">ತರಗತಿ : <b>${grade} ನೇ ತರಗತಿ</b></td>
+          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10pt;">ದಿನಾಂಕ : <b>${escapeHtml(examDate)}</b></td>
+          <td style="width: 20%; text-align: right; font-weight: 800; font-size: 10pt;">ಒಟ್ಟು ಅಂಕಗಳು : <b>${marks}</b></td>
+        </tr>
+      </table>
+      <div style="margin-top: 4px; padding-top: 3px; border-top: 1.2px dashed #000; font-size: 10.5pt; font-weight: 800; text-align: left;">
+        ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು : ____________________________________________________________________
+      </div>
+    </div>
+  `;
+};
+
+// ೩. ನಲಿಕಲಿ ಪತ್ರಿಕೆ ರೆಂಡರರ್ (2 ಪುಟಗಳಲ್ಲಿ ತುಂಬಿ ಬರುವಂತೆ ಆಟೋ-ಅಡ್ಜಸ್ಟ್‌ಮೆಂಟ್)
+const origMasterPaperRender = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  const grade = document.getElementById('cfg-class')?.value || '8';
+  const cleanGrade = String(grade).replace(/\D/g, '');
+  const isNalikali = ['1', '2', '3'].includes(cleanGrade);
+
+  // 4 ರಿಂದ 10ನೇ ತರಗತಿಯಾಗಿದ್ದರೆ ಎಂದಿನಂತೆ ಕಾರ್ಯನಿರ್ವಹಣೆ
+  if (!isNalikali) {
+    return origMasterPaperRender(headerHtml);
+  }
+
+  // 🎒 ನಲಿಕಲಿ 1, 2, 3ನೇ ತರಗತಿಯ ವಿಶೇಷ ರೆಂಡರಿಂಗ್:
+  const allQuestions = appState.activeGeneratedQuestions || [];
+  const rawSubj = document.getElementById('cfg-subject')?.value || '';
+  const isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
+  const actualMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+  const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಕಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ';
+  const rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪ್ರಥಮ ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ 2026-27';
+  const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+
+  const finalHeaderHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+
+  // ಪ್ರಶ್ನೆಗಳ ಪ್ರಕಾರವಾರು ಗುಂಪು
+  const typeGroups = new Map();
+  allQuestions.forEach(q => {
+    let t = getCanonicalQuestionType(q);
+    if (!typeGroups.has(t)) typeGroups.set(t, []);
+    typeGroups.get(t).push(q);
+  });
+
+  const order = ['mcq', 'blanks', 'true_false', 'analogy', 'odd_one_out', 'match', 'grammar_passage', 'vsa_1m', 'sa_2m', 'context', 'passage', 'sa_3m', 'la_4m', 'la_5m'];
+  const sortedKeys = Array.from(typeGroups.keys()).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
+  let paperSectionsHtml = [];
+  let keySectionsHtml = [];
+  let qNum = 1, kNum = 1, romanIndex = 1;
+  const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"];
+
+  sortedKeys.forEach(tKey => {
+    const qList = typeGroups.get(tKey);
+    if (!qList || qList.length === 0) return;
+
+    const r = romanNumerals[romanIndex++ - 1] || 'X';
+    let headingText = headingsMapKn[tKey] || `${tKey}:`;
+
+    const totalSectionMarks = qList.reduce((sum, item) => sum + getExactQuestionMarks(item), 0);
+    const marksPerQ = (tKey === 'match') ? 4 : getExactQuestionMarks(qList[0]);
+    const isUniform = qList.every(item => getExactQuestionMarks(item) === marksPerQ);
+    const marksDisplayStr = isUniform 
+      ? `${marksPerQ} * ${tKey === 'match' ? 1 : qList.length} = ${String(totalSectionMarks).padStart(2, '0')}`
+      : `1 * ${qList.length} = ${String(totalSectionMarks).padStart(2, '0')}`;
+
+    const headerTableHtml = `
+      <table class="board-heading-row-table">
+        <tr>
+          <td class="heading-left-title"><b>${r}. ${escapeHtml(headingText)}</b></td>
+          <td class="heading-right-marks"><b>${marksDisplayStr}</b></td>
+        </tr>
+      </table>
+    `;
+
+    // ನಲಿಕಲಿ ಹೊಂದಿಸಿ ಬರೆಯಿರಿ
+    if (tKey === 'match') {
+      const mItem = qList[0];
+      paperSectionsHtml.push(`
+        <div class="main-roman-section-block">
+          ${headerTableHtml}
+          <div class="q-indivisible-block">
+            ${renderOfficial3ColumnMatchTable(mItem, qNum++, false)}
+          </div>
+        </div>
+      `);
+
+      const pairs = extractSmartMatchPairs(mItem);
+      keySectionsHtml.push(`
+        <div class="main-roman-section-block">
+          <table class="board-heading-row-table"><tr><td class="heading-left-title"><b>${r}. ಹೊಂದಿಸಿ ಬರೆದ ಸರಿಯಾದ ಉತ್ತರಗಳು:</b></td></tr></table>
+          <div class="key-hanging-row-item">
+            <span style="font-weight:900;">${kNum++}.</span>
+            <div>${pairs.map((p, i) => `(${i + 1}) ➔ <b>${escapeHtml(p.b || '')}</b>`).join(' &nbsp;|&nbsp; ')}</div>
+          </div>
+        </div>
+      `);
+    } else {
+      // ನಲಿಕಲಿ ಎಲ್ಲಾ ಚಟುವಟಿಕೆಗಳು (ಚಿತ್ರಗಳು ಮಧ್ಯದಲ್ಲಿ ವರ್ಕ್‌ಶೀಟ್‌ನಂತೆ ಪೂರ್ಣವಾಗಿ ಬರುತ್ತವೆ)
+      paperSectionsHtml.push(`
+        <div class="main-roman-section-block">
+          ${headerTableHtml}
+          ${qList.map((item) => {
+            const globalIdx = allQuestions.indexOf(item);
+            const m = getExactQuestionMarks(item);
+            const imgSrc = item.image || item.img;
+            const defaultLines = m <= 2 ? 1 : Math.min(m, 3);
+            const activeLines = (item.customLinesCount !== undefined) ? item.customLinesCount : defaultLines;
+
+            let spaceLinesHtml = '';
+            if (isBookletMode && activeLines > 0) {
+              const lines = Array(activeLines).fill('<div class="answer-writing-space-line" style="height:24px; border-bottom:1.2px dashed #64748b; margin:3px 0;"></div>').join('');
+              spaceLinesHtml = `<div class="answer-lines-container" style="margin:4px 0 6px 0;">${lines}</div>`;
+            }
+
+            return `
+              <div class="q-indivisible-block" style="margin-bottom: 7px;">
+                <table class="board-q-table-row" style="width: 100%;">
+                  <tr>
+                    <td class="board-q-num-cell" style="width: 26px;">${qNum++}.</td>
+                    <td class="board-q-text-cell">${formatQuestionTextForDisplay(item.q)}</td>
+                    <td style="width: 45px; text-align: right;" class="no-print">
+                      <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- 🌟 ನಲಿಕಲಿ ವರ್ಕ್‌ಶೀಟ್ ಚಿತ್ರ (Full-Width Dashed Border Box) -->
+                ${imgSrc ? `
+                  <div class="nalikali-worksheet-img-box">
+                    <img src="${imgSrc}" class="nalikali-worksheet-img" alt="ವರ್ಕ್‌ಶೀಟ್ ಚಿತ್ರ" />
+                  </div>
+                ` : ''}
+
+                ${spaceLinesHtml}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `);
+
+      keySectionsHtml.push(`
+        <div class="main-roman-section-block">
+          <table class="board-heading-row-table"><tr><td class="heading-left-title"><b>${r}. ${escapeHtml(headingText)}</b></td></tr></table>
+          ${qList.map(item => `
+            <div class="key-hanging-row-item">
+              <span style="font-weight:900; width: 22px;">${kNum++}.</span>
+              <span>${formatQuestionTextForDisplay(item.ans || '')}</span>
+            </div>
+          `).join('')}
+        </div>
+      `);
+    }
+  });
+
+  // ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರೆಂಡರ್
+  document.getElementById('rendered-paper').innerHTML = `
+    <div class="a4-board-sheet sheet-nalikali-mode">
+      ${finalHeaderHtml}
+      <div>${paperSectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  // ಉತ್ತರ ಪತ್ರಿಕೆ ರೆಂಡರ್
+  document.getElementById('rendered-key').innerHTML = `
+    <div class="a4-board-sheet sheet-nalikali-mode">
+      ${finalHeaderHtml}
+      <div style="text-align: center; margin-bottom: 6px; border-bottom: 2px solid #000; padding-bottom: 2px;">
+        <h3 style="font-size: 12pt; font-weight: 900; text-transform: uppercase;">ಮಾದರಿ ಉತ್ತರ ಸೂಚಿ & ಮೌಲ್ಯಮಾಪನ ಯೋಜನೆ</h3>
+      </div>
+      <div>${keySectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
+};
+    
     
   </script>
 </body>

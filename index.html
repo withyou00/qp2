@@ -7002,6 +7002,306 @@ window.handleSubjectOrPartChange = function() {
     prevSubjChange();
   }
 };
+
+// =========================================================================
+// 🎯 OFFICIAL KARNATAKA GOVT EXAM OMR SHEET GENERATOR (A4 PRINT READY)
+// =========================================================================
+
+// ೧. OMR ಶೀಟ್ ಮತ್ತು ಬಬಲ್‌ಗಳಿಗೆ ಅಧಿಕೃತ ಸರ್ಕಾರಿ ಶೈಲಿಯ CSS ಇಂಜೆಕ್ಷನ್
+(function injectOMRStyles() {
+  const styleEl = document.createElement('style');
+  styleEl.innerHTML = `
+    .omr-sheet-container {
+      width: 100% !important;
+      max-width: 820px !important;
+      background: #fff !important;
+      color: #000 !important;
+      border: 2.5px solid #000 !important;
+      padding: 6mm 8mm !important;
+      margin: 0 auto 16px auto !important;
+      box-sizing: border-box !important;
+      font-family: 'Anek Kannada', 'Anek Devanagari', sans-serif !important;
+    }
+    .omr-header-box {
+      border-bottom: 2px solid #000 !important;
+      padding-bottom: 4px !important;
+      margin-bottom: 6px !important;
+      text-align: center !important;
+    }
+    .omr-candidate-table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      margin-bottom: 6px !important;
+      font-size: 9pt !important;
+      border: 1.5px solid #000 !important;
+    }
+    .omr-candidate-table td {
+      border: 1px solid #000 !important;
+      padding: 4px 6px !important;
+      vertical-align: middle !important;
+    }
+    .omr-box-char {
+      display: inline-block !important;
+      width: 16px !important;
+      height: 18px !important;
+      border: 1px solid #000 !important;
+      margin-right: 1.5px !important;
+      vertical-align: middle !important;
+      background: #fff !important;
+    }
+    .omr-instructions-bar {
+      border: 1.5px solid #000 !important;
+      background: #f8fafc !important;
+      padding: 4px 8px !important;
+      font-size: 8pt !important;
+      margin-bottom: 6px !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+    }
+    .omr-grid-table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      font-size: 8.5pt !important;
+      border: 1.5px solid #000 !important;
+    }
+    .omr-grid-table th {
+      background-color: #0f172a !important;
+      color: #fff !important;
+      border: 1px solid #000 !important;
+      padding: 3px 2px !important;
+      text-align: center !important;
+      font-weight: 900 !important;
+      font-size: 8pt !important;
+    }
+    .omr-grid-table td {
+      border: 1px solid #cbd5e1 !important;
+      padding: 2.5px 2px !important;
+      text-align: center !important;
+      vertical-align: middle !important;
+    }
+    .omr-bubble {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 16px !important;
+      height: 16px !important;
+      border: 1.2px solid #000 !important;
+      border-radius: 50% !important;
+      font-size: 7.5pt !important;
+      font-weight: 800 !important;
+      margin: 0 1.5px !important;
+      color: #000 !important;
+      background: #fff !important;
+    }
+    .omr-footer-table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      margin-top: 8px !important;
+      border: 1.5px solid #000 !important;
+      font-size: 8.5pt !important;
+      text-align: center !important;
+    }
+    .omr-footer-table td {
+      border: 1px solid #000 !important;
+      padding: 6px 4px !important;
+      vertical-align: bottom !important;
+    }
+    @media print {
+      .omr-sheet-container {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        padding: 4mm 6mm !important;
+      }
+    }
+  `;
+  document.head.appendChild(styleEl);
+})();
+
+// ೨. OMR ಟ್ಯಾಬ್ ಬಟನ್ ಮತ್ತು ಕಂಟೈನರ್ ಅನ್ನು ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ UI ಗೆ ಸೇರಿಸುವುದು
+(function setupOMRTabUI() {
+  const tabsContainer = document.querySelector('#output-section .flex.items-center.space-x-2');
+  if (tabsContainer && !document.getElementById('tab-btn-omr')) {
+    const omrBtn = document.createElement('button');
+    omrBtn.id = 'tab-btn-omr';
+    omrBtn.className = 'px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer';
+    omrBtn.onclick = () => switchOutputTab('omr');
+    omrBtn.innerHTML = '<i class="fa-solid fa-circle-dot text-amber-600"></i> <span>4. OMR ಶೀಟ್ (OMR Sheet)</span>';
+    tabsContainer.appendChild(omrBtn);
+  }
+
+  const printArea = document.getElementById('print-area');
+  if (printArea && !document.getElementById('tab-content-omr')) {
+    const omrContent = document.createElement('div');
+    omrContent.id = 'tab-content-omr';
+    omrContent.className = 'hidden';
+    omrContent.innerHTML = '<div id="rendered-omr"></div>';
+    printArea.appendChild(omrContent);
+  }
+})();
+
+// ೩. ಟ್ಯಾಬ್ ಸ್ವಿಚರ್‌ನಲ್ಲಿ 'omr' ಬೆಂಬಲ ವಿಸ್ತರಣೆ
+window.switchOutputTab = function(t) {
+  ['paper', 'key', 'blueprint', 'omr'].forEach(x => {
+    document.getElementById(`tab-content-${x}`)?.classList.toggle('hidden', x !== t);
+    const b = document.getElementById(`tab-btn-${x}`);
+    if (b) {
+      b.className = (x === t)
+        ? 'px-4 py-2 rounded-xl text-xs font-extrabold bg-white text-slate-900 shadow-sm border border-slate-200 cursor-pointer'
+        : 'px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer';
+    }
+  });
+};
+
+// ೪. ಅಧಿಕೃತ ಸರ್ಕಾರಿ OMR ಶೀಟ್ ಜನರೇಟರ್ ಫಂಕ್ಷನ್
+function renderOfficialGovernmentOMRSheet(totalQuestions, totalMarks, examName, schoolName, subject, grade, examDate) {
+  const container = document.getElementById('rendered-omr');
+  if (!container) return;
+
+  const count = Math.min(Math.max(parseInt(totalQuestions) || 40, 20), 100);
+  
+  // ಬಬಲ್ ಕಾಲಂಗಳನ್ನು ಹೊಂದಿಸುವುದು: 100 ಅಥವಾ 90 ಕ್ಕೆ 4 ಕಾಲಂಗಳು
+  const perCol = Math.ceil(count / 4);
+  const cols = [ [], [], [], [] ];
+
+  for (let i = 1; i <= count; i++) {
+    const colIdx = Math.floor((i - 1) / perCol);
+    if (cols[colIdx]) cols[colIdx].push(i);
+  }
+
+  // 16 ಬಾಕ್ಸ್‌ಗಳ ನೇಮ್ ಬ್ಲಾಕ್
+  const nameBoxes = Array(16).fill('<span class="omr-box-char"></span>').join('');
+  const satsBoxes = Array(9).fill('<span class="omr-box-char"></span>').join('');
+
+  container.innerHTML = `
+    <div class="omr-sheet-container">
+      
+      <!-- HEADER -->
+      <div class="omr-header-box">
+        <div style="font-size: 9pt; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">
+          ಕರ್ನಾಟಕ ಶಾಲಾ ಪರೀಕ್ಷಾ ಮತ್ತು ಮೌಲ್ಯನಿರ್ಣಯ ಮಂಡಳಿ / KSEAB & DSERT ಮಾದರಿ
+        </div>
+        <h2 style="font-size: 13pt; font-weight: 900; margin: 1px 0;">
+          ${escapeHtml(schoolName)}
+        </h2>
+        <div style="font-size: 11pt; font-weight: 900; color: #1e293b;">
+          ${escapeHtml(examName)} - OMR ಉತ್ತರ ಹಾಳೆ (OMR ANSWER SHEET)
+        </div>
+      </div>
+
+      <!-- CANDIDATE DETAILS TABLE -->
+      <table class="omr-candidate-table">
+        <tr>
+          <td style="width: 60%;">
+            <b>ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು (Student Name):</b><br/>
+            <div style="margin-top: 3px;">${nameBoxes}</div>
+          </td>
+          <td style="width: 40%;">
+            <b>SATS / ನೋಂದಣಿ ಸಂಖ್ಯೆ (Reg No):</b><br/>
+            <div style="margin-top: 3px;">${satsBoxes}</div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <b>ವಿಷಯ (Subject):</b> ${escapeHtml(subject)} &nbsp;&nbsp;|&nbsp;&nbsp; <b>ದಿನಾಂಕ:</b> ${escapeHtml(examDate)}
+          </td>
+          <td>
+            <b>ತರಗತಿ:</b> ${grade}ನೇ ತರಗತಿ &nbsp;&nbsp;|&nbsp;&nbsp; <b>ವಿಭಾಗ (Sec):</b> [ &nbsp;&nbsp;&nbsp; ]
+          </td>
+        </tr>
+      </table>
+
+      <!-- INSTRUCTIONS BAR -->
+      <div class="omr-instructions-bar">
+        <div>
+          <b>ಸೂಚನೆಗಳು:</b> ಕೇವಲ ನೀಲಿ / ಕಪ್ಪು ಬಾಲ್‌ಪಾಯಿಂಟ್ ಪೆನ್ ಬಳಸಿ ವೃತ್ತವನ್ನು ಪೂರ್ಣವಾಗಿ ತುಂಬಿರಿ.
+        </div>
+        <div style="display: flex; items-center; gap: 8px;">
+          <span>ಸರಿ ವಿಧಾನ: <span class="omr-bubble" style="background:#000; color:#fff;">A</span></span>
+          <span style="color:#64748b;">ತಪ್ಪು: <s>(A)</s> &nbsp; ✓ &nbsp; ✗</span>
+        </div>
+      </div>
+
+      <!-- OMR BUBBLE GRID (4 COLUMNS) -->
+      <table class="omr-grid-table">
+        <thead>
+          <tr>
+            <th style="width: 5%;">ಪ್ರ.ಸಂ</th><th style="width: 20%;">ಉತ್ತರ (A B C D)</th>
+            <th style="width: 5%;">ಪ್ರ.ಸಂ</th><th style="width: 20%;">ಉತ್ತರ (A B C D)</th>
+            <th style="width: 5%;">ಪ್ರ.ಸಂ</th><th style="width: 20%;">ಉತ್ತರ (A B C D)</th>
+            <th style="width: 5%;">ಪ್ರ.ಸಂ</th><th style="width: 20%;">ಉತ್ತರ (A B C D)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${Array.from({ length: perCol }).map((_, rIdx) => `
+            <tr>
+              ${[0, 1, 2, 3].map(cIdx => {
+                const qNum = cols[cIdx][rIdx];
+                if (!qNum) return `<td></td><td></td>`;
+                return `
+                  <td style="font-weight: 900; background: #f8fafc;">${qNum}</td>
+                  <td style="white-space: nowrap;">
+                    <span class="omr-bubble">A</span>
+                    <span class="omr-bubble">B</span>
+                    <span class="omr-bubble">C</span>
+                    <span class="omr-bubble">D</span>
+                  </td>
+                `;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <!-- FOOTER SIGNATURES & MARKS OBTAINED -->
+      <table class="omr-footer-table">
+        <tr>
+          <td style="width: 25%; height: 48px;">
+            <div style="border-top: 1px dashed #000; margin-top: 28px; padding-top: 2px;">
+              <b>ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ</b><br/>(Candidate Signature)
+            </div>
+          </td>
+          <td style="width: 25%;">
+            <div style="border-top: 1px dashed #000; margin-top: 28px; padding-top: 2px;">
+              <b>ಕೊಠಡಿ ಮೇಲ್ವಿಚಾರಕರ ಸಹಿ</b><br/>(Invigilator Signature)
+            </div>
+          </td>
+          <td style="width: 25%;">
+            <div style="border-top: 1px dashed #000; margin-top: 28px; padding-top: 2px;">
+              <b>ಮೌಲ್ಯಮಾಪಕರ ಸಹಿ</b><br/>(Evaluator Signature)
+            </div>
+          </td>
+          <td style="width: 25%; background: #f8fafc;">
+            <div style="font-size: 8pt; font-weight: 800; color: #475569;">ಒಟ್ಟು ಗಳಿಸಿದ ಅಂಕಗಳು</div>
+            <div style="font-size: 15pt; font-weight: 900; color: #000; margin-top: 2px; border: 1.5px solid #000; padding: 2px; background: #fff;">
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; / ${totalMarks}
+            </div>
+          </td>
+        </tr>
+      </table>
+
+    </div>
+  `;
+}
+
+// ೫. ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಜನರೇಟ್ ಆದಾಗ OMR ಶೀಟ್ ಅನ್ನು ಸಹ ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ರೆಂಡರ್ ಮಾಡುವುದು
+const prevRenderFullExamWithOMR = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  if (typeof prevRenderFullExamWithOMR === 'function') {
+    prevRenderFullExamWithOMR(headerHtml);
+  }
+
+  const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  const grade = document.getElementById('cfg-class')?.value || '8';
+  const rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಜ್ಞಾನ';
+  const rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+  const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+  
+  const totalQ = (appState.activeGeneratedQuestions || []).length || parseInt(document.getElementById('cfg-total-questions')?.value) || 40;
+  const actualMarks = (appState.activeGeneratedQuestions || []).reduce((a, b) => a + getExactQuestionMarks(b), 0) || parseInt(document.getElementById('cfg-total-marks')?.value) || 40;
+
+  renderOfficialGovernmentOMRSheet(totalQ, actualMarks, rawExamType, schoolName, rawSubj, grade, examDate);
+};
     
     
   </script>

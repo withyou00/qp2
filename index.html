@@ -7467,6 +7467,139 @@ window.handleSubjectOrPartChange = function() {
   loadQuestionsFromGitHub(medium, grade, subj, part);
 };
     
+
+// =========================================================================
+// 🚀 FUTURE-PROOF MODULAR MULTI-FILE AUTO-MERGER ENGINE
+// =========================================================================
+
+// ಪ್ರತ್ಯೇಕ ವಿಷಯದ ಫೈಲ್‌ಗಳ ಮ್ಯಾಪಿಂಗ್ ಪಟ್ಟಿ (Auto-Merge Module List)
+const COMPETITIVE_MODULES_MAP = {
+  'nmms_sat': [
+    'nmms_sat.json',       // ಸದ್ಯಕ್ಕಿರುವ ಸಿಂಗಲ್ ಫೈಲ್
+    'nmms_physics.json',   // ಭವಿಷ್ಯದ ಪ್ರತ್ಯೇಕ ಫೈಲ್‌ಗಳು
+    'nmms_chemistry.json',
+    'nmms_biology.json',
+    'nmms_history.json',
+    'nmms_geography.json',
+    'nmms_civics.json',
+    'nmms_maths.json'
+  ],
+  'morarji_entrance': [
+    'morarji_entrance.json',
+    'morarji_kannada.json',
+    'morarji_maths.json',
+    'morarji_science.json',
+    'morarji_social.json',
+    'morarji_english.json',
+    'morarji_gk.json'
+  ],
+  'adarsha_entrance': [
+    'adarsha_entrance.json',
+    'adarsha_kannada.json',
+    'adarsha_maths.json',
+    'adarsha_science.json',
+    'adarsha_english.json',
+    'adarsha_social.json'
+  ]
+};
+
+// ಸೂಪರ್ ಫಾಸ್ಟ್ ಪ್ಯಾರಲಲ್ ಆಟೋ-ಮರ್ಜರ್ ಲೋಡರ್
+window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part) {
+  appState.activeSubjectQuestions = [];
+  renderChapterCheckboxes();
+
+  const gradeStr = String(grade).replace(/\D/g, '');
+  const subjectKey = getNormalizedSubjectKey(rawSubject);
+  const isCompetitive = !!COMPETITIVE_MODULES_MAP[subjectKey];
+
+  showToast(`🌐 ${rawSubject} ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ...`, 'info');
+
+  try {
+    let loadedList = [];
+    let loadedFilesCount = 0;
+
+    if (isCompetitive) {
+      // 🌟 ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳಿಗೆ: ಎಲ್ಲಾ ಪ್ರತ್ಯೇಕ ಫೈಲ್‌ಗಳನ್ನು ಏಕಕಾಲದಲ್ಲಿ ಫೆಚ್ ಮಾಡಿ ಒಗ್ಗೂಡಿಸುವುದು
+      const filesList = COMPETITIVE_MODULES_MAP[subjectKey];
+
+      const fetchPromises = filesList.map(async (fileName) => {
+        const pathsToTry = [
+          `class_${gradeStr}/${fileName}`,
+          `kannada_medium/class_${gradeStr}/${fileName}`,
+          `kannada_medium/${fileName}`,
+          `${fileName}`
+        ];
+
+        for (const p of pathsToTry) {
+          const rawUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(p)}?t=${Date.now()}`;
+          try {
+            const res = await fetch(rawUrl);
+            if (res.ok) {
+              const text = await res.text();
+              const data = safeRepairAndParseJSON(text);
+              if (Array.isArray(data) && data.length > 0) {
+                return data;
+              }
+            }
+          } catch(e) {}
+        }
+        return null;
+      });
+
+      const results = await Promise.all(fetchPromises);
+      results.forEach(fileData => {
+        if (fileData) {
+          loadedList.push(...fileData);
+          loadedFilesCount++;
+        }
+      });
+
+    } else {
+      // ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳಿಗೆ ಮಾಮೂಲಿ ಲೋಡಿಂಗ್
+      let filesToTry = [];
+      if (part === 'part1') filesToTry = [`kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`, `class_${gradeStr}/${subjectKey}_part1.json`, `${subjectKey}_part1.json`];
+      else if (part === 'part2') filesToTry = [`kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`, `class_${gradeStr}/${subjectKey}_part2.json`, `${subjectKey}_part2.json`];
+      else filesToTry = [`kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`, `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`, `class_${gradeStr}/${subjectKey}.json`, `${subjectKey}.json`];
+
+      for (const filePath of filesToTry) {
+        const rawUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(filePath)}?t=${Date.now()}`;
+        try {
+          const res = await fetch(rawUrl);
+          if (res.ok) {
+            const text = await res.text();
+            const data = safeRepairAndParseJSON(text);
+            if (Array.isArray(data) && data.length > 0) {
+              loadedList = data;
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+    }
+
+    // ಫಲಿತಾಂಶ ಪ್ರದರ್ಶನ
+    if (loadedList.length > 0) {
+      // ಡ್ಯೂಪ್ಲಿಕೇಟ್ ಪ್ರಶ್ನೆಗಳನ್ನು ತೆಗೆದುಹಾಕುವುದು
+      const seenIds = new Set();
+      appState.activeSubjectQuestions = loadedList.filter(q => {
+        if (!q.id) return true;
+        if (seenIds.has(q.id)) return false;
+        seenIds.add(q.id);
+        return true;
+      });
+
+      renderChapterCheckboxes();
+      renderMaster10QuestionFormats();
+      showToast(`⚡ ಒಟ್ಟು ${appState.activeSubjectQuestions.length} ಪ್ರಶ್ನೆಗಳು ಯಶಸ್ವಿಯಾಗಿ ಲೋಡ್ ಆಗಿವೆ!`, 'success');
+    } else {
+      appState.activeSubjectQuestions = [];
+      renderChapterCheckboxes();
+      showToast(`⚠️ GitHub ನಲ್ಲಿ '${subjectKey}' ಸಂಬಂಧಿತ ಪ್ರಶ್ನೆಗಳು ಕಂಡುಬಂದಿಲ್ಲ.`, 'error');
+    }
+  } catch (err) {
+    console.error("Multi-file Loader error:", err);
+  }
+};
     
   </script>
 </body>

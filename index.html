@@ -7605,7 +7605,163 @@ window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part)
 
 
   
+// =========================================================================
+// 🌟 NMMS / COMPETITIVE SECTION-WISE SUBJECT HEADERS ENGINE
+// =========================================================================
 
+const prevRenderWithCompetitiveHeaders = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  const allQuestions = appState.activeGeneratedQuestions || [];
+  const rawSubj = document.getElementById('cfg-subject')?.value || '';
+  const subjKey = (typeof getNormalizedSubjectKey === 'function') ? getNormalizedSubjectKey(rawSubj) : '';
+  const isCompetitive = (subjKey === 'nmms_sat' || subjKey === 'nmms_gmat' || subjKey === 'morarji_entrance' || subjKey === 'adarsha_entrance' || rawSubj.includes('NMMS') || rawSubj.includes('ಮೊರಾರ್ಜಿ') || rawSubj.includes('ಆದರ್ಶ'));
+
+  // ಸಾಮಾನ್ಯ ಶಾಲಾ ಪರೀಕ್ಷೆಯಾಗಿದ್ದರೆ ಎಂದಿನಂತೆ ಕಾರ್ಯನಿರ್ವಹಿಸಲಿ
+  if (!isCompetitive) {
+    if (typeof prevRenderWithCompetitiveHeaders === 'function') {
+      prevRenderWithCompetitiveHeaders(headerHtml);
+    }
+    return;
+  }
+
+  // 🌟 NMMS / ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಯಾಗಿದ್ದರೆ: ವಿಷಯವಾರು (Chapter-wise) ವಿಂಗಡಿಸಿ ಹೆಡರ್ ಹಾಕುವುದು
+  const medium = document.getElementById('cfg-medium')?.value || 'kannada_medium';
+  const isEnglish = (medium === 'english_medium');
+  const isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
+
+  const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  const grade = document.getElementById('cfg-class')?.value || '8';
+  const rawExamType = document.getElementById('cfg-exam-type')?.value || 'NMMS ವಿದ್ಯಾರ್ಥಿವೇತನ ಪರೀಕ್ಷೆ 2026-27';
+  const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+  const actualMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+  // ಅಧಿಕೃತ NMMS ಹೆಡರ್
+  const finalHeaderHtml = `
+    <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 6px;">
+      <div style="text-align: center; margin-bottom: 2px;">
+        <h1 style="font-size: 13pt; font-weight: 900; margin: 0; line-height: 1.2;">${escapeHtml(schoolName)}</h1>
+        <div style="font-size: 11pt; font-weight: 900; margin-top: 1px; color: #0f172a;">
+          ${escapeHtml(rawExamType)}
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 2px;">
+        <tr>
+          <td style="width: 34%; text-align: left; font-weight: 800; font-size: 9.8pt;">ವಿಷಯ : <b>${escapeHtml(rawSubj)}</b></td>
+          <td style="width: 22%; text-align: center; font-weight: 800; font-size: 9.8pt;">ತರಗತಿ : <b>${grade}ನೇ ತರಗತಿ</b></td>
+          <td style="width: 22%; text-align: center; font-weight: 800; font-size: 9.8pt;">ದಿನಾಂಕ : <b>${escapeHtml(examDate)}</b></td>
+          <td style="width: 22%; text-align: right; font-weight: 800; font-size: 9.8pt;">ಒಟ್ಟು ಅಂಕಗಳು : <b>${actualMarks}</b></td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  // ಪ್ರಶ್ನೆಗಳನ್ನು ಅವುಗಳ ವಿಷಯ/ಪಾಠವಾರು (Physics, Chemistry, History...) ಕ್ರಮಬದ್ಧವಾಗಿ ಜೋಡಿಸುವುದು
+  allQuestions.sort((a, b) => {
+    return getSerialSortNum(a.chapter) - getSerialSortNum(b.chapter) || String(a.chapter || '').localeCompare(String(b.chapter || ''));
+  });
+
+  // ವಿಷಯವಾರು ಗುಂಪು ರಚನೆ
+  const chapterGroups = new Map();
+  allQuestions.forEach(q => {
+    const ch = (q.chapter || 'ಸಾಮಾನ್ಯ ವಿಭಾಗ').trim();
+    if (!chapterGroups.has(ch)) chapterGroups.set(ch, []);
+    chapterGroups.get(ch).push(q);
+  });
+
+  let paperSectionsHtml = [];
+  let keySectionsHtml = [];
+  let qNum = 1, kNum = 1;
+
+  chapterGroups.forEach((qList, chapterTitle) => {
+    // 🌟 ಮೂಲ NMMS ಪತ್ರಿಕೆಯ ಮಾದರಿಯ ವಿಷಯದ ಹೆಡರ್ ಬ್ಯಾನರ್
+    const subjectBannerHtml = `
+      <div style="width: 100%; border: 1.5px solid #000; background: #f1f5f9; text-align: center; padding: 3.5px 6px; margin: 8px 0 5px 0; font-weight: 900; font-size: 10.5pt; text-transform: uppercase; letter-spacing: 0.5px; page-break-after: avoid; break-after: avoid;">
+        ✦ ${escapeHtml(chapterTitle)} ✦ &nbsp; <span style="font-size: 9pt; font-weight: 700; color: #475569;">(${qList.length} ಅಂಕಗಳು)</span>
+      </div>
+    `;
+
+    paperSectionsHtml.push(`
+      <div class="main-roman-section-block">
+        ${subjectBannerHtml}
+        ${qList.map(m => {
+          const globalIdx = allQuestions.indexOf(m);
+          const imgSrc = m.image || m.img;
+          const isWideImg = (m.q && m.q.length > 70) || (imgSrc && imgSrc.includes('wide'));
+
+          return `
+          <div class="q-indivisible-block" style="margin-bottom: ${isBookletMode ? '6px' : '3px'};">
+            <table class="mcq-container-table">
+              <tr>
+                <td class="mcq-text-left">
+                  <table class="board-q-table-row">
+                    <tr>
+                      <td class="board-q-num-cell">${qNum++}.</td>
+                      <td class="board-q-text-cell">${formatQuestionTextForDisplay(m.q)}</td>
+                      <td style="width: 45px; text-align: right;" class="no-print">
+                        <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                ${(imgSrc && !isWideImg) ? `<td class="mcq-img-right"><img src="${imgSrc}" class="mcq-diagram-img" alt="Diagram" /></td>` : ''}
+              </tr>
+            </table>
+            ${(imgSrc && isWideImg) ? `<div class="mcq-wide-img-box"><img src="${imgSrc}" class="mcq-wide-diagram-img" alt="Diagram" /></div>` : ''}
+            <table style="width: 100%; margin: 2px 0;">
+              <tr>
+                <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px 1px 25px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</td>
+                <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</td>
+                <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</td>
+                <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</td>
+              </tr>
+            </table>
+            ${isBookletMode ? `<div style="padding-left: 25px; margin-bottom: 4px; font-size: 9.5pt; font-weight: 700;">ಉತ್ತರ : ________________________________________________________________</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    `);
+
+    // ಕೀ ಉತ್ತರದಲ್ಲೂ ವಿಷಯವಾರು ಹೆಡರ್
+    keySectionsHtml.push(`
+      <div class="main-roman-section-block">
+        <div style="border-bottom: 1.5px solid #000; padding: 2px 4px; margin: 6px 0 4px 0; font-weight: 900; font-size: 10pt; background: #f8fafc;">
+          <b>✦ ${escapeHtml(chapterTitle)} ✦</b>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 4px; margin-bottom: 6px;">
+          ${qList.map(m => `
+            <div class="key-hanging-row-item" style="font-size: 9.5pt; padding: 1px 4px; border: 1px dashed #cbd5e1; background: #fff;">
+              <span style="font-weight:900; min-width: 24px;">${kNum++}.</span>
+              <span><b>${formatQuestionTextForDisplay(m.ans || '')}</b></span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `);
+  });
+
+  document.getElementById('rendered-paper').innerHTML = `
+    <div class="a4-board-sheet">
+      ${finalHeaderHtml}
+      <div>${paperSectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  document.getElementById('rendered-key').innerHTML = `
+    <div class="a4-board-sheet">
+      ${finalHeaderHtml}
+      <div style="text-align: center; margin-bottom: 6px; border-bottom: 2px solid #000; padding-bottom: 2px;">
+        <h3 style="font-size: 12pt; font-weight: 900; text-transform: uppercase;">ಅಧಿಕೃತ ಕೀ ಉತ್ತರ ಸೂಚಿ & ಪರಿಹಾರಗಳು (KEY ANSWERS)</h3>
+      </div>
+      <div>${keySectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  // ನೀಲನಕ್ಷೆ ಮತ್ತು OMR ಶೀಟ್ ರೆಂಡರ್ ಮಾಡುವುದು
+  renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
+  if (typeof renderOfficialGovernmentOMRSheet === 'function') {
+    renderOfficialGovernmentOMRSheet(allQuestions.length, actualMarks, rawExamType, schoolName, rawSubj, grade, examDate);
+  }
+};
         
 
     

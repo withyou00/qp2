@@ -8029,6 +8029,160 @@ function renderOfficialGovernmentOMRSheet(totalQuestions, totalMarks, examName, 
   `;
 }
 
+
+// =========================================================================
+// 🚀 NMMS GMAT (PAPER-1) & SAT DUAL PARALLEL LOADER FIX
+// =========================================================================
+
+// ೧. ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳ ಅಧಿಕೃತ ಪಟ್ಟಿಯಲ್ಲಿ 'nmms_gmat' ಸೇರ್ಪಡೆ
+const COMPETITIVE_MODULES_MAP = {
+  'nmms_gmat': [
+    'nmms_gmat.json'       // 🌟 GMAT ಪತ್ರಿಕೆ 1 (ಬೌದ್ಧಿಕ ಸಾಮರ್ಥ್ಯ - 90 ಅಂಕಗಳು)
+  ],
+  'nmms_sat': [
+    'nmms_sat.json',       // 🌟 SAT ಪತ್ರಿಕೆ 2 (ಶೈಕ್ಷಣಿಕ ಸಾಮರ್ಥ್ಯ - 90 ಅಂಕಗಳು)
+    'nmms_physics.json',
+    'nmms_chemistry.json',
+    'nmms_biology.json',
+    'nmms_history.json',
+    'nmms_geography.json',
+    'nmms_civics.json',
+    'nmms_maths.json'
+  ],
+  'morarji_entrance': [
+    'morarji_entrance.json',
+    'morarji_kannada.json',
+    'morarji_maths.json',
+    'morarji_science.json',
+    'morarji_social.json',
+    'morarji_english.json',
+    'morarji_gk.json'
+  ],
+  'adarsha_entrance': [
+    'adarsha_entrance.json',
+    'adarsha_kannada.json',
+    'adarsha_maths.json',
+    'adarsha_science.json',
+    'adarsha_english.json',
+    'adarsha_social.json'
+  ]
+};
+
+// ೨. ಕೀ ನಾರ್ಮಲೈಜರ್ (GMAT ಮತ್ತು SAT ಎರಡನ್ನೂ ನಿಖರವಾಗಿ ಗುರುತಿಸುವುದು)
+window.getNormalizedSubjectKey = function(subjectStr) {
+  if (!subjectStr) return 'general';
+  const s = String(subjectStr).toLowerCase().trim();
+
+  // 🌟 GMAT ಮತ್ತು SAT ಆಟೋ-ಡಿಟೆಕ್ಟ್
+  if (s.includes('gmat') || s.includes('ಬೌದ್ಧಿಕ') || s.includes('mat')) return 'nmms_gmat';
+  if (s.includes('sat') || s.includes('ಶೈಕ್ಷಣಿಕ')) return 'nmms_sat';
+
+  if (s.includes('morarji') || s.includes('ಮೊರಾರ್ಜಿ')) return 'morarji_entrance';
+  if (s.includes('adarsha') || s.includes('ಆದರ್ಶ')) return 'adarsha_entrance';
+
+  if (s.includes('ಪರಿಸರ') || s.includes('evs') || s.includes('environment')) return 'evs';
+  if (s.includes('ಹಿಂದಿ') || s.includes('hindi')) return 'hindi';
+  if (s.includes('ಸಮಾಜ') || s.includes('social')) return 'social_science';
+  if (s.includes('ವಿಜ್ಞಾನ') || s.includes('science')) return 'science';
+  if (s.includes('ಗಣಿತ') || s.includes('math')) return 'mathematics';
+  if (s.includes('ಕನ್ನಡ') || s.includes('kannada')) return 'kannada';
+  if (s.includes('ಇಂಗ್ಲಿಷ್') || s.includes('english')) return 'english';
+
+  return safeCleanMatch(subjectStr);
+};
+
+// ೩. ಸೂಪರ್ ಫಾಸ್ಟ್ GitHub ಲೋಡರ್ (kannada_medium ಮತ್ತು class_8 ಎರಡೂ ಪಾತ್‌ಗಳಲ್ಲಿ ಹುಡುಕುತ್ತದೆ)
+window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part) {
+  appState.activeSubjectQuestions = [];
+  renderChapterCheckboxes();
+
+  const gradeStr = String(grade).replace(/\D/g, '');
+  const subjectKey = getNormalizedSubjectKey(rawSubject);
+  const isCompetitive = !!COMPETITIVE_MODULES_MAP[subjectKey];
+
+  showToast(`🌐 ${rawSubject} ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ...`, 'info');
+
+  try {
+    let loadedList = [];
+
+    if (isCompetitive) {
+      const filesList = COMPETITIVE_MODULES_MAP[subjectKey];
+
+      const fetchPromises = filesList.map(async (fileName) => {
+        // 🌟 ನಿಮ್ಮ GitHub ನಲ್ಲಿರುವ ಸರಿಯಾದ ಪಾತ್‌ಗಳು
+        const pathsToTry = [
+          `kannada_medium/class_${gradeStr}/${fileName}`, // ನಿಮ್ಮ GitHub ನ ನಿಖರ ಪಾತ್
+          `class_${gradeStr}/${fileName}`,
+          `kannada_medium/${fileName}`,
+          `${fileName}`
+        ];
+
+        for (const p of pathsToTry) {
+          const rawUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(p)}?t=${Date.now()}`;
+          try {
+            const res = await fetch(rawUrl);
+            if (res.ok) {
+              const text = await res.text();
+              const data = safeRepairAndParseJSON(text);
+              if (Array.isArray(data) && data.length > 0) {
+                return data;
+              }
+            }
+          } catch(e) {}
+        }
+        return null;
+      });
+
+      const results = await Promise.all(fetchPromises);
+      results.forEach(fileData => {
+        if (fileData) {
+          loadedList.push(...fileData);
+        }
+      });
+
+    } else {
+      let filesToTry = [];
+      if (part === 'part1') filesToTry = [`kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`, `class_${gradeStr}/${subjectKey}_part1.json`, `${subjectKey}_part1.json`];
+      else if (part === 'part2') filesToTry = [`kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`, `class_${gradeStr}/${subjectKey}_part2.json`, `${subjectKey}_part2.json`];
+      else filesToTry = [`kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`, `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`, `class_${gradeStr}/${subjectKey}.json`, `${subjectKey}.json`];
+
+      for (const filePath of filesToTry) {
+        const rawUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(filePath)}?t=${Date.now()}`;
+        try {
+          const res = await fetch(rawUrl);
+          if (res.ok) {
+            const text = await res.text();
+            const data = safeRepairAndParseJSON(text);
+            if (Array.isArray(data) && data.length > 0) {
+              loadedList = data;
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+    }
+
+    if (loadedList.length > 0) {
+      const seenIds = new Set();
+      appState.activeSubjectQuestions = loadedList.filter(q => {
+        if (!q.id) return true;
+        if (seenIds.has(q.id)) return false;
+        seenIds.add(q.id);
+        return true;
+      });
+
+      renderChapterCheckboxes();
+      renderMaster10QuestionFormats();
+      showToast(`⚡ ಒಟ್ಟು ${appState.activeSubjectQuestions.length} ಪ್ರಶ್ನೆಗಳು ಯಶಸ್ವಿಯಾಗಿ ಲೋಡ್ ಆಗಿವೆ!`, 'success');
+    } else {
+      appState.activeSubjectQuestions = [];
+      renderChapterCheckboxes();
+      showToast(`⚠️ GitHub ನಲ್ಲಿ '${subjectKey}.json' ಫೈಲ್ ಕಂಡುಬಂದಿಲ್ಲ.`, 'error');
+    }
+  } catch (err) {
+    console.error("Loader error:", err);
+  }
+};
     
     
   </script>

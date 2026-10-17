@@ -6843,7 +6843,165 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
   renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
 };
 
-      
+   // =========================================================================
+// 🎯 NMMS (90M), MORARJI (100M) & COMPETITIVE AUTO-SETTINGS ADAPTER
+// =========================================================================
+
+(function setupCompetitiveExamOptions() {
+  const examSelect = document.getElementById('cfg-exam-type');
+  if (!examSelect) return;
+
+  // ಡ್ರಾಪ್‌ಡೌನ್‌ನಲ್ಲಿ ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳ ಆಯ್ಕೆಗಳನ್ನು ಸೇರಿಸುವುದು
+  const competitiveOptions = [
+    { val: "NMMS ಪರೀಕ್ಷೆ (GMAT / SAT) 2026-27", label: "🌟 NMMS ಪರೀಕ್ಷೆ (GMAT / SAT - 90 Marks)" },
+    { val: "ಮೊರಾರ್ಜಿ ದೇಸಾಯಿ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (KREIS) 2026-27", label: "🌟 ಮೊರಾರ್ಜಿ ದೇಸಾಯಿ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (100 Marks)" },
+    { val: "ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ 2026-27", label: "🌟 ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (100 Marks)" }
+  ];
+
+  competitiveOptions.forEach(optData => {
+    // ಈಗಾಗಲೇ ಇಲ್ಲದಿದ್ದರೆ ಮಾತ್ರ ಸೇರಿಸುವುದು
+    const exists = Array.from(examSelect.options).some(o => o.value === optData.val);
+    if (!exists) {
+      const newOpt = document.createElement('option');
+      newOpt.value = optData.val;
+      newOpt.innerText = optData.label;
+      newOpt.className = "font-bold text-amber-800 bg-amber-50";
+      examSelect.appendChild(newOpt);
+    }
+  });
+
+  // ಪರೀಕ್ಷಾ ವಿಧಾನ ಬದಲಾದಾಗ ಅಂಕ ಮತ್ತು ಪ್ರಶ್ನೆಗಳನ್ನು ಆಟೋ-ಸೆಟ್ ಮಾಡುವ ಇವೆಂಟ್
+  examSelect.addEventListener('change', function() {
+    const selectedVal = this.value;
+    const marksInput = document.getElementById('cfg-total-marks');
+    const qCountInput = document.getElementById('cfg-total-questions');
+
+    // ೧. NMMS ಆಯ್ಕೆ ಮಾಡಿದಾಗ (90 ಅಂಕಗಳು & 90 ಪ್ರಶ್ನೆಗಳು)
+    if (selectedVal.includes('NMMS')) {
+      if (marksInput) marksInput.value = 90;
+      if (qCountInput) qCountInput.value = 90;
+
+      // ಕೇವಲ MCQ ಮಾತ್ರ ಸೆಲೆಕ್ಟ್ ಮಾಡುವುದು
+      document.querySelectorAll('input[name="qtype_opt"]').forEach(cb => {
+        cb.checked = (cb.value === 'mcq');
+      });
+
+      showToast("🎯 NMMS ಮೋಡ್: 90 ಅಂಕಗಳು & 90 ವಸ್ತುನಿಷ್ಠ (MCQ) ಪ್ರಶ್ನೆಗಳು ಸೆಟ್ ಆಗಿವೆ!", "info");
+    }
+    // ೨. ಮೊರಾರ್ಜಿ ಅಥವಾ ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಆಯ್ಕೆ ಮಾಡಿದಾಗ (100 ಅಂಕಗಳು & 100 ಪ್ರಶ್ನೆಗಳು)
+    else if (selectedVal.includes('ಮೊರಾರ್ಜಿ') || selectedVal.includes('ಆದರ್ಶ')) {
+      if (marksInput) marksInput.value = 100;
+      if (qCountInput) qCountInput.value = 100;
+
+      // ಕೇವಲ MCQ ಮಾತ್ರ ಸೆಲೆಕ್ಟ್ ಮಾಡುವುದು
+      document.querySelectorAll('input[name="qtype_opt"]').forEach(cb => {
+        cb.checked = (cb.value === 'mcq');
+      });
+
+      showToast("🎯 ಪ್ರವೇಶ ಪರೀಕ್ಷಾ ಮೋಡ್: 100 ಅಂಕಗಳು & 100 MCQ ಪ್ರಶ್ನೆಗಳು ಸೆಟ್ ಆಗಿವೆ!", "info");
+    }
+    // ೩. ರೂಪಣಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು (FA-1, FA-2, FA-3, FA-4) ಆಯ್ಕೆ ಮಾಡಿದಾಗ
+    else if (selectedVal.includes('FA') || selectedVal.includes('ರೂಪಣಾತ್ಮಕ')) {
+      if (marksInput) marksInput.value = 20;
+      if (qCountInput) qCountInput.value = 12;
+
+      // ಎಲ್ಲಾ ಪ್ರಕಾರಗಳನ್ನು ಮರಳಿ ಆನ್ ಮಾಡುವುದು
+      document.querySelectorAll('input[name="qtype_opt"]').forEach(cb => cb.checked = true);
+    }
+    // ೪. ಸಂಕಲನಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು (SA-1, SA-2) ಆಯ್ಕೆ ಮಾಡಿದಾಗ ಮೊದಲಿನಂತೆ ಮರಳಿ ತರುವುದು
+    else if (selectedVal.includes('SA') || selectedVal.includes('ಸಂಕಲನಾತ್ಮಕ')) {
+      if (marksInput) marksInput.value = 40;
+      if (qCountInput) qCountInput.value = 24;
+
+      // ಎಲ್ಲಾ ಪ್ರಕಾರಗಳನ್ನು ಮರಳಿ ಆನ್ ಮಾಡುವುದು
+      document.querySelectorAll('input[name="qtype_opt"]').forEach(cb => cb.checked = true);
+    }
+    // ೫. ಘಟಕ ಪರೀಕ್ಷೆ (LBA / Unit Test)
+    else if (selectedVal.includes('LBA') || selectedVal.includes('ಘಟಕ')) {
+      if (marksInput) marksInput.value = 20;
+      if (qCountInput) qCountInput.value = 10;
+      document.querySelectorAll('input[name="qtype_opt"]').forEach(cb => cb.checked = true);
+    }
+  });
+})(); 
+
+    // =========================================================================
+// 🌟 METHOD 'A': MORARJI, ADARSHA & NMMS COMBINED FULL MOCK ENGINE
+// =========================================================================
+
+// ೧. ವಿಷಯಗಳ ಡ್ರಾಪ್‌ಡೌನ್‌ನಲ್ಲಿ ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳನ್ನು ಸೇರಿಸುವುದು
+const prevUpdateSubjects = window.updateSubjectOptionsForClass;
+window.updateSubjectOptionsForClass = function() {
+  const grade = parseInt(document.getElementById('cfg-class')?.value) || 8;
+  const s = document.getElementById('cfg-subject');
+  if (!s) return;
+
+  if (grade === 6) {
+    // ೬ನೇ ತರಗತಿ: ಸಾಮಾನ್ಯ ವಿಷಯಗಳ ಜೊತೆಗೆ ಪ್ರವೇಶ ಪರೀಕ್ಷೆಗಳು
+    s.innerHTML = `
+      <option value="ವಿಜ್ಞಾನ (Science)">ವಿಜ್ಞಾನ (Science)</option>
+      <option value="ಕನ್ನಡ (Kannada)">ಕನ್ನಡ (Kannada)</option>
+      <option value="ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)">ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)</option>
+      <option value="ಗಣಿತ (Mathematics)">ಗಣಿತ (Mathematics)</option>
+      <option value="English">English</option>
+      <option value="ಹಿಂದಿ (Hindi)">ಹಿಂದಿ (Hindi)</option>
+      <option value="ಮೊರಾರ್ಜಿ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (Morarji Entrance)" class="font-bold text-amber-900 bg-amber-50">🌟 ಮೊರಾರ್ಜಿ / ಕಿತ್ತೂರು ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (100 Marks)</option>
+      <option value="ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ (Adarsha Entrance)" class="font-bold text-indigo-900 bg-indigo-50">🌟 ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (100 Marks)</option>
+    `;
+  } else if (grade === 8) {
+    // ೮ನೇ ತರಗತಿ: ಸಾಮಾನ್ಯ ವಿಷಯಗಳ ಜೊತೆಗೆ NMMS ಪರೀಕ್ಷೆಗಳು
+    s.innerHTML = `
+      <option value="ವಿಜ್ಞಾನ (Science)">ವಿಜ್ಞಾನ (Science)</option>
+      <option value="ಕನ್ನಡ (Kannada)">ಕನ್ನಡ (Kannada)</option>
+      <option value="ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)">ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)</option>
+      <option value="ಗಣಿತ (Mathematics)">ಗಣಿತ (Mathematics)</option>
+      <option value="English">English</option>
+      <option value="ಹಿಂದಿ (Hindi)">ಹಿಂದಿ (Hindi)</option>
+      <option value="NMMS GMAT (ಪತ್ರಿಕೆ 1 - ಬೌದ್ಧಿಕ ಸಾಮರ್ಥ್ಯ)" class="font-bold text-emerald-900 bg-emerald-50">🌟 NMMS GMAT (ಪತ್ರಿಕೆ 1 - 90 Marks)</option>
+      <option value="NMMS SAT (ಪತ್ರಿಕೆ 2 - ಶೈಕ್ಷಣಿಕ ಸಾಮರ್ಥ್ಯ)" class="font-bold text-purple-900 bg-purple-50">🌟 NMMS SAT (ಪತ್ರಿಕೆ 2 - 90 Marks)</option>
+    `;
+  } else if (typeof prevUpdateSubjects === 'function') {
+    prevUpdateSubjects();
+  }
+};
+
+// ೨. ಕೀ ನಾರ್ಮಲೈಜರ್ (GitHub ಫೈಲ್ ಹೆಸರಿಗೆ ಹೊಂದಿಸುವುದು)
+const prevGetNormKey = window.getNormalizedSubjectKey;
+window.getNormalizedSubjectKey = function(subjectStr) {
+  if (!subjectStr) return 'general';
+  const s = String(subjectStr).toLowerCase().trim();
+
+  if (s.includes('morarji') || s.includes('ಮೊರಾರ್ಜಿ')) return 'morarji_entrance';
+  if (s.includes('adarsha') || s.includes('ಆದರ್ಶ')) return 'adarsha_entrance';
+  if (s.includes('gmat')) return 'nmms_gmat';
+  if (s.includes('sat')) return 'nmms_sat';
+
+  return typeof prevGetNormKey === 'function' ? prevGetNormKey(subjectStr) : safeCleanMatch(subjectStr);
+};
+
+// ೩. ವಿಷಯ ಬದಲಾದಾಗ ಅಂಕಗಳನ್ನು ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ 100 ಅಥವಾ 90 ಕ್ಕೆ ಹೊಂದಿಸುವುದು
+const prevSubjChange = window.handleSubjectOrPartChange;
+window.handleSubjectOrPartChange = function() {
+  const subj = document.getElementById('cfg-subject')?.value || '';
+  const marksInput = document.getElementById('cfg-total-marks');
+  const qCountInput = document.getElementById('cfg-total-questions');
+
+  if (subj.includes('ಮೊರಾರ್ಜಿ') || subj.includes('ಆದರ್ಶ')) {
+    if (marksInput) marksInput.value = 100;
+    if (qCountInput) qCountInput.value = 100;
+    document.querySelectorAll('input[name="qtype_opt"]').forEach(cb => cb.checked = (cb.value === 'mcq'));
+    showToast("🎯 100 ಅಂಕಗಳ ಪ್ರವೇಶ ಪರೀಕ್ಷಾ ಮೋಡ್ ಸೆಟ್ ಆಗಿದೆ!", "info");
+  } else if (subj.includes('NMMS')) {
+    if (marksInput) marksInput.value = 90;
+    if (qCountInput) qCountInput.value = 90;
+    document.querySelectorAll('input[name="qtype_opt"]').forEach(cb => cb.checked = (cb.value === 'mcq'));
+    showToast("🎯 90 ಅಂಕಗಳ NMMS ಪರೀಕ್ಷಾ ಮೋಡ್ ಸೆಟ್ ಆಗಿದೆ!", "info");
+  }
+
+  if (typeof prevSubjChange === 'function') {
+    prevSubjChange();
+  }
+};
     
     
   </script>

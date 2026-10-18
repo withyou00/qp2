@@ -8253,7 +8253,398 @@ function renderOfficialGovernmentOMRSheet(totalQuestions, totalMarks, examName, 
 
 })();
   
-    
+    // =========================================================================
+// 🌟 DEDICATED COMPETITIVE EXAMS (NMMS, MORARJI, ADARSHA) MASTER EXTENSION
+// =========================================================================
+
+// ೧. ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು & ಸಾಮಾನ್ಯ ವಿಷಯಗಳ ನಿಖರ ಮ್ಯಾಚಿಂಗ್ ಫಂಕ್ಷನ್
+window.normalizeSubjectMatchText = function(str) {
+  if (!str) return '';
+  var s = String(str).toLowerCase().trim();
+
+  // ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು
+  if (s.includes('gmat') || s.includes('ಬೌದ್ಧಿಕ')) return 'nmms_gmat';
+  if (s.includes('sat') || s.includes('ಶೈಕ್ಷಣಿಕ')) return 'nmms_sat';
+  if (s.includes('morarji') || s.includes('ಮೊರಾರ್ಜಿ') || s.includes('ಕಿತ್ತೂರು')) return 'morarji_entrance';
+  if (s.includes('adarsha') || s.includes('ಆದರ್ಶ')) return 'adarsha_entrance';
+
+  // ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳು
+  if (s.includes('ಸಮಾಜ') || s.includes('social')) return 'social_science';
+  if (s.includes('ವಿಜ್ಞಾನ') || s.includes('science')) return 'science';
+  if (s.includes('ಗಣಿತ') || s.includes('math')) return 'mathematics';
+  if (s.includes('ಕನ್ನಡ') || s.includes('kannada')) return 'kannada';
+  if (s.includes('ಇಂಗ್ಲಿಷ್') || s.includes('english')) return 'english';
+  if (s.includes('ಹಿಂದಿ') || s.includes('hindi')) return 'hindi';
+  if (s.includes('ಪರಿಸರ') || s.includes('evs')) return 'evs';
+
+  return (typeof safeCleanMatch === 'function') ? safeCleanMatch(str) : s;
+};
+
+// ೨. ಶಿಕ್ಷಕರ ನೋಂದಣಿ (Sign Up) ವಿಂಡೋದಲ್ಲಿ NMMS, ಮೊರಾರ್ಜಿ, ಆದರ್ಶ ಸೇರ್ಪಡೆ
+var prevOpenTeacherModalForComp = window.openTeacherAuthModal;
+window.openTeacherAuthModal = function(view) {
+  view = view || 'login';
+  var wrapper = document.getElementById('auth-modal-wrapper');
+  if (!wrapper) return;
+
+  wrapper.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+  wrapper.style.display = 'flex';
+  
+  wrapper.innerHTML = `
+    <div class="bg-white rounded-3xl p-6 space-y-4 max-w-md w-full shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-md">
+            <i class="fa-solid fa-chalkboard-user"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-base text-slate-900 leading-tight">ಶಿಕ್ಷಕರ ಪೋರ್ಟಲ್ (Teacher Portal)</h3>
+            <p class="text-[11px] text-emerald-700 font-bold">₹100 / ವಾರ್ಷಿಕ ವಿಷಯ ಅಥವಾ ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆ</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAuthModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-100 hover:text-rose-600 text-slate-600 flex items-center justify-center font-black cursor-pointer">✕</button>
+      </div>
+
+      <div class="flex bg-slate-100 p-1 rounded-2xl text-xs font-bold">
+        <button id="t-tab-login" onclick="switchTeacherTab('login')" class="flex-1 py-2 rounded-xl transition ${view==='login'?'bg-slate-900 text-white':'text-slate-600'}">ಲಾಗಿನ್ (Login)</button>
+        <button id="t-tab-signup" onclick="switchTeacherTab('signup')" class="flex-1 py-2 rounded-xl transition ${view==='signup'?'bg-slate-900 text-white':'text-slate-600'}">ಹೊಸ ನೋಂದಣಿ (Sign Up)</button>
+      </div>
+
+      <div id="t-view-login" class="${view==='login'?'':'hidden'} space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (Mobile Number)</label>
+          <input type="tel" id="t-login-mobile" placeholder="10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ" maxlength="10" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">ರಹಸ್ಯ ಕೀ (Secret Key)</label>
+          <input type="password" id="t-login-key" placeholder="ನಿಮ್ಮ Secret Key ನಮೂದಿಸಿ" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none" />
+        </div>
+        <button onclick="handleTeacherLoginSubmit()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-right-to-bracket"></i> <span>ಲಾಗಿನ್ ಮಾಡಿ (Login Now)</span>
+        </button>
+      </div>
+
+      <div id="t-view-signup" class="${view==='signup'?'':'hidden'} space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">ಶಿಕ್ಷಕರ ಪೂರ್ಣ ಹೆಸರು</label>
+          <input type="text" id="t-reg-name" placeholder="ಉದಾ: ರಮೇಶ್ ಕುಮಾರ್" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">ಶಾಲೆಯ ಹೆಸರು</label>
+          <input type="text" id="t-reg-school" placeholder="ಉದಾ: ಸ.ಹಿ.ಪ್ರಾ.ಶಾಲೆ, ಧಾರವಾಡ" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (WhatsApp No.)</label>
+          <input type="tel" id="t-reg-mobile" placeholder="10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ" maxlength="10" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">ತರಗತಿಗಳು (Classes)</label>
+          <div class="grid grid-cols-5 gap-1 text-[11px] font-bold">
+            ${[1,2,3,4,5,6,7,8,9,10].map(c => `
+              <label class="flex items-center space-x-1 p-1 bg-slate-50 border rounded-lg hover:border-emerald-500 cursor-pointer">
+                <input type="checkbox" name="t_reg_class" value="${c}ನೇ" class="w-3.5 h-3.5 text-emerald-600 rounded">
+                <span>${c}ನೇ</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- ೧. ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳು -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">📚 ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳು (₹100/ವಿಷಯ)</label>
+          <div class="grid grid-cols-2 gap-1 text-[11px] font-bold">
+            ${['ಕನ್ನಡ', 'English', 'ಹಿಂದಿ', 'ಗಣಿತ', 'ವಿಜ್ಞಾನ', 'ಸಮಾಜ ವಿಜ್ಞಾನ', 'EVS (ಪರಿಸರ)'].map(s => `
+              <label class="flex items-center space-x-1.5 p-1 bg-slate-50 border rounded-lg hover:border-emerald-500 cursor-pointer">
+                <input type="checkbox" name="t_reg_subj" value="${s}" class="w-3.5 h-3.5 text-emerald-600 rounded">
+                <span>${s}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- ೨. ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳ ವಿಶೇಷ ವಿಭಾಗ -->
+        <div class="pt-1 border-t border-slate-100">
+          <label class="block text-xs font-black text-amber-800 mb-1 flex items-center justify-between">
+            <span>🌟 ಸ್ಪರ್ಧಾತ್ಮಕ ಪ್ರವೇಶ ಪರೀಕ್ಷೆಗಳು (₹100/ಪರೀಕ್ಷೆ)</span>
+            <span class="text-[9.5px] bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded font-black">OMR Ready</span>
+          </label>
+          <div class="grid grid-cols-1 gap-1 text-[11px] font-bold">
+            ${[
+              { val: 'NMMS GMAT (ಪತ್ರಿಕೆ 1 - ಬೌದ್ಧಿಕ ಸಾಮರ್ಥ್ಯ)', desc: '8ನೇ ತರಗತಿ - 90 ಅಂಕಗಳು' },
+              { val: 'NMMS SAT (ಪತ್ರಿಕೆ 2 - ಶೈಕ್ಷಣಿಕ ಸಾಮರ್ಥ್ಯ)', desc: '8ನೇ ತರಗತಿ - 90 ಅಂಕಗಳು' },
+              { val: 'ಮೊರಾರ್ಜಿ / ಕಿತ್ತೂರು ಪ್ರವೇಶ ಪರೀಕ್ಷೆ', desc: '6ನೇ ತರಗತಿ ಪ್ರವೇಶ - 100 ಅಂಕಗಳು' },
+              { val: 'ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ', desc: '6ನೇ ತರಗತಿ ಪ್ರವೇಶ - 100 ಅಂಕಗಳು' }
+            ].map(comp => `
+              <label class="flex items-center justify-between p-1.5 bg-amber-50/80 border border-amber-200 rounded-lg hover:border-amber-500 cursor-pointer text-amber-950">
+                <div class="flex items-center space-x-1.5">
+                  <input type="checkbox" name="t_reg_subj" value="${comp.val}" class="w-3.5 h-3.5 text-amber-600 rounded">
+                  <span class="font-bold">${comp.val}</span>
+                </div>
+                <span class="text-[9.5px] font-semibold text-slate-500">${comp.desc}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <button onclick="handleTeacherSignUpSubmit()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-lg text-white font-black text-xs rounded-xl shadow transition flex items-center justify-center gap-2 cursor-pointer mt-2">
+          <i class="fa-brands fa-whatsapp text-sm text-emerald-200"></i>
+          <span>ನೋಂದಣಿ ಮಾಡಿ Key ಪಡೆಯಿರಿ (WhatsApp Submit)</span>
+        </button>
+      </div>
+    </div>
+  `;
+};
+
+// ೩. ಪ್ರತ್ಯೇಕ ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳ ನೋಂದಣಿ ವಿಂಡೋ (Dedicated Competitive Modal)
+window.openCompetitiveAuthModal = function() {
+  window.openTeacherAuthModal('signup');
+  setTimeout(function() {
+    var compLabels = document.querySelectorAll('#t-view-signup input[name="t_reg_subj"]');
+    compLabels.forEach(function(cb) {
+      if (cb.value.includes('NMMS') || cb.value.includes('ಮೊರಾರ್ಜಿ') || cb.value.includes('ಆದರ್ಶ')) {
+        cb.closest('label').classList.add('ring-2', 'ring-amber-400');
+      }
+    });
+  }, 100);
+};
+
+// ೪. Admin ಪ್ಯಾನೆಲ್‌ನಲ್ಲಿ ಬಳಕೆದಾರರನ್ನು Edit ಮಾಡುವಾಗ Tick / Untick ಮಾಡುವ ಮಾಸ್ಟರ್ ಅಪ್ಡೇಟ್
+window.openEditUserModal = function(index) {
+  var users = [];
+  try { users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+  var u = users[index];
+  if (!u) return alert('⚠️ ಬಳಕೆದಾರರ ವಿವರ ಸಿಗಲಿಲ್ಲ.');
+
+  var wrapper = document.getElementById('auth-modal-wrapper');
+  if (!wrapper) return;
+
+  var allClasses = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  var userClasses = Array.isArray(u.allowedClasses) 
+    ? u.allowedClasses 
+    : (u.classes ? u.classes.split(',').map(c => c.trim()) : []);
+
+  var normalSubjs = ['ಕನ್ನಡ', 'English', 'ಹಿಂದಿ', 'ಗಣಿತ', 'ವಿಜ್ಞಾನ', 'ಸಮಾಜ ವಿಜ್ಞಾನ', 'EVS (ಪರಿಸರ)'];
+  var compSubjs = [
+    'NMMS GMAT (ಪತ್ರಿಕೆ 1 - ಬೌದ್ಧಿಕ ಸಾಮರ್ಥ್ಯ)',
+    'NMMS SAT (ಪತ್ರಿಕೆ 2 - ಶೈಕ್ಷಣಿಕ ಸಾಮರ್ಥ್ಯ)',
+    'ಮೊರಾರ್ಜಿ / ಕಿತ್ತೂರು ಪ್ರವೇಶ ಪರೀಕ್ಷೆ',
+    'ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ'
+  ];
+
+  var userSubjs = Array.isArray(u.allowedSubjects) 
+    ? u.allowedSubjects 
+    : (u.subjects ? u.subjects.split(',').map(s => s.trim()) : []);
+
+  wrapper.innerHTML = `
+    <div class="bg-white rounded-3xl p-6 space-y-4 max-w-xl w-full shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shadow">
+            <i class="fa-solid fa-user-pen"></i>
+          </div>
+          <div>
+            <h3 class="font-extrabold text-base text-slate-900 leading-tight">ಬಳಕೆದಾರರ ಸಂಪಾದನೆ (Edit User)</h3>
+            <p class="text-[11px] text-emerald-700 font-bold">ಸಾಮಾನ್ಯ ವಿಷಯಗಳು & ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳ ಅನುಮತಿ ನೀಡಿ</p>
+          </div>
+        </div>
+        <button type="button" onclick="openAdminDashboardModal('users')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs font-bold">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-700 mb-1">ಪೂರ್ಣ ಹೆಸರು</label>
+            <input type="text" id="edit-u-name" value="${escapeHtml(u.name || '')}" class="w-full px-3 py-2 bg-slate-50 border rounded-xl font-bold" />
+          </div>
+          <div>
+            <label class="block text-slate-700 mb-1">📱 ಮೊಬೈಲ್ ಸಂಖ್ಯೆ</label>
+            <input type="text" id="edit-u-mobile" value="${escapeHtml(u.mobile || u.dise || '')}" maxlength="11" class="w-full px-3 py-2 bg-slate-50 border rounded-xl font-bold" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-700 mb-1">🏫 ಶಾಲೆಯ ಹೆಸರು</label>
+          <input type="text" id="edit-u-school" value="${escapeHtml(u.school || '')}" class="w-full px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-xl font-black text-emerald-950" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-700 mb-1">🔑 Secret Key</label>
+            <input type="text" id="edit-u-key" value="${escapeHtml(u.secretKey || '')}" class="w-full px-3 py-2 bg-indigo-50 border border-indigo-300 rounded-xl font-black text-indigo-950" />
+          </div>
+          <div>
+            <label class="block text-slate-700 mb-1">📅 ಮಾನ್ಯತೆ (Validity)</label>
+            <input type="date" id="edit-u-validity" value="${u.validityDate || '2030-12-31'}" class="w-full px-3 py-2 bg-slate-50 border rounded-xl font-bold" />
+          </div>
+        </div>
+
+        <!-- ತರಗತಿಗಳ ಆಯ್ಕೆ -->
+        <div>
+          <label class="block text-slate-700 mb-1">🎒 ಅನುಮತಿಸಿದ ತರಗತಿಗಳು (Allowed Classes)</label>
+          <div class="grid grid-cols-5 gap-1.5 p-2 bg-slate-50 border rounded-xl">
+            ${allClasses.map(c => {
+              var isChecked = userClasses.includes('all') || userClasses.some(uc => String(uc).includes(String(c)));
+              return `
+                <label class="flex items-center space-x-1 p-1 bg-white border rounded-lg cursor-pointer">
+                  <input type="checkbox" name="edit_u_classes" value="${c}ನೇ" ${isChecked ? 'checked' : ''} class="w-3.5 h-3.5 text-emerald-600 rounded">
+                  <span class="text-[11px] font-bold">${c}ನೇ</span>
+                </label>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- ಸಾಮಾನ್ಯ ವಿಷಯಗಳ ಆಯ್ಕೆ -->
+        <div>
+          <label class="block text-slate-700 mb-1">📚 ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳು</label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-2 bg-slate-50 border rounded-xl">
+            ${normalSubjs.map(subj => {
+              var isChecked = userSubjs.includes('all') || userSubjs.some(s => s.toLowerCase().includes(subj.toLowerCase()) || subj.toLowerCase().includes(s.toLowerCase()));
+              return `
+                <label class="flex items-center space-x-1.5 p-1 bg-white border rounded-lg cursor-pointer">
+                  <input type="checkbox" name="edit_u_subjects" value="${subj}" ${isChecked ? 'checked' : ''} class="w-3.5 h-3.5 text-emerald-600 rounded">
+                  <span class="text-[11px] font-bold">${subj}</span>
+                </label>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳ ಆಯ್ಕೆ (Admin Tick / Untick) -->
+        <div>
+          <label class="block text-amber-900 font-black mb-1">🌟 ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು (NMMS / ಮೊರಾರ್ಜಿ / ಆದರ್ಶ)</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2 bg-amber-50/70 border border-amber-200 rounded-xl">
+            ${compSubjs.map(cSubj => {
+              var isChecked = userSubjs.includes('all') || userSubjs.some(s => s.toLowerCase().includes(cSubj.toLowerCase()) || cSubj.toLowerCase().includes(s.toLowerCase()));
+              return `
+                <label class="flex items-center space-x-1.5 p-1.5 bg-white border border-amber-300 rounded-lg cursor-pointer">
+                  <input type="checkbox" name="edit_u_subjects" value="${cSubj}" ${isChecked ? 'checked' : ''} class="w-3.5 h-3.5 text-amber-600 rounded">
+                  <span class="text-[11px] font-extrabold text-amber-950">${cSubj}</span>
+                </label>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pt-2 border-t">
+          <button type="button" onclick="saveEditedUserSubmit(${index})" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow cursor-pointer transition">
+            💾 ಬದಲಾವಣೆಗಳನ್ನು ಸೇವ್ ಮಾಡಿ (Save Details)
+          </button>
+          <button type="button" onclick="openAdminDashboardModal('users')" class="px-4 py-3 bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer">ರದ್ದು</button>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+// ೫. ಡ್ರಾಪ್‌ಡೌನ್‌ನಲ್ಲಿ ಬಳಕೆದಾರರಿಗೆ ಅನುಮತಿಸಿದ ವಿಷಯಗಳು & ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳ ನಿಖರ ಫಿಲ್ಟರ್
+window.updateSubjectOptionsForClass = function() {
+  var classSelect = document.getElementById('cfg-class');
+  var subjSelect = document.getElementById('cfg-subject');
+  if (!classSelect || !subjSelect) return;
+
+  var session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+  var isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+  var isFullAccess = isAdmin || (session && session.type === 'school') || (session && session.allowedSubjects && session.allowedSubjects.includes('all'));
+
+  var activeGrade = parseInt(classSelect.value) || 8;
+  var availableSubjects = [];
+
+  if (activeGrade >= 1 && activeGrade <= 5) {
+    availableSubjects = [
+      { val: "ಕನ್ನಡ (Kannada)", key: "kannada" },
+      { val: "English", key: "english" },
+      { val: "ಗಣಿತ (Mathematics)", key: "mathematics" },
+      { val: "ಪರಿಸರ ಅಧ್ಯಯನ (EVS)", key: "evs" }
+    ];
+  } else if (activeGrade === 6) {
+    availableSubjects = [
+      { val: "ವಿಜ್ಞಾನ (Science)", key: "science" },
+      { val: "ಕನ್ನಡ (Kannada)", key: "kannada" },
+      { val: "ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)", key: "social_science" },
+      { val: "ಗಣಿತ (Mathematics)", key: "mathematics" },
+      { val: "English", key: "english" },
+      { val: "ಹಿಂದಿ (Hindi)", key: "hindi" },
+      { val: "ಮೊರಾರ್ಜಿ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (Morarji Entrance)", key: "morarji_entrance", isComp: true },
+      { val: "ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ (Adarsha Entrance)", key: "adarsha_entrance", isComp: true }
+    ];
+  } else if (activeGrade === 8) {
+    availableSubjects = [
+      { val: "ವಿಜ್ಞಾನ (Science)", key: "science" },
+      { val: "ಕನ್ನಡ (Kannada)", key: "kannada" },
+      { val: "ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)", key: "social_science" },
+      { val: "ಗಣಿತ (Mathematics)", key: "mathematics" },
+      { val: "English", key: "english" },
+      { val: "ಹಿಂದಿ (Hindi)", key: "hindi" },
+      { val: "NMMS GMAT (ಪತ್ರಿಕೆ 1 - ಬೌದ್ಧಿಕ ಸಾಮರ್ಥ್ಯ)", key: "nmms_gmat", isComp: true },
+      { val: "NMMS SAT (ಪತ್ರಿಕೆ 2 - ಶೈಕ್ಷಣಿಕ ಸಾಮರ್ಥ್ಯ)", key: "nmms_sat", isComp: true }
+    ];
+  } else {
+    availableSubjects = [
+      { val: "ವಿಜ್ಞಾನ (Science)", key: "science" },
+      { val: "ಕನ್ನಡ (Kannada)", key: "kannada" },
+      { val: "ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)", key: "social_science" },
+      { val: "ಗಣಿತ (Mathematics)", key: "mathematics" },
+      { val: "English", key: "english" },
+      { val: "ಹಿಂದಿ (Hindi)", key: "hindi" }
+    ];
+  }
+
+  var allowedSubjsList = [];
+  if (session && session.allowedSubjects) {
+    var rawArr = Array.isArray(session.allowedSubjects) ? session.allowedSubjects : String(session.allowedSubjects).split(',');
+    allowedSubjsList = rawArr.map(s => window.normalizeSubjectMatchText(s.trim())).filter(Boolean);
+  }
+
+  var filteredSubjects = availableSubjects;
+  if (!isFullAccess && allowedSubjsList.length > 0 && !allowedSubjsList.includes('all')) {
+    filteredSubjects = availableSubjects.filter(function(subj) {
+      return allowedSubjsList.includes(subj.key);
+    });
+  }
+
+  if (filteredSubjects.length === 0) {
+    subjSelect.innerHTML = `<option value="">🔒 ವಿಷಯ ಲಭ್ಯವಿಲ್ಲ (Not Subscribed)</option>`;
+    return;
+  }
+
+  var curSelectedSubj = subjSelect.value;
+  subjSelect.innerHTML = filteredSubjects.map(function(s) {
+    var badgeClass = s.isComp ? 'font-black text-amber-900 bg-amber-50' : 'font-bold';
+    return `<option value="${s.val}" class="${badgeClass}">${s.isComp ? '🌟 ' : ''}${s.val}</option>`;
+  }).join('');
+
+  if (filteredSubjects.some(s => s.val === curSelectedSubj)) {
+    subjSelect.value = curSelectedSubj;
+  } else {
+    subjSelect.value = filteredSubjects[0].val;
+  }
+};
+
+// ೬. ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ನಲ್ಲಿ "ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳ ನೋಂದಣಿ (₹100)" ಬಟನ್ ಅಳವಡಿಕೆ
+var prevRenderDashboardWithCompBtn = window.renderUltraModernDashboard;
+window.renderUltraModernDashboard = function() {
+  if (typeof prevRenderDashboardWithCompBtn === 'function') {
+    prevRenderDashboardWithCompBtn();
+  }
+
+  var btnContainer = document.querySelector('#view-dashboard .flex.flex-wrap.items-center.justify-center.gap-4');
+  if (btnContainer && !document.getElementById('btn-dash-comp-reg')) {
+    var compBtn = document.createElement('button');
+    compBtn.id = 'btn-dash-comp-reg';
+    compBtn.onclick = function() { window.openCompetitiveAuthModal(); };
+    compBtn.className = 'px-7 py-4 rounded-2xl font-black text-xs sm:text-sm text-slate-950 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:shadow-xl hover:shadow-amber-500/30 hover:scale-[1.02] transition flex items-center gap-2.5 cursor-pointer border border-amber-300 shadow-md';
+    compBtn.innerHTML = '<i class="fa-solid fa-trophy text-lg text-slate-950"></i> <span>NMMS / ಮೊರಾರ್ಜಿ ನೋಂದಣಿ (₹100)</span>';
+    btnContainer.appendChild(compBtn);
+  }
+};
+
+// ತಕ್ಷಣವೇ UI ರಿಫ್ರೆಶ್ ಮಾಡಿ ಸಕ್ರಿಯಗೊಳಿಸುವುದು
+(function refreshAllCompetitiveHooksNow() {
+  if (typeof renderUltraModernDashboard === 'function') renderUltraModernDashboard();
+  if (typeof updateSubjectOptionsForClass === 'function') updateSubjectOptionsForClass();
+})();
     
     
   </script>

@@ -8838,6 +8838,218 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(updateRepeatBadgeUI, 600);
 });
 
+
+// =========================================================================
+// 🔀 1-CLICK MULTI-SET GENERATOR ENGINE (SET A, SET B, SET C, SET D)
+// =========================================================================
+
+// ಜಾಗತಿಕ ಸೆಟ್ ಸ್ಥಿತಿ
+appState.currentExamSet = 'A';
+appState.baseGeneratedQuestions = [];
+
+// ೧. ಸೆಟ್‌ವಾರು ಪ್ರಶ್ನೆಗಳನ್ನು ಕ್ರಮಬದ್ಧವಾಗಿ ಜಂಬಲ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+function generateJumbledSetQuestions(baseList, setCode) {
+  if (!baseList || baseList.length === 0) return [];
+  if (setCode === 'A') return JSON.parse(JSON.stringify(baseList));
+
+  // ಪ್ರಶ್ನೆಗಳನ್ನು ಅವುಗಳ ಪ್ರಕಾರವಾರು ಗುಂಪು ಮಾಡುವುದು
+  var typeMap = new Map();
+  baseList.forEach(function(q) {
+    var t = (typeof getCanonicalQuestionType === 'function') ? getCanonicalQuestionType(q) : 'vsa_1m';
+    if (!typeMap.has(t)) typeMap.set(t, []);
+    typeMap.get(t).push(JSON.parse(JSON.stringify(q)));
+  });
+
+  var result = [];
+
+  // ಸೆಟ್‌ಗೆ ತಕ್ಕಂತೆ ಪ್ರತಿಯೊಂದು ವಿಭಾಗದೊಳಗಿನ ಪ್ರಶ್ನೆಗಳನ್ನು ಜಂಬಲ್ ಮಾಡುವುದು
+  typeMap.forEach(function(qGroup, tKey) {
+    if (tKey === 'match') {
+      // ಹೊಂದಿಸಿ ಬರೆಯಿರಿ ಪ್ರಶ್ನೆ ಒಂದೇ ಇರುವುದರಿಂದ ಹಾಗೆಯೇ ಉಳಿಸುವುದು
+      result.push(...qGroup);
+      return;
+    }
+
+    var list = [...qGroup];
+    var len = list.length;
+
+    if (len > 1) {
+      if (setCode === 'B') {
+        // Set B: ಅರ್ಧದಿಂದ ರೊಟೇಟ್ ಮಾಡುವುದು
+        var mid = Math.floor(len / 2);
+        list = list.slice(mid).concat(list.slice(0, mid));
+      } else if (setCode === 'C') {
+        // Set C: ರಿವರ್ಸ್ ಮಾಡುವುದು
+        list = list.reverse();
+      } else if (setCode === 'D') {
+        // Set D: ಬೆಸ ಮತ್ತು ಸಮ ಸ್ಥಾನಗಳ ಜಂಬಲ್
+        var evens = list.filter((_, i) => i % 2 === 0);
+        var odds = list.filter((_, i) => i % 2 !== 0);
+        list = odds.concat(evens);
+      }
+    }
+
+    result.push(...list);
+  });
+
+  return result;
+}
+
+// ೨. ಹೆಡರ್‌ನಲ್ಲಿ SET ಕೋಡ್ ಪ್ರದರ್ಶಿಸುವ ಇಂಜೆಕ್ಷನ್
+var prevHeaderGeneratorForSets = window.generateOfficialBoardHeader;
+window.generateOfficialBoardHeader = function(schoolName, subject, grade, examType, marks, examDate) {
+  var baseHtml = (typeof prevHeaderGeneratorForSets === 'function')
+    ? prevHeaderGeneratorForSets(schoolName, subject, grade, examType, marks, examDate)
+    : '';
+
+  var activeSet = appState.currentExamSet || 'A';
+
+  // ಹೆಡರ್‌ನ ಬಲಭಾಗದಲ್ಲಿ ಅಧಿಕೃತ SET ಬ್ಯಾಡ್ಜ್ ಸೇರಿಸುವುದು
+  var setBadgeHtml = `
+    <div style="display: flex; justify-content: flex-end; margin-top: -24px; margin-bottom: 4px;">
+      <span style="font-size: 11pt; font-weight: 900; border: 2px solid #000; padding: 1px 8px; background: #f1f5f9; border-radius: 4px; letter-spacing: 1px;">
+        SET - ${activeSet}
+      </span>
+    </div>
+  `;
+
+  return baseHtml + setBadgeHtml;
+};
+
+// ೩. ಸೆಟ್ ಬದಲಾವಣೆ ಮಾಡುವ ಕಂಟ್ರೋಲರ್ (Switch Set)
+window.switchExamSet = function(targetSet) {
+  if (!appState.baseGeneratedQuestions || appState.baseGeneratedQuestions.length === 0) {
+    if (appState.activeGeneratedQuestions && appState.activeGeneratedQuestions.length > 0) {
+      appState.baseGeneratedQuestions = JSON.parse(JSON.stringify(appState.activeGeneratedQuestions));
+    } else {
+      return alert("⚠️ ದಯವಿಟ್ಟು ಮೊದಲು ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಯನ್ನು ಜನರೇಟ್ ಮಾಡಿ.");
+    }
+  }
+
+  appState.currentExamSet = targetSet;
+
+  // ಜಂಬಲ್ಡ್ ಪ್ರಶ್ನೆಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸುವುದು
+  appState.activeGeneratedQuestions = generateJumbledSetQuestions(appState.baseGeneratedQuestions, targetSet);
+
+  // UI ಬಟನ್ ಸ್ಟೈಲ್ ಅಪ್ಡೇಟ್
+  ['A', 'B', 'C', 'D'].forEach(function(s) {
+    var btn = document.getElementById('btn-set-' + s);
+    if (btn) {
+      if (s === targetSet) {
+        btn.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs bg-slate-900 text-white shadow-md border border-slate-900 cursor-pointer';
+      } else {
+        btn.className = 'px-3.5 py-1.5 rounded-xl font-black text-xs bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 cursor-pointer';
+      }
+    }
+  });
+
+  // ಪತ್ರಿಕೆ, ಕೀ ಉತ್ತರ ಮತ್ತು OMR ಅನ್ನು ತಕ್ಷಣ ರಿಫ್ರೆಶ್ ಮಾಡುವುದು
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  var grade = document.getElementById('cfg-class')?.value || '8';
+  var rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+  var actualMarks = appState.activeGeneratedQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+  var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+  renderFullExamPaperWithCustomHeader(headerHtml);
+
+  showToast(`⚡ ಯಶಸ್ವಿ: ಪತ್ರಿಕೆ ಮತ್ತು ಕೀ ಉತ್ತರಗಳನ್ನು "SET - ${targetSet}" ಗೆ ಹೊಂದಿಸಲಾಗಿದೆ!`, 'success');
+};
+
+// ೪. ಜನರೇಟ್ ಆದಾಗ Set A, B, C, D ಬಟನ್ ಬಾರ್ ಅನ್ನು UI ನಲ್ಲಿ ಮೂಡಿಸುವುದು
+function injectSetSelectorBarUI() {
+  var outSection = document.getElementById('output-section');
+  if (!outSection) return;
+
+  var existingBar = document.getElementById('wy-exam-set-bar');
+  if (!existingBar) {
+    existingBar = document.createElement('div');
+    existingBar.id = 'wy-exam-set-bar';
+    existingBar.className = 'bg-amber-50/90 border-b border-amber-200 px-5 py-2.5 flex flex-wrap items-center justify-between gap-2 no-print';
+    
+    var navTabs = outSection.querySelector('.border-b.border-slate-200');
+    if (navTabs && navTabs.parentNode) {
+      navTabs.parentNode.insertBefore(existingBar, navTabs);
+    }
+  }
+
+  var curSet = appState.currentExamSet || 'A';
+
+  existingBar.innerHTML = `
+    <div class="flex items-center space-x-2">
+      <div class="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs shadow">
+        <i class="fa-solid fa-layer-group"></i>
+      </div>
+      <div>
+        <span class="text-xs font-black text-slate-900">ಪತ್ರಿಕಾ ಶ್ರೇಣಿ (Jumbled Sets):</span>
+        <span class="text-[11px] text-amber-900 font-bold ml-1">ಕಾಪಿ ತಡೆಗಟ್ಟಲು 4 ಬೇರೆ ಬೇರೆ ಸೆಟ್‌ಗಳು</span>
+      </div>
+    </div>
+    
+    <div class="flex items-center space-x-1.5">
+      ${['A', 'B', 'C', 'D'].map(function(s) {
+        var isAct = (s === curSet);
+        return `
+          <button id="btn-set-${s}" type="button" onclick="switchExamSet('${s}')" 
+            class="px-3.5 py-1.5 rounded-xl font-black text-xs transition cursor-pointer ${isAct ? 'bg-slate-900 text-white shadow-md border border-slate-900' : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-300'}">
+            Set - ${s}
+          </button>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ೫. ಮಾಸ್ಟರ್ ಜನರೇಟರ್ ಕಾಲ್ ಆದಾಗ ಬೇಸ್ ಪ್ರಶ್ನೆಗಳನ್ನು ಸೇವ್ ಮಾಡಿ Set ಬಾರ್ ಆಕ್ಟಿವ್ ಮಾಡುವುದು
+var prevGenHookForSetInit = window.generateExamPackageFromBank;
+window.generateExamPackageFromBank = function() {
+  if (typeof prevGenHookForSetInit === 'function') {
+    prevGenHookForSetInit();
+  }
+
+  if (appState.activeGeneratedQuestions && appState.activeGeneratedQuestions.length > 0) {
+    appState.currentExamSet = 'A';
+    appState.baseGeneratedQuestions = JSON.parse(JSON.stringify(appState.activeGeneratedQuestions));
+    injectSetSelectorBarUI();
+  }
+};
+
+// ೬. OMR ಶೀಟ್‌ನಲ್ಲಿ Set Code ಆಯ್ಕೆ ಕಾಲಂ ಅಳವಡಿಕೆ
+var prevRenderOMRForSets = window.renderOfficialGovernmentOMRSheet;
+window.renderOfficialGovernmentOMRSheet = function(totalQuestions, totalMarks, examName, schoolName, subject, grade, examDate) {
+  if (typeof prevRenderOMRForSets === 'function') {
+    prevRenderOMRForSets(totalQuestions, totalMarks, examName, schoolName, subject, grade, examDate);
+  }
+
+  var omrTable = document.querySelector('.omr-candidate-table');
+  var curSet = appState.currentExamSet || 'A';
+
+  if (omrTable && !document.getElementById('omr-set-code-row')) {
+    var setRow = document.createElement('tr');
+    setRow.id = 'omr-set-code-row';
+    setRow.innerHTML = `
+      <td colspan="2" style="background:#f8fafc; padding: 4px 6px; font-size: 9pt;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span><b>ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಶ್ರೇಣಿ (Question Paper Set):</b></span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            ${['A', 'B', 'C', 'D'].map(function(s) {
+              var isSelected = (s === curSet);
+              return `
+                <span style="display: inline-flex; align-items: center; gap: 2px;">
+                  <b>${s}</b>
+                  <span class="omr-bubble" style="${isSelected ? 'background:#000; color:#fff;' : 'background:#fff;'}">${s}</span>
+                </span>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </td>
+    `;
+    omrTable.appendChild(setRow);
+  }
+};
+    
     
   </script>
 </body>

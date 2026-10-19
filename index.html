@@ -8646,6 +8646,198 @@ window.renderUltraModernDashboard = function() {
   if (typeof updateSubjectOptionsForClass === 'function') updateSubjectOptionsForClass();
 })();
     
+
+// =========================================================================
+// 🔄 100% ZERO-REPEAT & UNIQUE QUESTION PAPER SET GENERATOR (SET A, B, C)
+// =========================================================================
+
+// ೧. ಪ್ರಶ್ನೆಯ ಯೂನಿಕ್ ಕೀ ಪಡೆಯುವ ಫಂಕ್ಷನ್
+function getQuestionUniqueKey(q) {
+  if (!q) return '';
+  if (q.id) return String(q.id);
+  // id ಇಲ್ಲದಿದ್ದರೆ ಪ್ರಶ್ನೆಯ ಪಠ್ಯದ ಆಧಾರದ ಮೇಲೆ ಕೀ ಗುರುತಿಸುವುದು
+  return String(q.q || '').trim().replace(/\s+/g, '_').substring(0, 45);
+}
+
+// ೨. ಬಳಸಿದ ಪ್ರಶ್ನೆಗಳ ಕೀ ಪಡೆಯುವುದು (ವಿಷಯ & ತರಗತಿವಾರು ಪ್ರತ್ಯೇಕ ಮೆಮೊರಿ)
+function getUsedQuestionsStorageKey() {
+  var grade = document.getElementById('cfg-class')?.value || '8';
+  var rawSubj = document.getElementById('cfg-subject')?.value || 'general';
+  var cleanSubj = (typeof getNormalizedSubjectKey === 'function') ? getNormalizedSubjectKey(rawSubj) : 'general';
+  return 'wy_used_q_ids_' + grade + '_' + cleanSubj;
+}
+
+// ೩. ಬಳಸಿದ ಪ್ರಶ್ನೆಗಳ ಪಟ್ಟಿ ಲೋಡ್ ಮಾಡುವುದು
+function getUsedQuestionIdsList() {
+  try {
+    var raw = sessionStorage.getItem(getUsedQuestionsStorageKey());
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+// ೪. ಬಳಸಿದ ಪ್ರಶ್ನೆಗಳನ್ನು ಮೆಮೊರಿಗೆ ಸೇವ್ ಮಾಡುವುದು
+function recordQuestionsAsUsed(questionsList) {
+  if (!questionsList || questionsList.length === 0) return;
+  var usedIds = getUsedQuestionIdsList();
+  questionsList.forEach(function(q) {
+    var key = getQuestionUniqueKey(q);
+    if (key && !usedIds.includes(key)) {
+      usedIds.push(key);
+    }
+  });
+  sessionStorage.setItem(getUsedQuestionsStorageKey(), JSON.stringify(usedIds));
+  updateRepeatBadgeUI();
+}
+
+// ೫. ಹಿಸ್ಟರಿ ರೀಸೆಟ್ ಮಾಡುವ ಫಂಕ್ಷನ್ (ಮರಳಿ Set-1 ರಿಂದ ಶುರು ಮಾಡಲು)
+window.resetQuestionRepeatCycle = function(manualClick) {
+  sessionStorage.removeItem(getUsedQuestionsStorageKey());
+  updateRepeatBadgeUI();
+  if (manualClick) {
+    showToast("🔄 ಪ್ರಶ್ನೆಗಳ ಹಿಸ್ಟರಿ ತೆರವುಗೊಳಿಸಲಾಗಿದೆ! ಈಗ Set-1 ರಿಂದ ಪುನಃ ಹೊಸ ಪ್ರಶ್ನೆಗಳು ಬರುತ್ತವೆ.", "info");
+  }
+};
+
+// ೬. UI ನಲ್ಲಿ "ಬಳಕೆಯಾದ ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ" ಮತ್ತು "Reset" ಬಟನ್ ತೋರಿಸುವುದು
+function updateRepeatBadgeUI() {
+  var usedIds = getUsedQuestionIdsList();
+  var container = document.getElementById('wy-repeat-tracker-box');
+  var genBtn = document.getElementById('btn-generate');
+
+  if (!container && genBtn && genBtn.parentNode) {
+    container = document.createElement('div');
+    container.id = 'wy-repeat-tracker-box';
+    container.className = 'flex items-center justify-between p-2 bg-indigo-50/70 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-950 mt-2';
+    genBtn.parentNode.insertBefore(container, genBtn);
+  }
+
+  if (container) {
+    if (usedIds.length > 0) {
+      container.innerHTML = `
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Anti-Repeat Active: <b>${usedIds.length}</b> ಪ್ರಶ್ನೆಗಳು ಬಳಕೆಯಾಗಿವೆ</span>
+        </div>
+        <button type="button" onclick="resetQuestionRepeatCycle(true)" class="px-2 py-1 bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 rounded-lg text-[10.5px] font-black cursor-pointer shadow-sm transition">
+          🔄 Reset Cycle
+        </button>
+      `;
+      container.classList.remove('hidden');
+    } else {
+      container.innerHTML = `
+        <div class="flex items-center gap-1.5 text-slate-600">
+          <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+          <span>Zero-Repeat Mode: ಪ್ರತಿ ಬಾರಿಯೂ ಹೊಸ ಪ್ರಶ್ನೆಗಳು</span>
+        </div>
+        <span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-black">Fresh Set</span>
+      `;
+    }
+  }
+}
+
+// ೭. ಮಾಸ್ಟರ್ ಜನರೇಟರ್‌ಗೆ Non-Repeat ಲಾಜಿಕ್ ಅಳವಡಿಕೆ
+var originalStrictGeneratePackage = window.generateExamPackageFromBank;
+window.generateExamPackageFromBank = function() {
+  var selectedClass = document.getElementById('cfg-class')?.value || '8';
+  var currentSubj = document.getElementById('cfg-subject')?.value || '';
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+  var targetTotalMarks = parseInt(document.getElementById('cfg-total-marks')?.value) || 40;
+  var targetTotalQuestions = parseInt(document.getElementById('cfg-total-questions')?.value) || 24;
+  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+
+  var checkedTypeNodes = document.querySelectorAll('input[name="qtype_opt"]:checked');
+  var selectedTypes = Array.from(checkedTypeNodes).map(function(cb) { return cb.value; });
+  if (selectedTypes.length === 0) return alert('⚠️ ದಯವಿಟ್ಟು Step 3 ರಲ್ಲಿ ಕನಿಷ್ಠ ಒಂದು ಪ್ರಶ್ನೆ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+
+  var selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+  var selectedChapters = Array.from(selectedBoxes).map(function(b) { return b.value; });
+  appState.activeSelectedChapters = selectedChapters;
+
+  // 🌟 ಪೂರ್ಣ ಪ್ರಶ್ನೆಗಳ ಪೂಲ್
+  var allMatchingPool = (appState.activeSubjectQuestions || []).filter(function(q) {
+    if (!q) return false;
+    var isChapOk = (typeof isChapterMatchedFlexibly === 'function') 
+      ? isChapterMatchedFlexibly(q.chapter, selectedChapters) 
+      : (selectedChapters.length === 0 || selectedChapters.some(function(sc) { return safeCleanMatch(sc) === safeCleanMatch(q.chapter); }));
+    var cType = getCanonicalQuestionType(q);
+    return isChapOk && selectedTypes.includes(cType);
+  });
+
+  if (allMatchingPool.length === 0) {
+    return alert('⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ. Step 2 ಮತ್ತು Step 3 ಪರಿಶೀಲಿಸಿ.');
+  }
+
+  // 🌟 ಹಂತ ೧: ಈಗಾಗಲೇ ಬಳಕೆಯಾದ ಪ್ರಶ್ನೆಗಳನ್ನು ಪ್ರತ್ಯೇಕಿಸಿ ಕೇವಲ "ಹೊಸ ಪ್ರಶ್ನೆಗಳ ಪೂಲ್" ರಚಿಸುವುದು
+  var usedIds = getUsedQuestionIdsList();
+  var freshUnusedPool = allMatchingPool.filter(function(q) {
+    return !usedIds.includes(getQuestionUniqueKey(q));
+  });
+
+  var chosen = [];
+  var isFreshSetUsed = false;
+
+  // ಮೊದಲು ಕೇವಲ ಹೊಸ ಪ್ರಶ್ನೆಗಳಿಂದಲೇ ಪತ್ರಿಕೆ ರಚಿಸಲು ಪ್ರಯತ್ನಿಸುವುದು
+  if (freshUnusedPool.length >= targetTotalQuestions) {
+    chosen = solveStrictExactExamMath(freshUnusedPool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+    if (chosen && chosen.length === targetTotalQuestions) {
+      isFreshSetUsed = true;
+    }
+  }
+
+  // ಹೊಸ ಪ್ರಶ್ನೆಗಳು ಸಾಲದಿದ್ದಾಗ (ಬ್ಯಾಂಕ್ ಮುಗಿದಾಗ):
+  if (!chosen || chosen.length === 0) {
+    if (usedIds.length > 0) {
+      showToast("📢 ಬ್ಯಾಂಕ್‌ನ ಎಲ್ಲಾ ಪ್ರಶ್ನೆಗಳು ಬಳಕೆಯಾಗಿವೆ! ಸೈಕಲ್ ಅನ್ನು ಮರುಹೊಂದಿಸಿ ಪುನಃ ಹೊಸದಾಗಿ ಆರಂಭಿಸಲಾಗುತ್ತಿದೆ...", "info");
+      resetQuestionRepeatCycle(false);
+    }
+    // ಪೂರ್ಣ ಪೂಲ್‌ನಿಂದ ಆಯ್ಕೆ ಮಾಡುವುದು
+    chosen = solveStrictExactExamMath(allMatchingPool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+  }
+
+  if (!chosen || chosen.length === 0) {
+    return alert('⚠️ ಆಯ್ಕೆಮಾಡಿದ ಅಂಕ ಮತ್ತು ಪ್ರಶ್ನೆಗಳ ಸಂಯೋಜನೆ ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ. ದಯವಿಟ್ಟು ಹೆಚ್ಚಿನ ಪಾಠಗಳನ್ನು ಅಥವಾ ಪ್ರಕಾರಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+  }
+
+  // 🌟 ಆಯ್ಕೆಯಾದ ಪ್ರಶ್ನೆಗಳನ್ನು ಮೆಮೊರಿಗೆ ಸೇವ್ ಮಾಡುವುದು (ಮುಂದಿನ ಬಾರಿ ರಿಪೀಟ್ ಆಗದಂತೆ)
+  recordQuestionsAsUsed(chosen);
+
+  appState.activeGeneratedQuestions = chosen;
+  var actualMarks = chosen.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
+  var headerHtml = generateOfficialBoardHeader(schoolName, currentSubj, selectedClass, rawExamType, actualMarks, examDate);
+
+  renderFullExamPaperWithCustomHeader(headerHtml);
+
+  var outSec = document.getElementById('output-section');
+  if (outSec) {
+    outSec.classList.remove('hidden');
+    switchOutputTab('paper');
+    outSec.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  if (isFreshSetUsed) {
+    showToast(`⚡ ಯಶಸ್ವಿ: 100% ಸಂಪೂರ್ಣ ಹೊಸ ಪ್ರಶ್ನೆಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ! (${chosen.length} ಪ್ರಶ್ನೆಗಳು)`, 'success');
+  } else {
+    showToast(`⚡ ಯಶಸ್ವಿ: ${chosen.length} ಪ್ರಶ್ನೆಗಳು & ${actualMarks} ಅಂಕಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ!`, 'success');
+  }
+};
+
+// ವಿಷಯ ಬದಲಾದಾಗ ಟ್ರ್ಯಾಕರ್ UI ಅಪ್ಡೇಟ್
+var prevSubjectChangeForRepeat = window.handleSubjectOrPartChange;
+window.handleSubjectOrPartChange = function() {
+  if (typeof prevSubjectChangeForRepeat === 'function') {
+    prevSubjectChangeForRepeat();
+  }
+  setTimeout(updateRepeatBadgeUI, 300);
+};
+
+// ಪೇಜ್ ಲೋಡ್ ಆದಾಗ ಬ್ಯಾಡ್ಜ್ ಸಕ್ರಿಯಗೊಳಿಸುವುದು
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(updateRepeatBadgeUI, 600);
+});
+
     
   </script>
 </body>

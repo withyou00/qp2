@@ -9052,311 +9052,90 @@ window.renderOfficialGovernmentOMRSheet = function(totalQuestions, totalMarks, e
 
 
 // =========================================================================
-// 📷 IN-BROWSER MOBILE CAMERA OMR AUTO-SCANNER & EVALUATOR ENGINE
+// 🎯 100% REAL OPTICAL MARK DETECTION & STRICT OMR VALIDATION ENGINE
 // =========================================================================
 
-// ಜಾಗತಿಕ ಸ್ಕ್ಯಾನರ್ ಸ್ಥಿತಿ
-var omrScannerState = {
-  stream: null,
-  activeVideo: null,
-  scannedResults: [],
-  correctAnswersMap: {}
-};
-
-// ೧. ಬೀಪ್ ಸೌಂಡ್ (ಸ್ಕ್ಯಾನರ್ ಆಡಿಯೋ ಎಫೆಕ್ಟ್)
-function playScannerAudioBeep(isSuccess) {
-  try {
-    var AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    var ctx = new AudioCtx();
-    var osc = ctx.createOscillator();
-    var gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(isSuccess ? 880 : 350, ctx.currentTime);
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    osc.start();
-    osc.stop(ctx.currentTime + (isSuccess ? 0.16 : 0.3));
-  } catch(e) {}
-}
-
-// ೨. ಪ್ರಸ್ತುತ ಪತ್ರಿಕೆಯ ಸರಿಯಾದ ಕೀ ಉತ್ತರಗಳ ಪಟ್ಟಿ ಪಡೆಯುವುದು
-function buildCurrentCorrectAnswersList() {
-  var list = appState.activeGeneratedQuestions || [];
-  var keyMap = {};
-  list.forEach(function(q, idx) {
-    var rawAns = String(q.ans || '').trim().toUpperCase();
-    var letter = 'A';
-    var m = rawAns.match(/\(([A-D])\)/);
-    if (m) letter = m[1];
-    else {
-      var m2 = rawAns.match(/\b([A-D])\b/);
-      if (m2) letter = m2[1];
-      else if (rawAns.includes('ಅ')) letter = 'A';
-      else if (rawAns.includes('ಆ')) letter = 'B';
-      else if (rawAns.includes('ಇ')) letter = 'C';
-      else if (rawAns.includes('ಈ')) letter = 'D';
-    }
-    keyMap[idx + 1] = letter;
-  });
-  return keyMap;
-}
-
-// ೩. OMR ಸ್ಕ್ಯಾನರ್ ವಿಂಡೋ ತೆರೆಯುವ ಮಾಸ್ಟರ್ ಫಂಕ್ಷನ್
-window.openLiveOMRScannerModal = function() {
-  var questions = appState.activeGeneratedQuestions || [];
-  if (questions.length === 0) {
-    return alert("⚠️ ದಯವಿಟ್ಟು ಮೊದಲು ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಯನ್ನು ಜನರೇಟ್ ಮಾಡಿ, ನಂತರ OMR ಸ್ಕ್ಯಾನರ್ ಬಳಸಿ.");
-  }
-
-  omrScannerState.correctAnswersMap = buildCurrentCorrectAnswersList();
-  var totalQ = questions.length;
-  var maxMarks = questions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
-  var curSet = appState.currentExamSet || 'A';
-
-  var wrapper = document.getElementById('auth-modal-wrapper');
-  if (!wrapper) return;
-
-  wrapper.className = 'fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto';
-  wrapper.style.display = 'flex';
-
-  wrapper.innerHTML = `
-    <div class="bg-white rounded-3xl p-5 sm:p-7 space-y-4 max-w-3xl w-full shadow-2xl border border-slate-300 max-h-[94vh] overflow-y-auto" onclick="event.stopPropagation()">
-      
-      <!-- Top Bar -->
-      <div class="flex flex-wrap items-center justify-between border-b border-slate-200 pb-3 gap-2">
-        <div class="flex items-center space-x-3">
-          <div class="w-11 h-11 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xl shadow-md">
-            <i class="fa-solid fa-camera"></i>
-          </div>
-          <div>
-            <h3 class="font-black text-base sm:text-lg text-slate-900 leading-tight">OMR ಆಟೋ-ಮೌಲ್ಯಮಾಪನ ಸ್ಕ್ಯಾನರ್</h3>
-            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-500 mt-0.5">
-              <span class="bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded-md">ಪ್ರಶ್ನೆಗಳು: ${totalQ}</span>
-              <span class="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-md">ಗರಿಷ್ಠ ಅಂಕ: ${maxMarks}</span>
-              <span class="bg-amber-100 text-amber-950 px-2 py-0.5 rounded-md font-black">SET - ${curSet}</span>
-            </div>
-          </div>
-        </div>
-        <button type="button" onclick="closeOMRScannerModal()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-rose-100 hover:text-rose-600 text-slate-600 flex items-center justify-center font-black cursor-pointer transition">✕</button>
-      </div>
-
-      <!-- Camera Viewport & Controls -->
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-        
-        <!-- Camera / Photo Viewport (7 Cols) -->
-        <div class="md:col-span-7 space-y-3">
-          <div class="relative bg-slate-950 rounded-2xl overflow-hidden aspect-[4/3] flex items-center justify-center border-2 border-slate-800 shadow-inner">
-            <video id="omr-video-feed" playsinline autoplay class="w-full h-full object-cover"></video>
-            <canvas id="omr-proc-canvas" class="hidden"></canvas>
-            
-            <!-- Scanner Overlay Target Box -->
-            <div id="omr-target-box" class="absolute inset-4 border-2 border-dashed border-amber-400/80 rounded-xl pointer-events-none flex flex-col justify-between p-2">
-              <div class="flex justify-between text-[10px] font-black text-amber-300 bg-slate-950/70 px-2 py-0.5 rounded backdrop-blur-sm">
-                <span>[ ನಾಲ್ಕು ಮೂಲೆಗಳು ಹೊಂದಿಸಿ ]</span>
-                <span>SET: ${curSet}</span>
-              </div>
-              <div class="text-center text-[11px] font-black text-emerald-300 bg-slate-950/70 py-1 rounded backdrop-blur-sm">
-                📷 OMR ಹಾಳೆಯನ್ನು ಚೌಕಟ್ಟಿನಲ್ಲಿ ಹಿಡಿಯಿರಿ
-              </div>
-            </div>
-          </div>
-
-          <!-- Capture & Upload Buttons -->
-          <div class="grid grid-cols-2 gap-2">
-            <button type="button" onclick="captureLiveVideoFrame()" class="py-3 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-lg text-white font-black text-xs rounded-xl shadow cursor-pointer transition flex items-center justify-center gap-1.5">
-              <i class="fa-solid fa-bolt"></i> <span>ಲೈವ್ ಸ್ಕ್ಯಾನ್ (Capture)</span>
-            </button>
-            <label class="py-3 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-black text-xs rounded-xl shadow-sm cursor-pointer transition flex items-center justify-center gap-1.5 text-center">
-              <i class="fa-solid fa-file-arrow-up text-indigo-600"></i> <span>ಫೋಟೋ ಅಪ್‌ಲೋಡ್</span>
-              <input type="file" accept="image/*" capture="environment" onchange="handleOMRPhotoUpload(event)" class="hidden" />
-            </label>
-          </div>
-        </div>
-
-        <!-- Real-Time Evaluation Result Card (5 Cols) -->
-        <div class="md:col-span-5 flex flex-col justify-between bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
-          <div>
-            <div class="flex items-center justify-between border-b pb-2">
-              <h4 class="font-black text-xs text-slate-800 uppercase tracking-wider">ಮೌಲ್ಯಮಾಪನ ಫಲಿತಾಂಶ</h4>
-              <span id="omr-scan-badge" class="text-[10px] bg-slate-200 text-slate-700 font-extrabold px-2 py-0.5 rounded-full">ಸಿದ್ಧವಾಗಿದೆ</span>
-            </div>
-
-            <!-- Big Score Box -->
-            <div class="text-center py-3 my-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <div class="text-xs font-bold text-slate-500">ಗಳಿಸಿದ ಒಟ್ಟು ಅಂಕಗಳು</div>
-              <div class="text-4xl font-black text-slate-900 my-0.5">
-                <span id="omr-res-score" class="text-emerald-600">--</span>
-                <span class="text-xl text-slate-400">/ ${maxMarks}</span>
-              </div>
-              <div id="omr-res-grade" class="text-xs font-black text-indigo-700">ಫೋಟೋ ತೆಗೆಯಿರಿ ಅಥವಾ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ</div>
-            </div>
-
-            <!-- Stats Mini Grid -->
-            <div class="grid grid-cols-3 gap-1.5 text-center text-xs font-bold">
-              <div class="p-2 bg-emerald-50 text-emerald-900 rounded-xl border border-emerald-200">
-                <div class="text-sm font-black" id="omr-cnt-correct">--</div>
-                <div class="text-[10px]">ಸರಿ ಉತ್ತರ</div>
-              </div>
-              <div class="p-2 bg-rose-50 text-rose-900 rounded-xl border border-rose-200">
-                <div class="text-sm font-black" id="omr-cnt-wrong">--</div>
-                <div class="text-[10px]">ತಪ್ಪು</div>
-              </div>
-              <div class="p-2 bg-amber-50 text-amber-950 rounded-xl border border-amber-200">
-                <div class="text-sm font-black" id="omr-cnt-blank">--</div>
-                <div class="text-[10px]">ಬಿಟ್ಟಿರುವ</div>
-              </div>
-            </div>
-
-            <!-- Student Name & Roll No Entry -->
-            <div class="mt-3 space-y-1.5 text-xs font-bold text-slate-700">
-              <input type="text" id="omr-student-name" placeholder="ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು (ಉದಾ: ರಮೇಶ್)" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 outline-none focus:border-indigo-500" />
-              <input type="text" id="omr-student-roll" placeholder="SATS / ರೋಲ್ ನಂ (ಉದಾ: 101)" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl font-bold text-slate-900 outline-none focus:border-indigo-500" />
-            </div>
-          </div>
-
-          <!-- Save Record Button -->
-          <button id="btn-save-omr-record" type="button" onclick="saveScannedStudentResultRecord()" disabled class="w-full py-3 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-white font-black text-xs rounded-xl shadow cursor-pointer transition flex items-center justify-center gap-1.5">
-            <i class="fa-solid fa-check"></i> <span>ಅಂಕಪಟ್ಟಿಗೆ ಸೇರಿಸಿ (Save & Next)</span>
-          </button>
-        </div>
-
-      </div>
-
-      <!-- Scanned Students Table / Leaderboard -->
-      <div class="pt-3 border-t border-slate-200 space-y-2">
-        <div class="flex items-center justify-between">
-          <h4 class="font-black text-xs text-slate-900 flex items-center gap-1.5">
-            <i class="fa-solid fa-list-check text-indigo-600"></i>
-            <span>ಸ್ಕ್ಯಾನ್ ಆದ ವಿದ್ಯಾರ್ಥಿಗಳ ಅಂಕಪಟ್ಟಿ (<span id="omr-total-scanned-count">0</span> ವಿದ್ಯಾರ್ಥಿಗಳು)</span>
-          </h4>
-          <div class="flex items-center gap-2">
-            <button type="button" onclick="exportScannedResultsToCSV()" class="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-black text-xs rounded-xl border border-emerald-300 cursor-pointer transition flex items-center gap-1">
-              <i class="fa-solid fa-file-excel"></i> <span>Excel ಡೌನ್‌ಲೋಡ್</span>
-            </button>
-            <button type="button" onclick="clearScannedOMRHistory()" class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 cursor-pointer">
-              🗑️ Clear
-            </button>
-          </div>
-        </div>
-
-        <div class="max-h-36 overflow-y-auto border border-slate-200 rounded-xl">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead class="bg-slate-100 text-slate-700 font-black sticky top-0">
-              <tr>
-                <th class="p-2 border-b">ಕ್ರ.ಸಂ</th>
-                <th class="p-2 border-b">ರೋಲ್/SATS</th>
-                <th class="p-2 border-b">ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು</th>
-                <th class="p-2 border-b">SET</th>
-                <th class="p-2 border-b">ಅಂಕಗಳು</th>
-                <th class="p-2 border-b">ಶೇಕಡಾ</th>
-                <th class="p-2 border-b">ಗ್ರೇಡ್</th>
-              </tr>
-            </thead>
-            <tbody id="omr-scanned-table-body" class="font-bold text-slate-800 divide-y divide-slate-100">
-              <tr><td colspan="7" class="p-4 text-center text-slate-400">ಇನ್ನೂ ಯಾವುದೇ ಹಾಳೆಗಳನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿಲ್ಲ.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-  `;
-
-  startLiveCameraStream();
-  renderScannedResultsTable();
-};
-
-// ೪. ಮೊಬೈಲ್ ಕ್ಯಾಮೆರಾ ಆನ್ ಮಾಡುವುದು
-function startLiveCameraStream() {
-  var video = document.getElementById('omr-video-feed');
-  if (!video) return;
-
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-    navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }
-    }).then(function(stream) {
-      omrScannerState.stream = stream;
-      omrScannerState.activeVideo = video;
-      video.srcObject = stream;
-      video.play();
-    }).catch(function(err) {
-      console.warn("Camera direct stream notice:", err);
-      var targetBox = document.getElementById('omr-target-box');
-      if (targetBox) {
-        targetBox.innerHTML = `
-          <div class="p-4 text-center text-amber-200 text-xs font-bold">
-            📷 ಲೈವ್ ಕ್ಯಾಮೆರಾ ಲಭ್ಯವಿಲ್ಲ.<br/>ಪರವಾಗಿಲ್ಲ, ಪಕ್ಕದಲ್ಲಿರುವ <b>"ಫೋಟೋ ಅಪ್‌ಲೋಡ್"</b> ಬಟನ್ ಬಳಸಿ ನೇರವಾಗಿ ಫೋಟೋ ತೆಗೆದು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ!
-          </div>
-        `;
-      }
-    });
-  }
-}
-
-// ೫. ಕ್ಯಾಮೆರಾ ಮುಚ್ಚುವುದು
-window.closeOMRScannerModal = function() {
-  if (omrScannerState.stream) {
-    omrScannerState.stream.getTracks().forEach(function(t) { t.stop(); });
-    omrScannerState.stream = null;
-  }
-  closeAuthModal();
-};
-
-// ೬. ಲೈವ್ ವೀಡಿಯೋ ಫ್ರೇಮ್ ಕ್ಯಾಪ್ಚರ್ ಮಾಡಿ ಮೌಲ್ಯಮಾಪನ ಮಾಡುವುದು
-window.captureLiveVideoFrame = function() {
-  var video = document.getElementById('omr-video-feed');
-  var canvas = document.getElementById('omr-proc-canvas');
-  if (!video || !canvas) return;
-
-  var w = video.videoWidth || 640;
-  var h = video.videoHeight || 480;
-  canvas.width = w;
-  canvas.height = h;
-
-  var ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, w, h);
-
-  processOMRCanvasImage(canvas);
-};
-
-// ೭. ಫೋಟೋ ಅಪ್‌ಲೋಡ್ ಮೂಲಕ ಮೌಲ್ಯಮಾಪನ
-window.handleOMRPhotoUpload = function(e) {
-  var file = e.target.files && e.target.files[0];
-  if (!file) return;
-
-  var reader = new FileReader();
-  reader.onload = function(evt) {
-    var img = new Image();
-    img.onload = function() {
-      var canvas = document.getElementById('omr-proc-canvas');
-      if (!canvas) return;
-      canvas.width = img.width;
-      canvas.height = img.height;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      processOMRCanvasImage(canvas);
-    };
-    img.src = evt.target.result;
-  };
-  reader.readAsDataURL(file);
-};
-
-// ೮. ಕೋರ್ OMR ಪಿಕ್ಸೆಲ್ ಸಾಂದ್ರತೆ ವಿಶ್ಲೇಷಣೆ (Optical Mark Analysis)
+// ಹಿಂದಿನ ಪ್ರೊಸೆಸಿಂಗ್ ಫಂಕ್ಷನ್ ಅನ್ನು ರಿಯಲ್ ಇಮೇಜ್ ಅಲ್ಗಾರಿದಮ್ ಮೂಲಕ ಬದಲಾಯಿಸುವುದು
 function processOMRCanvasImage(canvas) {
   var keyMap = omrScannerState.correctAnswersMap || {};
   var totalQ = Object.keys(keyMap).length || 40;
   var ctx = canvas.getContext('2d');
-  var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  var w = canvas.width;
+  var h = canvas.height;
+
+  if (w === 0 || h === 0) return;
+
+  var imgData = ctx.getImageData(0, 0, w, h);
   var pixels = imgData.data;
 
-  // ಚಿತ್ರದ ಒಟ್ಟಾರೆ ಕಪ್ಪು-ಬಿಳುಪು ಹೊಳಪು (Brightness baseline)
-  var totalLuma = 0;
-  for (var i = 0; i < pixels.length; i += 16) {
-    totalLuma += (pixels[i] * 0.299 + pixels[i + 1] * 0.587 + pixels[i + 2] * 0.114);
+  // -------------------------------------------------------------
+  // ೧. ಕಟ್ಟುನಿಟ್ಟಾದ OMR ಶೀಟ್ ಪರಿಶೀಲನೆ (STRICT SHEET VALIDATION)
+  // -------------------------------------------------------------
+  var whitePixelCount = 0;
+  var darkPixelCount = 0;
+  var sampleStep = 8;
+  var totalSamples = 0;
+
+  for (var i = 0; i < pixels.length; i += 4 * sampleStep) {
+    var r = pixels[i];
+    var g = pixels[i + 1];
+    var b = pixels[i + 2];
+    var brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+
+    if (brightness > 160) whitePixelCount++; // ಕಾಗದದ ಬಿಳಿ ಬಣ್ಣ
+    else if (brightness < 75) darkPixelCount++; // ಮುದ್ರಿತ ಅಕ್ಷರ/ವೃತ್ತಗಳ ಕಪ್ಪು ಬಣ್ಣ
+    totalSamples++;
   }
-  var avgLuma = totalLuma / (pixels.length / 16);
+
+  var whiteRatio = whitePixelCount / totalSamples;
+  var darkRatio = darkPixelCount / totalSamples;
+
+  // OMR ಹಾಳೆಯು ಕನಿಷ್ಠ 45% ಬಿಳಿ ಹಿನ್ನೆಲೆ ಮತ್ತು ಕನಿಷ್ಠ 4% ಕಪ್ಪು ಅಕ್ಷರ/ವೃತ್ತಗಳನ್ನು ಹೊಂದಿರಲೇಬೇಕು!
+  // ಕಾಲಿನ ಚಿತ್ರ, ನೆಲದ ಚಿತ್ರ ಅಥವಾ ಕತ್ತಲೆ ಸ್ಕ್ರೀನ್ ಬಂದರೆ ಇದು ಫೇಲ್ ಆಗುತ್ತದೆ.
+  var isRealOMRSheet = (whiteRatio >= 0.40 && darkRatio >= 0.03 && darkRatio <= 0.45);
+
+  if (!isRealOMRSheet) {
+    playScannerAudioBeep(false); // ಎರರ್ ಬೀಪ್
+
+    document.getElementById('omr-res-score').innerText = '0';
+    document.getElementById('omr-res-grade').innerText = '❌ OMR ಹಾಳೆ ಕಂಡುಬಂದಿಲ್ಲ';
+    document.getElementById('omr-cnt-correct').innerText = '0';
+    document.getElementById('omr-cnt-wrong').innerText = '0';
+    document.getElementById('omr-cnt-blank').innerText = totalQ;
+
+    var badge = document.getElementById('omr-scan-badge');
+    if (badge) {
+      badge.className = 'text-[10px] bg-rose-100 text-rose-800 font-black px-2 py-0.5 rounded-full';
+      badge.innerText = '❌ ಸ್ಕ್ಯಾನ್ ವಿಫಲವಾಗಿದೆ';
+    }
+
+    var saveBtn = document.getElementById('btn-save-omr-record');
+    if (saveBtn) saveBtn.disabled = true;
+
+    alert(
+      "⚠️ OMR ಹಾಳೆ ಪತ್ತೆಯಾಗಿಲ್ಲ!\n\n" +
+      "ನೀವು ಹಿಡಿದಿರುವ ಚಿತ್ರದಲ್ಲಿ ಅಧಿಕೃತ OMR ಹಾಳೆಯ ಬಿಳಿ ಕಾಗದ ಮತ್ತು ಕಪ್ಪು ವೃತ್ತಗಳ ಗ್ರಿಡ್ ಕಂಡುಬಂದಿಲ್ಲ.\n\n" +
+      "ದಯವಿಟ್ಟು ಮುದ್ರಿತ OMR ಹಾಳೆಯನ್ನು ಬೆಳಕಿನಲ್ಲಿ ನೇರವಾಗಿ ಹಿಡಿದು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ."
+    );
+    return;
+  }
+
+  // -------------------------------------------------------------
+  // ೨. ನೈಜ ಬಬಲ್ ಶೇಡಿಂಗ್ ಪತ್ತೆಹಚ್ಚುವಿಕೆ (REAL BUBBLE SHADE ANALYSIS)
+  // -------------------------------------------------------------
+  // ಪತ್ರಿಕೆಯ ಮಧ್ಯಭಾಗದ ಗ್ರಿಡ್ ಏರಿಯಾವನ್ನು ಕ್ರಾಪ್ ಮಾಡಿ ಸ್ಕ್ಯಾನ್ ಮಾಡುವುದು
+  var gridStartX = Math.floor(w * 0.08);
+  var gridEndX = Math.floor(w * 0.92);
+  var gridStartY = Math.floor(h * 0.28); // ಹೆಡರ್ ಬಿಟ್ಟು ಕೆಳಭಾಗದ ಗ್ರಿಡ್
+  var gridEndY = Math.floor(h * 0.88);
+
+  var gridWidth = gridEndX - gridStartX;
+  var gridHeight = gridEndY - gridStartY;
+
+  var numCols = 4; // ನಮ್ಮ OMR ನಲ್ಲಿ 4 ಕಾಲಂಗಳು
+  var perCol = Math.ceil(totalQ / numCols);
+  var colWidth = gridWidth / numCols;
+  var rowHeight = gridHeight / perCol;
 
   var correctCount = 0;
   var wrongCount = 0;
@@ -9365,33 +9144,69 @@ function processOMRCanvasImage(canvas) {
 
   var options = ['A', 'B', 'C', 'D'];
 
-  // ಪ್ರತಿಯೊಂದು ಪ್ರಶ್ನೆಯ ಬಬಲ್‌ಗಳನ್ನು ಗ್ರಿಡ್‌ನಂತೆ ಸ್ಯಾಂಪಲ್ ಮಾಡುವುದು
   for (var q = 1; q <= totalQ; q++) {
     var correctLetter = keyMap[q] || 'A';
-    
-    // ಸ್ಯಾಂಪ್ಲಿಂಗ್ ಅಲ್ಗಾರಿದಮ್: ಪ್ರತಿ ವೃತ್ತದ ಕಪ್ಪು ಸಾಂದ್ರತೆ ಲೆಕ್ಕಾಚಾರ
-    var optScores = {};
-    options.forEach(function(opt) {
-      // ಸ್ಯೂಡೋ-ರಾಂಡಮ್ ಡಾರ್ಕ್‌ನೆಸ್ ಡಿಟೆಕ್ಟರ್
-      var hash = (q * 37 + opt.charCodeAt(0) * 19 + Math.floor(avgLuma)) % 100;
-      optScores[opt] = hash;
+
+    var cIdx = Math.floor((q - 1) / perCol);
+    var rIdx = (q - 1) % perCol;
+
+    var cellX = gridStartX + (cIdx * colWidth);
+    var cellY = gridStartY + (rIdx * rowHeight);
+
+    // ಕಾಲಂನ ಬಲಭಾಗದಲ್ಲಿರುವ A, B, C, D 4 ವೃತ್ತಗಳ ಸ್ಥಳ
+    var bubbleAreaStartX = cellX + (colWidth * 0.35);
+    var bubbleAreaWidth = colWidth * 0.62;
+    var singleBubbleWidth = bubbleAreaWidth / 4;
+
+    var optDarkness = {};
+
+    options.forEach(function(opt, optIdx) {
+      var bx = Math.floor(bubbleAreaStartX + (optIdx * singleBubbleWidth));
+      var by = Math.floor(cellY + (rowHeight * 0.15));
+      var bw = Math.floor(singleBubbleWidth * 0.75);
+      var bh = Math.floor(rowHeight * 0.70);
+
+      // ಬಬಲ್ ಒಳಗಿನ ಕಪ್ಪು ಪಿಕ್ಸೆಲ್‌ಗಳನ್ನು ಎಣಿಸುವುದು
+      var darkPixelsInBubble = 0;
+      var totalPixelsInBubble = 0;
+
+      for (var py = by; py < by + bh && py < h; py += 2) {
+        for (var px = bx; px < bx + bw && px < w; px += 2) {
+          var pIndex = (py * w + px) * 4;
+          var br = (pixels[pIndex] * 0.299 + pixels[pIndex + 1] * 0.587 + pixels[pIndex + 2] * 0.114);
+          if (br < 110) { // ಕಪ್ಪು ಮಸಿ ಅಥವಾ ಪೆನ್ಸಿಲ್ ಶೇಡ್
+            darkPixelsInBubble++;
+          }
+          totalPixelsInBubble++;
+        }
+      }
+
+      var fillRatio = totalPixelsInBubble > 0 ? (darkPixelsInBubble / totalPixelsInBubble) : 0;
+      optDarkness[opt] = fillRatio;
     });
 
-    // ಅತಿ ಹೆಚ್ಚು ಡಾರ್ಕ್ ಆಗಿರುವ ಆಯ್ಕೆ
-    var detectedOpt = 'A';
-    var maxVal = -1;
+    // ಅತಿ ಹೆಚ್ಚು ತುಂಬಿರುವ ವೃತ್ತ ಗುರುತಿಸುವಿಕೆ
+    var maxFill = 0;
+    var detectedOpt = null;
+    var secondMaxFill = 0;
+
     options.forEach(function(opt) {
-      if (optScores[opt] > maxVal) {
-        maxVal = optScores[opt];
+      var f = optDarkness[opt];
+      if (f > maxFill) {
+        secondMaxFill = maxFill;
+        maxFill = f;
         detectedOpt = opt;
+      } else if (f > secondMaxFill) {
+        secondMaxFill = f;
       }
     });
 
-    // ಯಾದೃಚ್ಛಿಕ ನಿಖರತೆ ಹೊಂದಾಣಿಕೆ (ನಿಜವಾದ ಪರೀಕ್ಷಾ ಹಾಳೆಗಳ ಮಾದರಿ)
-    var isAttempted = (maxVal > 25);
-    if (!isAttempted) {
+    // ನಿಜವಾದ ಶೇಡಿಂಗ್ ಥ್ರೆಶ್‌ಹೋಲ್ಡ್: ಕನಿಷ್ಠ 28% ಕಪ್ಪಾಗಿರಬೇಕು ಮತ್ತು ಪಕ್ಕದ ವೃತ್ತಗಳಿಗಿಂತ ಗಮನಾರ್ಹವಾಗಿ ಹೆಚ್ಚಿರಬೇಕು
+    var isActuallyShaded = (maxFill >= 0.28 && (maxFill - secondMaxFill >= 0.10));
+
+    if (!isActuallyShaded) {
       blankCount++;
-      studentAnswers[q] = '-';
+      studentAnswers[q] = 'BLANK';
     } else {
       studentAnswers[q] = detectedOpt;
       if (detectedOpt === correctLetter) {
@@ -9402,7 +9217,9 @@ function processOMRCanvasImage(canvas) {
     }
   }
 
-  // ನಿಖರ ಫಲಿತಾಂಶ ಲೆಕ್ಕಾಚಾರ
+  // -------------------------------------------------------------
+  // ೩. ಅಂಕಗಳ ಪ್ರದರ್ಶನ
+  // -------------------------------------------------------------
   var percentage = Math.round((correctCount / totalQ) * 100);
   var grade = 'C';
   if (percentage >= 85) grade = 'A+ (ಅತ್ಯುತ್ತಮ)';
@@ -9411,7 +9228,6 @@ function processOMRCanvasImage(canvas) {
   else if (percentage >= 35) grade = 'B (ತೇರ್ಗಡೆ)';
   else grade = 'C (ಕಲಿಕಾ ಕೊರತೆ)';
 
-  // ಸ್ಕ್ರೀನ್ ಅಪ್ಡೇಟ್
   document.getElementById('omr-res-score').innerText = correctCount;
   document.getElementById('omr-res-grade').innerText = `${percentage}% - ${grade}`;
   document.getElementById('omr-cnt-correct').innerText = correctCount;
@@ -9421,154 +9237,26 @@ function processOMRCanvasImage(canvas) {
   var badge = document.getElementById('omr-scan-badge');
   if (badge) {
     badge.className = 'text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-full';
-    badge.innerText = '✓ ಯಶಸ್ವಿಯಾಗಿ ಸ್ಕ್ಯಾನ್ ಆಗಿದೆ';
+    badge.innerText = '✓ ನೈಜ OMR ಮೌಲ್ಯಮಾಪನ ಪೂರ್ಣಗೊಂಡಿದೆ';
   }
 
-  // ಬೀಪ್ ಸೌಂಡ್
   playScannerAudioBeep(true);
 
-  // ಪ್ರಸ್ತುತ ಸ್ಕ್ಯಾನ್ ಆದ ಡೇಟಾವನ್ನು ತಾತ್ಕಾಲಿಕವಾಗಿ ಇಡುವುದು
   omrScannerState.currentResult = {
     totalQ: totalQ,
     score: correctCount,
     percentage: percentage,
     grade: grade,
-    set: appState.currentExamSet || 'A'
+    set: appState.currentExamSet || 'A',
+    detectedAnswers: studentAnswers
   };
 
   var saveBtn = document.getElementById('btn-save-omr-record');
   if (saveBtn) saveBtn.disabled = false;
 
-  showToast(`⚡ OMR ಮೌಲ್ಯಮಾಪನ ಪೂರ್ಣ: ${correctCount} / ${totalQ} ಅಂಕಗಳು!`, 'success');
+  showToast(`⚡ ನೈಜ OMR ಮೌಲ್ಯಮಾಪನ: ${correctCount} / ${totalQ} ಅಂಕಗಳು!`, 'success');
 }
-
-// ೯. ವಿದ್ಯಾರ್ಥಿಯ ಅಂಕ ದಾಖಲೆಯನ್ನು ಸೇವ್ ಮಾಡುವುದು
-window.saveScannedStudentResultRecord = function() {
-  if (!omrScannerState.currentResult) return;
-
-  var nameInp = document.getElementById('omr-student-name');
-  var rollInp = document.getElementById('omr-student-roll');
-
-  var sCount = omrScannerState.scannedResults.length + 1;
-  var sName = (nameInp && nameInp.value.trim()) ? nameInp.value.trim() : `ವಿದ್ಯಾರ್ಥಿ #${sCount}`;
-  var sRoll = (rollInp && rollInp.value.trim()) ? rollInp.value.trim() : `10${sCount}`;
-
-  var record = {
-    sl: sCount,
-    roll: sRoll,
-    name: sName,
-    set: omrScannerState.currentResult.set,
-    score: omrScannerState.currentResult.score,
-    total: omrScannerState.currentResult.totalQ,
-    percent: omrScannerState.currentResult.percentage + '%',
-    grade: omrScannerState.currentResult.grade
-  };
-
-  omrScannerState.scannedResults.push(record);
-
-  // ಇನ್‌ಪುಟ್ ಖಾಲಿ ಮಾಡುವುದು
-  if (nameInp) nameInp.value = '';
-  if (rollInp) rollInp.value = '';
-
-  var saveBtn = document.getElementById('btn-save-omr-record');
-  if (saveBtn) saveBtn.disabled = true;
-
-  renderScannedResultsTable();
-  showToast(`✅ ${sName} ರವರ ಫಲಿತಾಂಶ ದಾಖಲಾಗಿದೆ! ಮುಂದಿನ ಹಾಳೆ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.`, 'info');
-};
-
-// ೧೦. ಸ್ಕ್ಯಾನ್ ಆದ ಫಲಿತಾಂಶಗಳ ಟೇಬಲ್ ರೆಂಡರ್
-function renderScannedResultsTable() {
-  var tbody = document.getElementById('omr-scanned-table-body');
-  var countEl = document.getElementById('omr-total-scanned-count');
-  if (!tbody) return;
-
-  var list = omrScannerState.scannedResults;
-  if (countEl) countEl.innerText = list.length;
-
-  if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">ಇನ್ನೂ ಯಾವುದೇ ಹಾಳೆಗಳನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿಲ್ಲ.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = list.map(function(r) {
-    return `
-      <tr class="hover:bg-slate-50 transition">
-        <td class="p-2">${r.sl}</td>
-        <td class="p-2 font-mono">${escapeHtml(r.roll)}</td>
-        <td class="p-2 font-bold text-slate-900">${escapeHtml(r.name)}</td>
-        <td class="p-2"><span class="bg-slate-200 text-slate-800 px-1.5 py-0.2 rounded font-black text-[10px]">${r.set}</span></td>
-        <td class="p-2 font-black text-emerald-700">${r.score} / ${r.total}</td>
-        <td class="p-2 font-bold text-indigo-700">${r.percent}</td>
-        <td class="p-2 font-black text-slate-800">${escapeHtml(r.grade)}</td>
-      </tr>
-    `;
-  }).join('');
-}
-
-// ೧೧. ಎಕ್ಸೆಲ್ (CSV) ಡೌನ್‌ಲೋಡ್
-window.exportScannedResultsToCSV = function() {
-  var list = omrScannerState.scannedResults;
-  if (list.length === 0) return alert("⚠️ ಡೌನ್‌ಲೋಡ್ ಮಾಡಲು ಯಾವುದೇ ವಿದ್ಯಾರ್ಥಿಗಳ ಫಲಿತಾಂಶವಿಲ್ಲ.");
-
-  var csvRows = [
-    ["Sl No", "Roll / SATS", "Student Name", "Set", "Score", "Total Marks", "Percentage", "Grade"]
-  ];
-
-  list.forEach(function(r) {
-    csvRows.push([r.sl, r.roll, r.name, r.set, r.score, r.total, r.percent, r.grade]);
-  });
-
-  var csvContent = "data:text/csv;charset=utf-8,\uFEFF" + csvRows.map(e => e.join(",")).join("\n");
-  var encodedUri = encodeURI(csvContent);
-  var link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `OMR_Exam_Results_${Date.now()}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  showToast("📥 Excel (CSV) ಫಲಿತಾಂಶಗಳ ಶೀಟ್ ಡೌನ್‌ಲೋಡ್ ಆಗಿದೆ!", "success");
-};
-
-// ೧೨. ಹಿಸ್ಟರಿ ಕ್ಲಿಯರ್
-window.clearScannedOMRHistory = function() {
-  if (!confirm("ಎಲ್ಲಾ ಸ್ಕ್ಯಾನ್ ಆದ ಫಲಿತಾಂಶಗಳನ್ನು ಅಳಿಸಲು ಖಚಿತವೇ?")) return;
-  omrScannerState.scannedResults = [];
-  renderScannedResultsTable();
-  showToast("🗑️ ಅಂಕಪಟ್ಟಿಯನ್ನು ತೆರವುಗೊಳಿಸಲಾಗಿದೆ.", "info");
-};
-
-// ೧೩. OMR ಟ್ಯಾಬ್ ಒಳಗೆ ದೊಡ್ಡ "📷 ಆಟೋ-ಸ್ಕ್ಯಾನರ್ ಪ್ರಾರಂಭಿಸಿ" ಬಟನ್ ಸೇರ್ಪಡೆ
-var prevRenderOMRWithScannerBtn = window.renderOfficialGovernmentOMRSheet;
-window.renderOfficialGovernmentOMRSheet = function(totalQuestions, totalMarks, examName, schoolName, subject, grade, examDate) {
-  if (typeof prevRenderOMRWithScannerBtn === 'function') {
-    prevRenderOMRWithScannerBtn(totalQuestions, totalMarks, examName, schoolName, subject, grade, examDate);
-  }
-
-  var container = document.getElementById('rendered-omr');
-  if (container && !document.getElementById('btn-launch-omr-cam-scanner')) {
-    var banner = document.createElement('div');
-    banner.id = 'btn-launch-omr-cam-scanner';
-    banner.className = 'w-full max-w-[820px] mx-auto mb-4 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 text-slate-950 p-4 rounded-2xl shadow-lg border border-amber-400 flex flex-wrap items-center justify-between gap-3 no-print';
-    banner.innerHTML = `
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-slate-950 text-amber-400 flex items-center justify-center font-black text-lg shadow">
-          <i class="fa-solid fa-camera"></i>
-        </div>
-        <div>
-          <h4 class="font-black text-sm text-slate-950">ಮೊಬೈಲ್ ಕ್ಯಾಮೆರಾ OMR ಆಟೋ-ಮೌಲ್ಯಮಾಪನ</h4>
-          <p class="text-xs font-bold text-slate-900">ಪರೀಕ್ಷಾ ಹಾಳೆಯನ್ನು ಕ್ಯಾಮೆರಾದಲ್ಲಿ ಹಿಡಿದು ಕೇವಲ 1 ಸೆಕೆಂಡ್‌ನಲ್ಲಿ ಅಂಕಗಳನ್ನು ತಿದ್ದಿ!</p>
-        </div>
-      </div>
-      <button type="button" onclick="openLiveOMRScannerModal()" class="px-5 py-2.5 bg-slate-950 hover:bg-slate-900 text-amber-300 font-black text-xs rounded-xl shadow-md cursor-pointer transition flex items-center gap-2">
-        <i class="fa-solid fa-expand text-amber-400"></i>
-        <span>📷 ಸ್ಕ್ಯಾನರ್ ಪ್ರಾರಂಭಿಸಿ (Start OMR Scanner)</span>
-      </button>
-    `;
-    container.insertBefore(banner, container.firstChild);
-  }
-};
+  
 
 
     

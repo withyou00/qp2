@@ -9978,6 +9978,47 @@ window.handleSubjectOrPartChange = function() {
   }
 };
 
+
+// =========================================================================
+// 🌐 BLOGGER / GOOGLE IMAGE 403-BLOCK FIX & NO-REFERRER ENGINE
+// =========================================================================
+
+var prevRenderCompForGoogleImages = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  var allQuestions = appState.activeGeneratedQuestions || [];
+  
+  // ೧. ಪ್ರತಿಯೊಂದು ಚಿತ್ರಕ್ಕೂ 'no-referrer' ಮತ್ತು ಸೆಂಟರ್ ಪ್ರದರ್ಶನವನ್ನು ಖಚಿತಪಡಿಸುವುದು
+  allQuestions.forEach(function(m) {
+    if (m.image || m.img) {
+      m.imgLayout = 'center';
+      m.imgSize = 'large';
+    }
+  });
+
+  if (typeof prevRenderCompForGoogleImages === 'function') {
+    prevRenderCompForGoogleImages(headerHtml);
+  }
+
+  // ೨. ಡಾಕ್ಯುಮೆಂಟ್‌ನಲ್ಲಿರುವ ಎಲ್ಲಾ ಚಿತ್ರಗಳಿಗೂ ಗೂಗಲ್ ಬ್ಲಾಕ್ ಬೈಪಾಸ್ ಅಳವಡಿಕೆ
+  setTimeout(function() {
+    var allImgs = document.querySelectorAll('#rendered-paper img, #print-area img');
+    allImgs.forEach(function(img) {
+      img.setAttribute('referrerpolicy', 'no-referrer');
+      img.setAttribute('loading', 'eager');
+      
+      // ಚಿತ್ರ ಲೋಡ್ ಆಗದಿದ್ದರೆ ಬದಲಿ ದೋಷ ನಿರ್ವಹಣೆ
+      img.onerror = function() {
+        console.warn("Image load failed:", img.src);
+        // ಲಿಂಕ್‌ನಿಂದ ಗೂಗಲ್ ಕ್ಯಾಶ್ ಕ್ಲಿಯರ್ ಮಾಡಿ ಮರುಪ್ರಯತ್ನ
+        if (!img.getAttribute('data-retried')) {
+          img.setAttribute('data-retried', 'true');
+          img.src = img.src + (img.src.includes('?') ? '&' : '?') + 'cache_bypass=' + Date.now();
+        }
+      };
+    });
+  }, 100);
+};
+
     
   </script>
 </body>

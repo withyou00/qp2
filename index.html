@@ -9880,6 +9880,104 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
     renderOfficialGovernmentOMRSheet(allQuestions.length, actualMarks, rawExamType, schoolName, rawSubj, grade, examDate);
   }
 };   
+
+
+// =========================================================================
+// 🧮 MATHEMATICS & NMMS SEPARATION FIX (PERFECT FILE ROUTER)
+// =========================================================================
+
+// ೧. ಗಣಿತ ಮತ್ತು NMMS ಅನ್ನು ನಿಖರವಾಗಿ ಪ್ರತ್ಯೇಕಿಸುವ ಮಾಸ್ಟರ್ ಕೀ ಫಂಕ್ಷನ್
+window.getNormalizedSubjectKey = function(subjectStr) {
+  if (!subjectStr) return 'general';
+  var s = String(subjectStr).toLowerCase().trim();
+
+  // 🌟 ೧. ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳು (ಗಣಿತ ಮೊದಲೇ ಗುರುತಿಸಬೇಕು)
+  if (s.includes('ಗಣಿತ') || s.includes('mathematics') || s.includes('maths') || s.includes('math')) {
+    // ಕೇವಲ NMMS SAT ನ ಗಣಿತ ಫೈಲ್ ಆಗಿದ್ದರೆ ಮಾತ್ರ
+    if (s.includes('nmms_maths')) return 'nmms_maths';
+    return 'mathematics';
+  }
+  if (s.includes('ಸಮಾಜ') || s.includes('social')) return 'social_science';
+  if (s.includes('ವಿಜ್ಞಾನ') || s.includes('science')) return 'science';
+  if (s.includes('ಕನ್ನಡ') || s.includes('kannada')) return 'kannada';
+  if (s.includes('ಇಂಗ್ಲಿಷ್') || s.includes('english')) return 'english';
+  if (s.includes('ಹಿಂದಿ') || s.includes('hindi')) return 'hindi';
+  if (s.includes('ಪರಿಸರ') || s.includes('evs')) return 'evs';
+
+  // 🌟 ೨. ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು (ಕೇವಲ ಸ್ಪಷ್ಟ ಹೆಸರಿದ್ದರೆ ಮಾತ್ರ)
+  if (s.includes('gmat') || s.includes('ಬೌದ್ಧಿಕ')) return 'nmms_gmat';
+  if (s.includes('sat') || s.includes('ಶೈಕ್ಷಣಿಕ')) return 'nmms_sat';
+  if (s.includes('morarji') || s.includes('ಮೊರಾರ್ಜಿ') || s.includes('ಕಿತ್ತೂರು')) return 'morarji_entrance';
+  if (s.includes('adarsha') || s.includes('ಆದರ್ಶ')) return 'adarsha_entrance';
+
+  return (typeof safeCleanMatch === 'function') ? safeCleanMatch(subjectStr) : 'general';
+};
+
+// ೨. ಸಬ್ಜೆಕ್ಟ್ ಮ್ಯಾಚ್ ಟೆಕ್ಸ್ಟ್ ನಲ್ಲೂ ನಿಖರತೆ
+window.normalizeSubjectMatchText = function(str) {
+  if (!str) return '';
+  var s = String(str).toLowerCase().trim();
+
+  if (s.includes('ಗಣಿತ') || s.includes('mathematics') || s.includes('maths') || s.includes('math')) return 'mathematics';
+  if (s.includes('ಸಮಾಜ') || s.includes('social')) return 'social_science';
+  if (s.includes('ವಿಜ್ಞಾನ') || s.includes('science')) return 'science';
+  if (s.includes('ಕನ್ನಡ') || s.includes('kannada')) return 'kannada';
+  if (s.includes('ಇಂಗ್ಲಿಷ್') || s.includes('english')) return 'english';
+  if (s.includes('ಹಿಂದಿ') || s.includes('hindi')) return 'hindi';
+  if (s.includes('ಪರಿಸರ') || s.includes('evs')) return 'evs';
+
+  if (s.includes('gmat') || s.includes('ಬೌದ್ಧಿಕ')) return 'nmms_gmat';
+  if (s.includes('sat') || s.includes('ಶೈಕ್ಷಣಿಕ')) return 'nmms_sat';
+  if (s.includes('morarji') || s.includes('ಮೊರಾರ್ಜಿ') || s.includes('ಕಿತ್ತೂರು')) return 'morarji_entrance';
+  if (s.includes('adarsha') || s.includes('ಆದರ್ಶ')) return 'adarsha_entrance';
+
+  return s;
+};
+
+// ೩. ವಿಷಯ ಬದಲಾದಾಗ ಲಾಕ್ ಮಾಡುವ ಕಂಟ್ರೋಲರ್‌ನಲ್ಲೂ ಗಣಿತ ಫಿಕ್ಸ್
+var prevHandleSubjChangeFixed = window.handleSubjectOrPartChange;
+window.handleSubjectOrPartChange = function() {
+  var subj = document.getElementById('cfg-subject')?.value || '';
+  var partSelect = document.getElementById('cfg-part');
+  var examSelect = document.getElementById('cfg-exam-type');
+
+  var isGMAT = subj.includes('GMAT') || subj.includes('ಬೌದ್ಧಿಕ');
+  var isSAT = (subj.includes('SAT') || subj.includes('ಶೈಕ್ಷಣಿಕ')) && !subj.includes('ಗಣಿತ');
+  var isMorarji = subj.includes('ಮೊರಾರ್ಜಿ') || subj.includes('ಆದರ್ಶ');
+
+  // ಕೇವಲ NMMS / ಮೊರಾರ್ಜಿ ಇದ್ದಾಗ ಮಾತ್ರ ಭಾಗ ಮತ್ತು ಪರೀಕ್ಷೆಯನ್ನು ಲಾಕ್ ಮಾಡುವುದು
+  if (isGMAT || isSAT || isMorarji) {
+    if (partSelect) {
+      partSelect.innerHTML = `<option value="none" selected>— ಅನ್ವಯಿಸುವುದಿಲ್ಲ (ಪೂರ್ಣ ಪಠ್ಯಕ್ರಮ) —</option>`;
+      partSelect.disabled = true;
+      partSelect.classList.add('bg-slate-200', 'cursor-not-allowed', 'text-slate-500');
+    }
+  } else {
+    // 🌟 ಗಣಿತ, ವಿಜ್ಞಾನ ಇತ್ಯಾದಿ ಸಾಮಾನ್ಯ ವಿಷಯಗಳಿಗೆ ಎಂದಿನಂತೆ ಭಾಗ ೧ / ಭಾಗ ೨ ಓಪನ್ ಆಗಿರಬೇಕು
+    if (partSelect && partSelect.disabled) {
+      partSelect.disabled = false;
+      partSelect.classList.remove('bg-slate-200', 'cursor-not-allowed', 'text-slate-500');
+      partSelect.innerHTML = `
+        <option value="part2" selected>📙 ಭಾಗ ೨ (Semester 2 / FA-3, FA-4)</option>
+        <option value="part1">📘 ಭಾಗ ೧ (Semester 1 / FA-1, FA-2, SA-1)</option>
+        <option value="all">🌟 ಸಂಪೂರ್ಣ ಪಠ್ಯಕ್ರಮ (ಭಾಗ ೧ + ೨ / SA-2)</option>
+      `;
+    }
+    if (examSelect && examSelect.disabled) {
+      examSelect.disabled = false;
+      examSelect.classList.remove('bg-slate-200', 'cursor-not-allowed', 'text-slate-700');
+    }
+  }
+
+  var medium = document.getElementById('cfg-medium')?.value || 'kannada_medium';
+  var grade = document.getElementById('cfg-class')?.value || '7';
+  var part = document.getElementById('cfg-part')?.value || 'part2';
+  
+  if (typeof loadQuestionsFromGitHub === 'function') {
+    loadQuestionsFromGitHub(medium, grade, subj, part);
+  }
+};
+
     
   </script>
 </body>

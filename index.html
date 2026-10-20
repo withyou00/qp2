@@ -9682,7 +9682,204 @@ window.switchOutputTab = function(t) {
 };
   
 
-    
+ // =========================================================================
+// 🖼️ NMMS / COMPETITIVE EXAM 4-OPTION & MAIN IMAGES FIX
+// =========================================================================
+
+var prevRenderCompWithAllImages = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  var allQuestions = appState.activeGeneratedQuestions || [];
+  var rawSubj = document.getElementById('cfg-subject')?.value || '';
+  var subjKey = (typeof getNormalizedSubjectKey === 'function') ? getNormalizedSubjectKey(rawSubj) : '';
+  var isCompetitive = (subjKey === 'nmms_sat' || subjKey === 'nmms_gmat' || subjKey === 'morarji_entrance' || subjKey === 'adarsha_entrance' || rawSubj.includes('NMMS') || rawSubj.includes('ಮೊರಾರ್ಜಿ') || rawSubj.includes('ಆದರ್ಶ'));
+
+  // ಸಾಮಾನ್ಯ ಪರೀಕ್ಷೆಯಾಗಿದ್ದರೆ ಮೊದಲಿನಂತೆಯೇ ರನ್ ಆಗಲಿ
+  if (!isCompetitive) {
+    if (typeof prevRenderCompWithAllImages === 'function') {
+      prevRenderCompWithAllImages(headerHtml);
+    }
+    return;
+  }
+
+  // 🌟 NMMS / ಮೊರಾರ್ಜಿ ಪರೀಕ್ಷೆಗಳಲ್ಲಿ ಚಿತ್ರಗಳ ಸಹಿತ ಸಂಪೂರ್ಣ ರೆಂಡರಿಂಗ್:
+  var isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  var grade = document.getElementById('cfg-class')?.value || '8';
+  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'NMMS ವಿದ್ಯಾರ್ಥಿವೇತನ ಪರೀಕ್ಷೆ 2026-27';
+  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+  var actualMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+  var curSet = appState.currentExamSet || 'A';
+
+  var finalHeaderHtml = `
+    <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 6px;">
+      <div style="display: flex; justify-content: flex-end; margin-bottom: -18px;">
+        <span style="font-size: 11pt; font-weight: 900; border: 2px solid #000; padding: 1px 8px; background: #f1f5f9; border-radius: 4px; letter-spacing: 1px;">
+          SET - ${curSet}
+        </span>
+      </div>
+      <div style="text-align: center; margin-bottom: 2px;">
+        <h1 style="font-size: 13pt; font-weight: 900; margin: 0; line-height: 1.2;">${escapeHtml(schoolName)}</h1>
+        <div style="font-size: 11pt; font-weight: 900; margin-top: 1px; color: #0f172a;">
+          ${escapeHtml(rawExamType)}
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 2px;">
+        <tr>
+          <td style="width: 34%; text-align: left; font-weight: 800; font-size: 9.8pt;">ವಿಷಯ : <b>${escapeHtml(rawSubj)}</b></td>
+          <td style="width: 22%; text-align: center; font-weight: 800; font-size: 9.8pt;">ತರಗತಿ : <b>${grade}ನೇ ತರಗತಿ</b></td>
+          <td style="width: 22%; text-align: center; font-weight: 800; font-size: 9.8pt;">ದಿನಾಂಕ : <b>${escapeHtml(examDate)}</b></td>
+          <td style="width: 22%; text-align: right; font-weight: 800; font-size: 9.8pt;">ಒಟ್ಟು ಅಂಕಗಳು : <b>${actualMarks}</b></td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  // ವಿಷಯವಾರು (Physics, Chemistry, Maths...) ವಿಂಗಡಣೆ
+  var chapterGroups = new Map();
+  allQuestions.forEach(function(q) {
+    var ch = (q.chapter || 'ಸಾಮಾನ್ಯ ವಿಭಾಗ').trim();
+    if (!chapterGroups.has(ch)) chapterGroups.set(ch, []);
+    chapterGroups.get(ch).push(q);
+  });
+
+  var paperSectionsHtml = [];
+  var keySectionsHtml = [];
+  var qNum = 1, kNum = 1;
+
+  chapterGroups.forEach(function(qList, chapterTitle) {
+    var subjectBannerHtml = `
+      <div style="width: 100%; border: 1.5px solid #000; background: #f1f5f9; text-align: center; padding: 3.5px 6px; margin: 8px 0 5px 0; font-weight: 900; font-size: 10.5pt; text-transform: uppercase; letter-spacing: 0.5px; page-break-after: avoid; break-after: avoid;">
+        ✦ ${escapeHtml(chapterTitle)} ✦ &nbsp; <span style="font-size: 9pt; font-weight: 700; color: #475569;">(${qList.length} ಅಂಕಗಳು)</span>
+      </div>
+    `;
+
+    paperSectionsHtml.push(`
+      <div class="main-roman-section-block">
+        ${subjectBannerHtml}
+        ${qList.map(function(m) {
+          var globalIdx = allQuestions.indexOf(m);
+
+          // 🌟 ೧. ನಾಲ್ಕೂ ಆಯ್ಕೆಗಳ ಚಿತ್ರಗಳನ್ನು ಹುಡುಕುವುದು
+          var imgA = m.img_a || m.image_a || m.a_img || m.imgA;
+          var imgB = m.img_b || m.image_b || m.b_img || m.imgB;
+          var imgC = m.img_c || m.image_c || m.c_img || m.imgC;
+          var imgD = m.img_d || m.image_d || m.d_img || m.imgD;
+          var has4OptionImages = !!(imgA || imgB || imgC || imgD);
+
+          // 🌟 ೨. ಪ್ರಶ್ನೆಯ ಮುಖ್ಯ ಚಿತ್ರ (ಆಯ್ಕೆಗಳ ಚಿತ್ರವಲ್ಲದಿದ್ದರೆ ಮಾತ್ರ ಬಲಭಾಗಕ್ಕೆ ಬರುವುದು)
+          var mainImg = (!has4OptionImages && (m.image || m.img)) ? (m.image || m.img) : null;
+          var isWideImg = (mainImg && (m.imgLayout === 'center' || m.imgSize === 'large' || (m.q && m.q.length > 80)));
+
+          return `
+          <div class="q-indivisible-block" style="margin-bottom: ${isBookletMode ? '6px' : '4px'};">
+            
+            <!-- ಪ್ರಶ್ನೆ & ಬಲಭಾಗದ ಚಿತ್ರ -->
+            <table class="board-q-table-row" style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td class="board-q-num-cell" style="vertical-align: top; width: 26px;">${qNum++}.</td>
+                <td class="board-q-text-cell" style="vertical-align: top;">${formatQuestionTextForDisplay(m.q)}</td>
+                
+                ${(mainImg && !isWideImg) ? `
+                  <td style="width: 125px; min-width: 110px; text-align: right; vertical-align: middle; padding-left: 6px;">
+                    <img src="${mainImg}" style="max-height: 85px; max-width: 120px; object-fit: contain; border: 1.2px solid #475569; background: #fff; padding: 2px; border-radius: 4px; display: inline-block;" alt="Diagram" />
+                  </td>
+                ` : ''}
+
+                <td style="width: 45px; text-align: right; vertical-align: top;" class="no-print">
+                  <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                </td>
+              </tr>
+            </table>
+
+            <!-- ದೊಡ್ಡ ಚಿತ್ರವಿದ್ದರೆ ಮಧ್ಯದಲ್ಲಿ -->
+            ${(mainImg && isWideImg) ? `
+              <div style="text-align: center; margin: 4px auto; clear: both;">
+                <img src="${mainImg}" style="max-height: 150px; max-width: 95%; object-fit: contain; border: 1.2px solid #334155; background: #fff; padding: 2px; border-radius: 4px;" alt="Diagram" />
+              </div>
+            ` : ''}
+
+            <!-- 🌟 ೩. ಆಯ್ಕೆಗಳ ಪ್ರದರ್ಶನ (ಚಿತ್ರಗಳಿದ್ದರೆ 4 ಬಾಕ್ಸ್‌ಗಳ ಗ್ರಿಡ್‌ನಲ್ಲಿ ಚಿತ್ರಗಳು ಪ್ರದರ್ಶನವಾಗುತ್ತವೆ) -->
+            ${has4OptionImages ? `
+              <table style="width: 100%; margin-top: 4px; margin-bottom: 4px; border-collapse: collapse;">
+                <tr>
+                  <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px 4px; border: 1.2px dashed #94a3b8; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-size: 9.5pt; font-weight: 700; margin-bottom: 2px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</div>
+                    ${imgA ? `<img src="${imgA}" style="max-height: 80px; max-width: 95%; margin: 2px auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px; object-fit: contain;" alt="Option A" />` : ''}
+                  </td>
+                  <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px 4px; border: 1.2px dashed #94a3b8; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-size: 9.5pt; font-weight: 700; margin-bottom: 2px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</div>
+                    ${imgB ? `<img src="${imgB}" style="max-height: 80px; max-width: 95%; margin: 2px auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px; object-fit: contain;" alt="Option B" />` : ''}
+                  </td>
+                  <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px 4px; border: 1.2px dashed #94a3b8; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-size: 9.5pt; font-weight: 700; margin-bottom: 2px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</div>
+                    ${imgC ? `<img src="${imgC}" style="max-height: 80px; max-width: 95%; margin: 2px auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px; object-fit: contain;" alt="Option C" />` : ''}
+                  </td>
+                  <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px 4px; border: 1.2px dashed #94a3b8; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-size: 9.5pt; font-weight: 700; margin-bottom: 2px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</div>
+                    ${imgD ? `<img src="${imgD}" style="max-height: 80px; max-width: 95%; margin: 2px auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px; object-fit: contain;" alt="Option D" />` : ''}
+                  </td>
+                </tr>
+              </table>
+            ` : `
+              <table style="width: 100%; margin: 2px 0;">
+                <tr>
+                  <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px 1px 25px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</td>
+                  <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</td>
+                  <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</td>
+                  <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</td>
+                </tr>
+              </table>
+            `}
+
+            ${isBookletMode ? `<div style="padding-left: 25px; margin-bottom: 4px; font-size: 9.5pt; font-weight: 700;">ಉತ್ತರ : ________________________________________________________________</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    `);
+
+    // ಕೀ ಉತ್ತರ
+    keySectionsHtml.push(`
+      <div class="main-roman-section-block">
+        <div style="border-bottom: 1.5px solid #000; padding: 2px 4px; margin: 6px 0 4px 0; font-weight: 900; font-size: 10pt; background: #f8fafc;">
+          <b>✦ ${escapeHtml(chapterTitle)} ✦</b>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 4px; margin-bottom: 6px;">
+          ${qList.map(function(m) {
+            return `
+              <div class="key-hanging-row-item" style="font-size: 9.5pt; padding: 1px 4px; border: 1px dashed #cbd5e1; background: #fff;">
+                <span style="font-weight:900; min-width: 24px;">${kNum++}.</span>
+                <span><b>${formatQuestionTextForDisplay(m.ans || '')}</b></span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `);
+  });
+
+  // ಪತ್ರಿಕೆ ಮತ್ತು ಕೀ ಉತ್ತರ ಪ್ರದರ್ಶನ
+  document.getElementById('rendered-paper').innerHTML = `
+    <div class="a4-board-sheet">
+      ${finalHeaderHtml}
+      <div>${paperSectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  document.getElementById('rendered-key').innerHTML = `
+    <div class="a4-board-sheet">
+      ${finalHeaderHtml}
+      <div style="text-align: center; margin-bottom: 6px; border-bottom: 2px solid #000; padding-bottom: 2px;">
+        <h3 style="font-size: 12pt; font-weight: 900; text-transform: uppercase;">ಅಧಿಕೃತ ಕೀ ಉತ್ತರ ಸೂಚಿ & ಪರಿಹಾರಗಳು (KEY ANSWERS - SET ${curSet})</h3>
+      </div>
+      <div>${keySectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
+  if (typeof renderOfficialGovernmentOMRSheet === 'function') {
+    renderOfficialGovernmentOMRSheet(allQuestions.length, actualMarks, rawExamType, schoolName, rawSubj, grade, examDate);
+  }
+};   
     
   </script>
 </body>

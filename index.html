@@ -9980,6 +9980,185 @@ window.handleSubjectOrPartChange = function() {
 
 
 
+    // =========================================================================
+// 🌟 100% ACCURATE 2-COLUMN MATCHING & PIPE TABLE AUTO-ALIGNER ENGINE
+// =========================================================================
+
+window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
+  if (!rawText) return '';
+  let text = String(rawText).trim();
+
+  // ೧. ಬೇಡದ ಟ್ಯಾಗ್‌ಗಳು ಮತ್ತು ಹೆಡರ್‌ಗಳ ಕ್ಲೀನಪ್
+  text = text.replace(/\[cite:\s*\d+\]/gi, '').replace(/\[\d+\]/g, '').trim();
+  text = text.replace(/^(?:ಪ್ರಶ್ನೆ\s*[\:\.\-]*\s*)+/gi, '').trim();
+  text = text.replace(/^(?:ಮೊದಲೆರಡು\s*ಪದಗಳ\s*ಸಂಬಂಧದಂತೆ\s*ಮೂರನೇ\s*ಪದಕ್ಕೆ\s*ಸಂಬಂಧಿಸಿದ\s*ಪದ\s*ಬರೆಯಿರಿ\s*[\:\.\-]*\s*)/gi, '').trim();
+  text = text.replace(/^(?:ಮೊದಲ\s*ಎರಡು\s*ಪದಗಳಿಗಿರುವ\s*ಸಂಬಂಧದಂತೆ\s*[\:\.\-]*\s*)/gi, '').trim();
+
+  if (isTrueFalse) {
+    text = text.replace(/^(?:ಸರಿ\s*ಅಥವಾ\s*ತಪ್ಪು\s*ಬರೆಯಿರಿ\s*[\:\.\-]*\s*)+/gi, '').trim();
+    text = text.replace(/^(?:सही\s*या\s*गलत\s*लिखिए\s*[\:\.\-]*\s*)+/gi, '').trim();
+  }
+
+  text = text.replace(/<br\s*\/?>/gi, '\n').replace(/\\n/g, '\n');
+  text = escapeHtml(text);
+  if (typeof renderMathFormulaBeautifully === 'function') {
+    text = renderMathFormulaBeautifully(text);
+  }
+
+  const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  if (rawLines.length <= 1) return text;
+
+  const titleLine = rawLines[0];
+  const bodyLines = rawLines.slice(1);
+
+  // -----------------------------------------------------------------------
+  // 🌟 ಕೇಸ್ ೧: ಮಾರ್ಕ್‌ಡೌನ್ ಕೋಷ್ಟಕ (Pipe `|` Table) ಪತ್ತೆಹಚ್ಚುವಿಕೆ (Image 3 - Q9 Fix)
+  // -----------------------------------------------------------------------
+  const pipeLines = bodyLines.filter(l => l.includes('|'));
+  if (pipeLines.length >= 2 && pipeLines.length === bodyLines.length) {
+    let tableRowsHtml = bodyLines.map((rowText, rIdx) => {
+      const cells = rowText.split('|').map(c => c.trim()).filter(Boolean);
+      const isHeader = (rIdx === 0);
+      return `
+        <tr style="${isHeader ? 'background-color: #f1f5f9; font-weight: 900; border-bottom: 1.5px solid #000;' : 'border-bottom: 1px solid #cbd5e1;'}">
+          ${cells.map(cell => `
+            <td style="border: 1px solid #000; padding: 3px 8px; text-align: center; font-size: 9.8pt; font-weight: ${isHeader ? '900' : '600'};">
+              ${cell}
+            </td>
+          `).join('')}
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <span class="font-semibold">${titleLine}</span>
+      <div style="margin: 5px 0 5px 12px; width: 100%; overflow-x: auto;">
+        <table style="border-collapse: collapse; border: 1.5px solid #000; min-width: 320px; max-width: 95%; background: #fff;">
+          <tbody>${tableRowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // -----------------------------------------------------------------------
+  // 🌟 ಕೇಸ್ ೨: ಒಂದೇ ಸಾಲಿನಲ್ಲಿ ಎರಡು ಕಾಲಂ ಬಂದಾಗ (Image 1 Fix - e.g., 'a. ಪಟ್ಟಿ 1  i. ಪಟ್ಟಿ 2')
+  // -----------------------------------------------------------------------
+  const splitLineRegex = /^([\(\[]?[a-zA-Z0-9೦-೯]+[\.\)\]\-]\s*[^|]+?)\s{2,}|(?=\s+[\(\[]?[iIvVxX0-9೦-೯a-zA-Z]+[\.\)\]\-])\s+(.+)$/;
+  let combinedRowPairs = [];
+  let trailingTextLines = [];
+  let isCombinedPattern = true;
+
+  for (let line of bodyLines) {
+    const match = line.match(/^([\(\[]?[a-zA-Z0-9೦-೯]+[\.\)\]\-]\s*.+?)\s+([\(\[]?[iIvVxX0-9೦-೯a-zA-Z]+[\.\)\]\-]\s*.+)$/);
+    if (match && trailingTextLines.length === 0) {
+      combinedRowPairs.push({ col1: match[1].trim(), col2: match[2].trim() });
+    } else {
+      if (combinedRowPairs.length > 0) {
+        trailingTextLines.push(line);
+      } else {
+        isCombinedPattern = false;
+        break;
+      }
+    }
+  }
+
+  if (isCombinedPattern && combinedRowPairs.length >= 2) {
+    return `
+      <span class="font-semibold">${titleLine}</span>
+      <div style="margin: 4px 0 4px 14px; width: 100%;">
+        <table style="width: auto; min-width: 300px; max-width: 550px; border-collapse: collapse;">
+          <tbody>
+            ${combinedRowPairs.map(pair => `
+              <tr>
+                <td style="padding: 2.5px 18px 2.5px 0; font-size: 10pt; font-weight: 600; vertical-align: top; width: 50%;">${pair.col1}</td>
+                <td style="padding: 2.5px 0; font-size: 10pt; font-weight: 600; vertical-align: top; width: 50%;">${pair.col2}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${trailingTextLines.length > 0 ? `
+        <div style="margin-top: 3px; font-weight: 600; font-size: 10pt; padding-left: 4px;">
+          ${trailingTextLines.join('<br/>')}
+        </div>
+      ` : ''}
+    `;
+  }
+
+  // -----------------------------------------------------------------------
+  // 🌟 ಕೇಸ್ ೩: ಎರಡು ಪ್ರತ್ಯೇಕ ಪಟ್ಟಿಗಳು ಒಂದರ ಕೆಳಗೆ ಒಂದು ಬಂದಾಗ (Image 2 & Image 3 - Q10 Fix)
+  // (ಉದಾ: i, ii, iii, iv ಮತ್ತು a, b, c, d ಪ್ರತ್ಯೇಕವಾಗಿ ಬಂದರೆ ಅವುಗಳನ್ನು ಒಂದರ ಪಕ್ಕ ಒಂದು ಜೋಡಿಸುವುದು)
+  // -----------------------------------------------------------------------
+  const isRomanOrNum = (s) => /^[\(\[]?([iIvVxX]+|[0-9೦-೯]+)[\.\)\]\-]/.test(s);
+  const isAlpha = (s) => /^[\(\[]?([a-dA-Dಅ-ಹ])[\.\)\]\-]/.test(s);
+
+  let group1 = [];
+  let group2 = [];
+  let footerLines = [];
+  let currentGroup = 1;
+
+  for (let line of bodyLines) {
+    if (currentGroup === 1) {
+      if (isRomanOrNum(line) || (group1.length === 0 && isAlpha(line))) {
+        group1.push(line);
+      } else if (isAlpha(line) || isRomanOrNum(line)) {
+        currentGroup = 2;
+        group2.push(line);
+      } else {
+        footerLines.push(line);
+      }
+    } else if (currentGroup === 2) {
+      if (isAlpha(line) || isRomanOrNum(line)) {
+        group2.push(line);
+      } else {
+        currentGroup = 3;
+        footerLines.push(line);
+      }
+    } else {
+      footerLines.push(line);
+    }
+  }
+
+  // ಎರಡೂ ಗ್ರೂಪ್‌ಗಳು ಸರಿಸುಮಾರು ಸಮಾನ ಸಂಖ್ಯೆಯಲ್ಲಿದ್ದರೆ 2-Column Side-by-Side ಕೋಷ್ಟಕ ನಿರ್ಮಾಣ
+  if (group1.length >= 2 && group2.length >= 2 && Math.abs(group1.length - group2.length) <= 2) {
+    const maxRows = Math.max(group1.length, group2.length);
+    let rowsHtml = '';
+    for (let i = 0; i < maxRows; i++) {
+      const c1 = group1[i] || '';
+      const c2 = group2[i] || '';
+      rowsHtml += `
+        <tr>
+          <td style="padding: 2.5px 24px 2.5px 0; font-size: 10pt; font-weight: 600; vertical-align: top; width: 48%;">${c1}</td>
+          <td style="padding: 2.5px 0; font-size: 10pt; font-weight: 600; vertical-align: top; width: 52%;">${c2}</td>
+        </tr>
+      `;
+    }
+
+    return `
+      <span class="font-semibold">${titleLine}</span>
+      <div style="margin: 4px 0 4px 14px; width: 100%;">
+        <table style="width: auto; min-width: 320px; max-width: 580px; border-collapse: collapse;">
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+      ${footerLines.length > 0 ? `
+        <div style="margin-top: 3px; font-weight: 600; font-size: 10pt; padding-left: 4px;">
+          ${footerLines.join('<br/>')}
+        </div>
+      ` : ''}
+    `;
+  }
+
+  // -----------------------------------------------------------------------
+  // ೪. ಸಾಮಾನ್ಯ ಪಠ್ಯ ಲೈನ್‌ಗಳ ಡೀಫಾಲ್ಟ್ ಫಾರ್ಮ್ಯಾಟಿಂಗ್
+  // -----------------------------------------------------------------------
+  return rawLines.map((line, idx) => 
+    idx === 0 
+      ? `<span class="font-semibold">${line}</span>` 
+      : `<br/><span style="display:inline-block; padding-left:14px; margin-top:2px; font-weight:600;">${line}</span>`
+  ).join('');
+};
+
     
   </script>
 </body>

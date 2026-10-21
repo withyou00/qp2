@@ -10159,6 +10159,88 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
   ).join('');
 };
 
+
+
+    // =========================================================================
+// 🖼️ 100% BULLETPROOF CENTER & LARGE IMAGE CONTROLLER FIX
+// =========================================================================
+
+// ೧. ಚಿತ್ರ Center / Large ಆಗಿರಬೇಕೇ ಎಂದು ಪರಿಶೀಲಿಸುವ ನಿಖರ ಫಂಕ್ಷನ್
+function checkIsCenterOrLargeImage(q) {
+  if (!q) return false;
+  var layout = String(q.imgLayout || q.img_layout || q.layout || '').trim().toLowerCase();
+  var size = String(q.imgSize || q.img_size || q.size || '').trim().toLowerCase();
+  var url = String(q.image || q.img || '').toLowerCase();
+
+  // JSON ನಲ್ಲಿ center ಅಥವಾ large ಎಂದು ಕೊಟ್ಟಿದ್ದರೆ ಕಡ್ಡಾಯವಾಗಿ True
+  if (layout === 'center' || layout === 'middle' || layout === 'wide') return true;
+  if (size === 'large' || size === 'big' || size === 'wide' || size === 'full') return true;
+  if (url.includes('center') || url.includes('wide')) return true;
+
+  // ಪ್ರಶ್ನೆಯ ಪಠ್ಯ ತುಂಬಾ ದೊಡ್ಡದಾಗಿದ್ದಾಗಲೂ ಕೊಲಿಶನ್ ತಪ್ಪಿಸಲು Center
+  if (q.q && q.q.length > 85) return true;
+
+  return false;
+}
+
+// ೨. ಎಲ್ಲಾ ಪರೀಕ್ಷೆಗಳಿಗೂ (ಶಾಲಾ & NMMS/SAT) ಅನ್ವಯವಾಗುವ ಮಾಸ್ಟರ್ ಇಮೇಜ್ ಫಿಕ್ಸ್
+var originalRenderFullExamHeaderFinalFix = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  // ಮೂಲ ಫಂಕ್ಷನ್ ರನ್ ಮಾಡುವುದು
+  if (typeof originalRenderFullExamHeaderFinalFix === 'function') {
+    originalRenderFullExamHeaderFinalFix(headerHtml);
+  }
+
+  // ಪತ್ರಿಕೆಯಲ್ಲಿರುವ ಎಲ್ಲಾ ಪ್ರಶ್ನೆ ಬ್ಲಾಕ್‌ಗಳನ್ನು ಪರೀಕ್ಷಿಸಿ Center / Large ಫಿಕ್ಸ್ ಮಾಡುವುದು
+  var allQuestions = appState.activeGeneratedQuestions || [];
+  var renderedSheet = document.getElementById('rendered-paper');
+  if (!renderedSheet) return;
+
+  var qBlocks = renderedSheet.querySelectorAll('.q-indivisible-block');
+
+  qBlocks.forEach(function(block, idx) {
+    var qData = allQuestions[idx];
+    if (!qData) return;
+
+    var imgSrc = qData.image || qData.img;
+    var has4OptionImages = !!(qData.img_a || qData.img_b || qData.img_c || qData.img_d || qData.image_a);
+
+    // ಕೇವಲ ಮುಖ್ಯ ಚಿತ್ರವಿದ್ದು, 4 ಆಪ್ಷನ್ ಚಿತ್ರಗಳಿಲ್ಲದಿದ್ದರೆ:
+    if (imgSrc && !has4OptionImages) {
+      var isCenter = checkIsCenterOrLargeImage(qData);
+
+      if (isCenter) {
+        // 🌟 ೧. ಬಲಭಾಗದ ಸಣ್ಣ ಇಮೇಜ್ ಕಾಲಂ ಅನ್ನು ತೆಗೆದುಹಾಕುವುದು
+        var sideImgCells = block.querySelectorAll('td[style*="width: 120px"], td[style*="width: 125px"], td[style*="width: 110px"], td[style*="width: 135px"], td.mcq-img-right');
+        sideImgCells.forEach(function(td) {
+          td.remove();
+        });
+
+        // 🌟 ೨. ಈಗಾಗಲೇ Center Image ಇಲ್ಲದಿದ್ದರೆ ಪ್ರಶ್ನೆ ಮತ್ತು ಆಯ್ಕೆಗಳ ನಡುವೆ Center Image ಸೇರಿಸುವುದು
+        var existingCenterBox = block.querySelector('.force-center-img-box');
+        if (!existingCenterBox) {
+          var centerDiv = document.createElement('div');
+          centerDiv.className = 'force-center-img-box';
+          centerDiv.style.cssText = 'text-align: center; margin: 6px auto; width: 100%; clear: both; display: block;';
+          
+          centerDiv.innerHTML = `
+            <img src="${imgSrc}" style="max-height: 180px; max-width: 92%; height: auto; object-fit: contain; border: 1.5px solid #334155; background: #fff; padding: 3px; border-radius: 6px; display: inline-block; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" alt="Diagram" />
+          `;
+
+          // ಪ್ರಶ್ನೆಯ ಟೇಬಲ್‌ನ ಕೆಳಗೆ ಇರಿಸುವುದು
+          var qTable = block.querySelector('table');
+          if (qTable && qTable.nextSibling) {
+            block.insertBefore(centerDiv, qTable.nextSibling);
+          } else {
+            block.appendChild(centerDiv);
+          }
+        }
+      }
+    }
+  });
+};
+    
+
     
   </script>
 </body>

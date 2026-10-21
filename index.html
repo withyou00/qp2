@@ -3,6 +3,7 @@
 <!DOCTYPE html>
 <html lang="kn">
 <head>
+  <meta name="referrer" content="no-referrer" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>With You QP Generator - Official DSERT Master Pro 2026-27</title>
@@ -10161,6 +10162,41 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
 
 
 
+    // =========================================================================
+// 🌐 100% BULLETPROOF IMAGE UNBLOCKER (FIX BLOGGER & GOOGLE 403 FORBIDDEN)
+// =========================================================================
+
+(function installUniversalImageUnblocker() {
+  // ೧. ಹೆಡ್‌ನಲ್ಲಿ no-referrer ಮೆಟಾ ಟ್ಯಾಗ್ ಖಚಿತಪಡಿಸುವುದು
+  if (!document.querySelector('meta[name="referrer"]')) {
+    var meta = document.createElement('meta');
+    meta.name = "referrer";
+    meta.content = "no-referrer";
+    document.head.appendChild(meta);
+  }
+
+  // ೨. ಡಾಕ್ಯುಮೆಂಟ್‌ನಲ್ಲಿ ಲೋಡ್ ಆಗುವ ಎಲ್ಲಾ ಚಿತ್ರಗಳಿಗೂ referrerpolicy="no-referrer" ಅನ್ವಯಿಸುವುದು
+  var observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      mutation.addedNodes.forEach(function(node) {
+        if (node.nodeType === 1) {
+          var imgs = node.tagName === 'IMG' ? [node] : node.querySelectorAll('img');
+          imgs.forEach(function(img) {
+            img.setAttribute('referrerpolicy', 'no-referrer');
+            img.setAttribute('loading', 'eager');
+            
+            // ಚಿತ್ರ ಬಾರದೆ ಕಟ್ ಆದರೆ ಪತ್ತೆಹಚ್ಚಲು
+            img.onerror = function() {
+              console.warn("⚠️ ಚಿತ್ರ ಲೋಡ್ ಆಗುತ್ತಿಲ್ಲ (ಲಿಂಕ್ ಪರಿಶೀಲಿಸಿ):", this.src);
+            };
+          });
+        }
+      });
+    });
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+})();
   
     
   </script>

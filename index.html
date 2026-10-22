@@ -10197,6 +10197,196 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
 
   observer.observe(document.body, { childList: true, subtree: true });
 })();
+
+
+
+
+    // =========================================================================
+// 🎯 EXACT MARKS AUDITOR & FULL A4 PAGE AUTO-SPREAD ENGINE
+// =========================================================================
+
+// ೧. ಪೂರ್ಣ A4 ಪುಟವನ್ನು ಕೆಳಗಿನವರೆಗೆ ತುಂಬುವ ಮತ್ತು 2ನೇ ಖಾಲಿ ಪೇಜ್ ತಡೆಯುವ CSS
+(function injectPerfectA4PrintSpreadCSS() {
+  var styleEl = document.createElement('style');
+  styleEl.innerHTML = `
+    /* 🌟 20 ಅಂಕ ಮತ್ತು 1-ಪುಟದ ಪತ್ರಿಕೆಗಳಿಗೆ ಪೂರ್ಣ ಪುಟ ಹರಡುವಿಕೆ */
+    .a4-board-sheet.fit-full-a4 {
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      min-height: 272mm !important;
+      box-sizing: border-box !important;
+    }
+    .a4-board-sheet.fit-full-a4 .main-roman-section-block {
+      margin-bottom: auto !important;
+      padding-bottom: 6px !important;
+    }
+    .a4-board-sheet.fit-full-a4 .q-indivisible-block {
+      margin-bottom: 7px !important;
+      line-height: 1.5 !important;
+    }
+    .a4-board-sheet.fit-full-a4 .board-q-text-cell {
+      font-size: 10.5pt !important;
+      line-height: 1.45 !important;
+    }
+    .a4-board-sheet.fit-full-a4 .board-heading-row-table {
+      margin-top: 8px !important;
+      margin-bottom: 5px !important;
+    }
+
+    /* 🌟 ಪ್ರಿಂಟ್‌ನಲ್ಲಿ 2ನೇ ಖಾಲಿ ಪುಟ ಸಂಪೂರ್ಣ ಬಂದ್ */
+    @media print {
+      @page {
+        size: A4 portrait !important;
+        margin: 5mm 6mm !important;
+      }
+      html, body {
+        height: auto !important;
+        overflow: visible !important;
+      }
+      #print-area {
+        position: static !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .a4-board-sheet {
+        margin: 0 auto !important;
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
+      .a4-board-sheet.fit-full-a4 {
+        height: 275mm !important;
+        min-height: 275mm !important;
+        max-height: 275mm !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+      .no-print, .btn-live-q-edit {
+        display: none !important;
+      }
+    }
+  `;
+  document.head.appendChild(styleEl);
+})();
+
+// ೨. ಕಟ್ಟುನಿಟ್ಟಾದ ನಿಖರ ಅಂಕಗಳ ಸಾಲ್ವರ್ (ಯಾವುದೇ ಕಾರಣಕ್ಕೂ 40 ದಾಟಬಾರದು!)
+window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selectedTypes) {
+  if (!pool || pool.length === 0) return [];
+
+  var shuffle = function(arr) {
+    var a = [...arr];
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  var b5 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 5 && selectedTypes.includes(getCanonicalQuestionType(q))));
+  var b4 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 4 && selectedTypes.includes(getCanonicalQuestionType(q))));
+  var b3 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 3 && selectedTypes.includes(getCanonicalQuestionType(q))));
+  var b2 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 2 && selectedTypes.includes(getCanonicalQuestionType(q))));
+  var b1 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 1 && selectedTypes.includes(getCanonicalQuestionType(q))));
+
+  b4.sort((a, b) => (isMatchQuestion(b) ? 1 : 0) - (isMatchQuestion(a) ? 1 : 0));
+
+  var delta = targetMarks - targetCount;
+
+  // 🌟 ಹಂತ ೧: ನಿಖರ ಗಣಿತ ಸಂಯೋಜನೆ ಹುಡುಕಾಟ (Exact Solution)
+  var validSolutions = [];
+  var max5 = Math.min(b5.length, Math.floor(delta / 4));
+
+  for (var c5 = max5; c5 >= 0; c5--) {
+    var rem5 = delta - (4 * c5);
+    var max4 = Math.min(b4.length, Math.floor(rem5 / 3));
+
+    for (var c4 = max4; c4 >= 0; c4--) {
+      var rem4 = rem5 - (3 * c4);
+      var max3 = Math.min(b3.length, Math.floor(rem4 / 2));
+
+      for (var c3 = max3; c3 >= 0; c3--) {
+        var c2 = rem4 - (2 * c3);
+        if (c2 >= 0 && c2 <= b2.length) {
+          var c1 = targetCount - (c2 + c3 + c4 + c5);
+          if (c1 >= 0 && c1 <= b1.length) {
+            validSolutions.push({ c1: c1, c2: c2, c3: c3, c4: c4, c5: c5 });
+          }
+        }
+      }
+    }
+  }
+
+  if (validSolutions.length > 0) {
+    var best = validSolutions[0];
+    var res = [
+      ...b5.slice(0, best.c5),
+      ...b4.slice(0, best.c4),
+      ...b3.slice(0, best.c3),
+      ...b2.slice(0, best.c2),
+      ...b1.slice(0, best.c1)
+    ];
+    var calcM = res.reduce((sum, q) => sum + getExactQuestionMarks(q), 0);
+    if (res.length === targetCount && calcM === targetMarks) {
+      return res;
+    }
+  }
+
+  // 🌟 ಹಂತ ೨: ನಿಖರ 40 ಅಂಕಗಳ ಖಾತರಿ (Strict Target Marks Guarantee)
+  // ಯಾವುದೇ ಕಾರಣಕ್ಕೂ targetMarks ಗಿಂತ 1 ಅಂಕವೂ ಹೆಚ್ಚಾಗಬಾರದು!
+  var chosen = [];
+  var currentMarks = 0;
+
+  // 1-ಅಂಕ ಮತ್ತು 2-ಅಂಕದ ಪ್ರಶ್ನೆಗಳನ್ನು ಸಮತೋಲನವಾಗಿ ತುಂಬುವುದು
+  var allItems = shuffle([...b1, ...b2, ...b3, ...b4, ...b5]);
+  allItems.sort((a, b) => getExactQuestionMarks(a) - getExactQuestionMarks(b));
+
+  for (var i = 0; i < allItems.length; i++) {
+    var item = allItems[i];
+    var m = getExactQuestionMarks(item);
+    if (currentMarks + m <= targetMarks) {
+      chosen.push(item);
+      currentMarks += m;
+    }
+    if (currentMarks === targetMarks) break;
+  }
+
+  // ಕೊನೆಯಲ್ಲಿ ಖಚಿತತೆ ಪರಿಶೀಲನೆ
+  var finalTotal = chosen.reduce((sum, q) => sum + getExactQuestionMarks(q), 0);
+  if (finalTotal === targetMarks) {
+    return chosen;
+  }
+
+  // ಒಂದು ವೇಳೆ ಇನ್ನೂ ಹೊಂದಾಣಿಕೆಯಾಗದಿದ್ದರೆ
+  alert(`⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪ್ರಕಾರಗಳಲ್ಲಿ ನಿಖರ ${targetMarks} ಅಂಕಗಳ ಸಂಯೋಜನೆಗೆ ಹೆಚ್ಚುವರಿ ಪ್ರಶ್ನೆಗಳ ಅಗತ್ಯವಿದೆ. ದಯವಿಟ್ಟು ಇನ್ನಷ್ಟು ಪಾಠಗಳನ್ನು ಅಥವಾ MCQ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.`);
+  return [];
+};
+
+// ೩. ಪತ್ರಿಕೆ ರೆಂಡರ್ ಆದಾಗ A4 ಪೂರ್ಣ ಪುಟಕ್ಕೆ ಹರಡುವ (Auto-Fit) ಇಂಜೆಕ್ಷನ್
+var prevRenderWithA4Spread = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  if (typeof prevRenderWithA4Spread === 'function') {
+    prevRenderWithA4Spread(headerHtml);
+  }
+
+  var allQuestions = appState.activeGeneratedQuestions || [];
+  var actualMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+  var isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
+
+  // 🌟 20 ಅಂಕದ ಪತ್ರಿಕೆ ಅಥವಾ 1-ಪುಟದ ಪತ್ರಿಕೆಯಾಗಿದ್ದರೆ ಪೂರ್ಣ A4 ಹರಡುವ ಕ್ಲಾಸ್ ಸೇರ್ಪಡೆ
+  var shouldFitFullPage = (actualMarks <= 25 || (allQuestions.length <= 24 && !isBookletMode));
+
+  var sheets = document.querySelectorAll('.a4-board-sheet');
+  sheets.forEach(function(sheet) {
+    if (shouldFitFullPage) {
+      sheet.classList.add('fit-full-a4');
+    } else {
+      sheet.classList.remove('fit-full-a4');
+    }
+  });
+};
   
     
   </script>

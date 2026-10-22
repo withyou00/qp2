@@ -10202,77 +10202,45 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
 
 
     // =========================================================================
-// 🎯 EXACT MARKS AUDITOR & FULL A4 PAGE AUTO-SPREAD ENGINE
+// 🎯 100% EXACT QUESTION COUNT & MARKS SOLVER + AUTO-CYCLE RESTART ENGINE
 // =========================================================================
 
-// ೧. ಪೂರ್ಣ A4 ಪುಟವನ್ನು ಕೆಳಗಿನವರೆಗೆ ತುಂಬುವ ಮತ್ತು 2ನೇ ಖಾಲಿ ಪೇಜ್ ತಡೆಯುವ CSS
-(function injectPerfectA4PrintSpreadCSS() {
-  var styleEl = document.createElement('style');
-  styleEl.innerHTML = `
-    /* 🌟 20 ಅಂಕ ಮತ್ತು 1-ಪುಟದ ಪತ್ರಿಕೆಗಳಿಗೆ ಪೂರ್ಣ ಪುಟ ಹರಡುವಿಕೆ */
-    .a4-board-sheet.fit-full-a4 {
-      display: flex !important;
-      flex-direction: column !important;
-      justify-content: space-between !important;
-      min-height: 272mm !important;
-      box-sizing: border-box !important;
-    }
-    .a4-board-sheet.fit-full-a4 .main-roman-section-block {
-      margin-bottom: auto !important;
-      padding-bottom: 6px !important;
-    }
-    .a4-board-sheet.fit-full-a4 .q-indivisible-block {
-      margin-bottom: 7px !important;
-      line-height: 1.5 !important;
-    }
-    .a4-board-sheet.fit-full-a4 .board-q-text-cell {
-      font-size: 10.5pt !important;
-      line-height: 1.45 !important;
-    }
-    .a4-board-sheet.fit-full-a4 .board-heading-row-table {
-      margin-top: 8px !important;
-      margin-bottom: 5px !important;
-    }
+// ೧. ಹೆಡರ್‌ನಲ್ಲಿ SET-A ಓವರ್‌ಲ್ಯಾಪ್ ಆಗದಂತೆ ಕ್ಲೀನ್ ಫಿಕ್ಸ್
+window.generateOfficialBoardHeader = function(schoolName, subject, grade, examType, marks, examDate) {
+  var activeSet = appState.currentExamSet || 'A';
+  var isLBA = examType.includes('LBA') || examType.includes('ಘಟಕ');
+  var selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+  var selectedChapters = Array.from(selectedBoxes).map(b => b.value).join(', ');
 
-    /* 🌟 ಪ್ರಿಂಟ್‌ನಲ್ಲಿ 2ನೇ ಖಾಲಿ ಪುಟ ಸಂಪೂರ್ಣ ಬಂದ್ */
-    @media print {
-      @page {
-        size: A4 portrait !important;
-        margin: 5mm 6mm !important;
-      }
-      html, body {
-        height: auto !important;
-        overflow: visible !important;
-      }
-      #print-area {
-        position: static !important;
-        width: 100% !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-      .a4-board-sheet {
-        margin: 0 auto !important;
-        page-break-after: auto !important;
-        break-after: auto !important;
-      }
-      .a4-board-sheet.fit-full-a4 {
-        height: 275mm !important;
-        min-height: 275mm !important;
-        max-height: 275mm !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
-      }
-      .no-print, .btn-live-q-edit {
-        display: none !important;
-      }
-    }
+  return `
+    <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 6px; position: relative;">
+      <div style="position: absolute; right: 0; top: 0;">
+        <span style="font-size: 10pt; font-weight: 900; border: 2px solid #000; padding: 2px 7px; background: #f1f5f9; border-radius: 4px;">
+          SET - ${activeSet}
+        </span>
+      </div>
+      <div style="text-align: center; margin-bottom: 2px;">
+        <h1 style="font-size: 13pt; font-weight: 900; margin: 0; line-height: 1.2;">${escapeHtml(schoolName)}</h1>
+        <div style="font-size: 11pt; font-weight: 900; margin-top: 1px;">${escapeHtml(examType)}</div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
+        <tr>
+          <td style="width: 32%; text-align: left; font-weight: 800; font-size: 9.8pt;">ವಿಷಯ : <b>${escapeHtml(subject)}</b></td>
+          <td style="width: 24%; text-align: center; font-weight: 800; font-size: 9.8pt;">ತರಗತಿ : <b>${grade}ನೇ ತರಗತಿ</b></td>
+          <td style="width: 22%; text-align: center; font-weight: 800; font-size: 9.8pt;">ದಿನಾಂಕ : <b>${escapeHtml(examDate)}</b></td>
+          <td style="width: 22%; text-align: right; font-weight: 800; font-size: 9.8pt;">ಗರಿಷ್ಠ ಅಂಕಗಳು : <b>${marks}</b></td>
+        </tr>
+      </table>
+      ${isLBA && selectedChapters ? `
+        <div style="text-align: center; font-size: 9pt; font-weight: 800; border-top: 1px dashed #64748b; margin-top: 2px; padding-top: 2px;">
+          ಘಟಕದ ಹೆಸರು : <b>${escapeHtml(selectedChapters)}</b>
+        </div>
+      ` : ''}
+    </div>
   `;
-  document.head.appendChild(styleEl);
-})();
+};
 
-// ೨. ಕಟ್ಟುನಿಟ್ಟಾದ ನಿಖರ ಅಂಕಗಳ ಸಾಲ್ವರ್ (ಯಾವುದೇ ಕಾರಣಕ್ಕೂ 40 ದಾಟಬಾರದು!)
+// ೨. ಕರಾರುವಾಕ್ ಲೆಕ್ಕಾಚಾರದ ಗ್ಯಾರಂಟಿ ಸಾಲ್ವರ್ (Diophantine Exact Solver)
 window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selectedTypes) {
   if (!pool || pool.length === 0) return [];
 
@@ -10280,22 +10248,20 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
     var a = [...arr];
     for (var i = a.length - 1; i > 0; i--) {
       var j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
+      var t = a[i]; a[i] = a[j]; a[j] = t;
     }
     return a;
   };
 
-  var b5 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 5 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  var b4 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 4 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  var b3 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 3 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  var b2 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 2 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  var b1 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 1 && selectedTypes.includes(getCanonicalQuestionType(q))));
-
-  b4.sort((a, b) => (isMatchQuestion(b) ? 1 : 0) - (isMatchQuestion(a) ? 1 : 0));
+  var b5 = pool.filter(q => getExactQuestionMarks(q) === 5);
+  var b4 = pool.filter(q => getExactQuestionMarks(q) === 4);
+  var b3 = pool.filter(q => getExactQuestionMarks(q) === 3);
+  var b2 = pool.filter(q => getExactQuestionMarks(q) === 2);
+  var b1 = pool.filter(q => getExactQuestionMarks(q) === 1);
 
   var delta = targetMarks - targetCount;
+  if (delta < 0) return [];
 
-  // 🌟 ಹಂತ ೧: ನಿಖರ ಗಣಿತ ಸಂಯೋಜನೆ ಹುಡುಕಾಟ (Exact Solution)
   var validSolutions = [];
   var max5 = Math.min(b5.length, Math.floor(delta / 4));
 
@@ -10312,7 +10278,12 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
         if (c2 >= 0 && c2 <= b2.length) {
           var c1 = targetCount - (c2 + c3 + c4 + c5);
           if (c1 >= 0 && c1 <= b1.length) {
-            validSolutions.push({ c1: c1, c2: c2, c3: c3, c4: c4, c5: c5 });
+            var score = 0;
+            if (c1 > 0) score += 100;
+            if (c2 > 0) score += 100;
+            if (c3 > 0) score += 80;
+            if (c4 > 0) score += 80;
+            validSolutions.push({ c1: c1, c2: c2, c3: c3, c4: c4, c5: c5, score: score });
           }
         }
       }
@@ -10320,72 +10291,145 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
   }
 
   if (validSolutions.length > 0) {
+    validSolutions.sort((a, b) => b.score - a.score);
     var best = validSolutions[0];
-    var res = [
-      ...b5.slice(0, best.c5),
-      ...b4.slice(0, best.c4),
-      ...b3.slice(0, best.c3),
-      ...b2.slice(0, best.c2),
-      ...b1.slice(0, best.c1)
-    ];
-    var calcM = res.reduce((sum, q) => sum + getExactQuestionMarks(q), 0);
-    if (res.length === targetCount && calcM === targetMarks) {
+
+    var sb5 = shuffle(b5).slice(0, best.c5);
+    var sb4 = shuffle(b4).slice(0, best.c4);
+    var sb3 = shuffle(b3).slice(0, best.c3);
+    var sb2 = shuffle(b2).slice(0, best.c2);
+    var sb1 = shuffle(b1).slice(0, best.c1);
+
+    var res = [...sb5, ...sb4, ...sb3, ...sb2, ...sb1];
+    var calcMarks = res.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+    if (res.length === targetCount && calcMarks === targetMarks) {
       return res;
     }
   }
 
-  // 🌟 ಹಂತ ೨: ನಿಖರ 40 ಅಂಕಗಳ ಖಾತರಿ (Strict Target Marks Guarantee)
-  // ಯಾವುದೇ ಕಾರಣಕ್ಕೂ targetMarks ಗಿಂತ 1 ಅಂಕವೂ ಹೆಚ್ಚಾಗಬಾರದು!
-  var chosen = [];
-  var currentMarks = 0;
+  // 🌟 ಪೂಲ್‌ನಲ್ಲಿ ಪ್ರಶ್ನೆಗಳ ಕೊರತೆ ಇದ್ದರೆ ಮರುಬಳಕೆಯೊಂದಿಗೆ 100% ನಿಖರ ಹೊಂದಾಣಿಕೆ:
+  var guaranteed = [];
+  var curM = 0;
 
-  // 1-ಅಂಕ ಮತ್ತು 2-ಅಂಕದ ಪ್ರಶ್ನೆಗಳನ್ನು ಸಮತೋಲನವಾಗಿ ತುಂಬುವುದು
-  var allItems = shuffle([...b1, ...b2, ...b3, ...b4, ...b5]);
-  allItems.sort((a, b) => getExactQuestionMarks(a) - getExactQuestionMarks(b));
+  // ಮೊದಲು ೧-ಅಂಕದ ಪ್ರಶ್ನೆಗಳಿಂದ ಭರ್ತಿ
+  var pool1 = shuffle(b1);
+  var pool2 = shuffle(b2);
+  var pool3 = shuffle(b3);
 
-  for (var i = 0; i < allItems.length; i++) {
-    var item = allItems[i];
-    var m = getExactQuestionMarks(item);
-    if (currentMarks + m <= targetMarks) {
-      chosen.push(item);
-      currentMarks += m;
+  // ಅಗತ್ಯವಿರುವ 1-ಅಂಕದ ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ
+  var need1M = Math.max(0, (2 * targetCount) - targetMarks);
+  var need2M = targetCount - need1M;
+
+  if (b1.length > 0) {
+    for (var i = 0; i < need1M; i++) {
+      guaranteed.push(pool1[i % pool1.length]);
+      curM += 1;
     }
-    if (currentMarks === targetMarks) break;
   }
 
-  // ಕೊನೆಯಲ್ಲಿ ಖಚಿತತೆ ಪರಿಶೀಲನೆ
-  var finalTotal = chosen.reduce((sum, q) => sum + getExactQuestionMarks(q), 0);
-  if (finalTotal === targetMarks) {
-    return chosen;
+  if (b2.length > 0) {
+    for (var j = 0; j < need2M; j++) {
+      guaranteed.push(pool2[j % pool2.length]);
+      curM += 2;
+    }
   }
 
-  // ಒಂದು ವೇಳೆ ಇನ್ನೂ ಹೊಂದಾಣಿಕೆಯಾಗದಿದ್ದರೆ
-  alert(`⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪ್ರಕಾರಗಳಲ್ಲಿ ನಿಖರ ${targetMarks} ಅಂಕಗಳ ಸಂಯೋಜನೆಗೆ ಹೆಚ್ಚುವರಿ ಪ್ರಶ್ನೆಗಳ ಅಗತ್ಯವಿದೆ. ದಯವಿಟ್ಟು ಇನ್ನಷ್ಟು ಪಾಠಗಳನ್ನು ಅಥವಾ MCQ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.`);
+  // ಉಳಿದ ಅಂಕಗಳ ಹೊಂದಾಣಿಕೆ
+  while (curM < targetMarks && guaranteed.length < targetCount && pool1.length > 0) {
+    guaranteed.push(pool1[guaranteed.length % pool1.length]);
+    curM += 1;
+  }
+
+  if (guaranteed.length === targetCount && curM === targetMarks) {
+    return guaranteed;
+  }
+
   return [];
 };
 
-// ೩. ಪತ್ರಿಕೆ ರೆಂಡರ್ ಆದಾಗ A4 ಪೂರ್ಣ ಪುಟಕ್ಕೆ ಹರಡುವ (Auto-Fit) ಇಂಜೆಕ್ಷನ್
-var prevRenderWithA4Spread = window.renderFullExamPaperWithCustomHeader;
-window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
-  if (typeof prevRenderWithA4Spread === 'function') {
-    prevRenderWithA4Spread(headerHtml);
+// ೩. ಪ್ರಶ್ನೆಗಳು ಖಾಲಿಯಾದಾಗ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಮೊದಲಿನಿಂದ ರೀಸ್ಟಾರ್ಟ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಜನರೇಟರ್
+window.generateExamPackageFromBank = function() {
+  var selectedClass = document.getElementById('cfg-class')?.value || '6';
+  var currentSubj = document.getElementById('cfg-subject')?.value || '';
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+  var targetTotalMarks = parseInt(document.getElementById('cfg-total-marks')?.value) || 20;
+  var targetTotalQuestions = parseInt(document.getElementById('cfg-total-questions')?.value) || 15;
+  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+
+  var checkedTypeNodes = document.querySelectorAll('input[name="qtype_opt"]:checked');
+  var selectedTypes = Array.from(checkedTypeNodes).map(cb => cb.value);
+  if (selectedTypes.length === 0) return alert('⚠️ ದಯವಿಟ್ಟು Step 3 ರಲ್ಲಿ ಕನಿಷ್ಠ ಒಂದು ಪ್ರಶ್ನೆ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+
+  var selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+  var selectedChapters = Array.from(selectedBoxes).map(b => b.value);
+  appState.activeSelectedChapters = selectedChapters;
+
+  // ಸಂಪೂರ್ಣ ಪ್ರಶ್ನೆಗಳ ಪೂಲ್
+  var allPool = (appState.activeSubjectQuestions || []).filter(function(q) {
+    if (!q) return false;
+    var isChapOk = (typeof isChapterMatchedFlexibly === 'function') 
+      ? isChapterMatchedFlexibly(q.chapter, selectedChapters) 
+      : (selectedChapters.length === 0 || selectedChapters.some(sc => safeCleanMatch(sc) === safeCleanMatch(q.chapter)));
+    var cType = getCanonicalQuestionType(q);
+    return isChapOk && selectedTypes.includes(cType);
+  });
+
+  if (allPool.length === 0) {
+    return alert('⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ. Step 2 ಮತ್ತು Step 3 ಪರಿಶೀಲಿಸಿ.');
   }
 
-  var allQuestions = appState.activeGeneratedQuestions || [];
-  var actualMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
-  var isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
-
-  // 🌟 20 ಅಂಕದ ಪತ್ರಿಕೆ ಅಥವಾ 1-ಪುಟದ ಪತ್ರಿಕೆಯಾಗಿದ್ದರೆ ಪೂರ್ಣ A4 ಹರಡುವ ಕ್ಲಾಸ್ ಸೇರ್ಪಡೆ
-  var shouldFitFullPage = (actualMarks <= 25 || (allQuestions.length <= 24 && !isBookletMode));
-
-  var sheets = document.querySelectorAll('.a4-board-sheet');
-  sheets.forEach(function(sheet) {
-    if (shouldFitFullPage) {
-      sheet.classList.add('fit-full-a4');
-    } else {
-      sheet.classList.remove('fit-full-a4');
-    }
+  // 🌟 ಹಂತ ೧: ಬಳಕೆಯಾಗದ ಹೊಸ ಪ್ರಶ್ನೆಗಳಿಂದ ಪತ್ರಿಕೆ ರಚನೆ
+  var usedIds = (typeof getUsedQuestionIdsList === 'function') ? getUsedQuestionIdsList() : [];
+  var freshPool = allPool.filter(function(q) {
+    return !usedIds.includes(getQuestionUniqueKey(q));
   });
+
+  var chosen = solveStrictExactExamMath(freshPool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+
+  // 🌟 ಹಂತ ೨: ಹೊಸ ಪ್ರಶ್ನೆಗಳು ಮುಗಿದಿದ್ದರೆ ತಕ್ಷಣ ಹಿಸ್ಟರಿ ಕ್ಲಿಯರ್ ಮಾಡಿ ಪೂರ್ಣ ಪೂಲ್‌ನಿಂದ ಮೊದಲಿನಂತೆ ರಚನೆ
+  if (!chosen || chosen.length !== targetTotalQuestions) {
+    if (usedIds.length > 0) {
+      if (typeof resetQuestionRepeatCycle === 'function') {
+        resetQuestionRepeatCycle(false);
+      }
+      showToast("📢 ಬ್ಯಾಂಕ್‌ನ ಪ್ರಶ್ನೆಗಳು ಮುಗಿದಿವೆ! ಸೈಕಲ್ ಅನ್ನು ಮರುಹೊಂದಿಸಿ ಮೊದಲಿನಿಂದ ಪುನಃ ಆರಂಭಿಸಲಾಗಿದೆ.", "info");
+    }
+    // ಸಂಪೂರ್ಣ ಬ್ಯಾಂಕ್‌ನಿಂದ ನಿಖರ ೧೫ ಪ್ರಶ್ನೆಗಳು & ೨೦ ಅಂಕಗಳ ರಚನೆ
+    chosen = solveStrictExactExamMath(allPool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+  }
+
+  // ಯಾವುದೇ ಕಾರಣಕ್ಕೂ 8 ಪ್ರಶ್ನೆ ಅಥವಾ 19 ಅಂಕ ಬರದಂತೆ ತಡೆ
+  if (!chosen || chosen.length !== targetTotalQuestions) {
+    return alert(`⚠️ ${targetTotalMarks} ಅಂಕಗಳಿಗೆ ${targetTotalQuestions} ಪ್ರಶ್ನೆಗಳನ್ನು ರಚಿಸಲು Step 3 ರಲ್ಲಿ ಕನಿಷ್ಠ 1-ಅಂಕದ ಪ್ರಶ್ನೆಗಳನ್ನು (MCQ / 1M / ಖಾಲಿ ಜಾಗ) ಆಯ್ಕೆಮಾಡಿ.`);
+  }
+
+  // ಹೊಸದಾಗಿ ಬಳಕೆಯಾದ ಪ್ರಶ್ನೆಗಳನ್ನು ಸೇವ್ ಮಾಡುವುದು
+  if (typeof recordQuestionsAsUsed === 'function') {
+    recordQuestionsAsUsed(chosen);
+  }
+
+  appState.currentExamSet = 'A';
+  appState.baseGeneratedQuestions = JSON.parse(JSON.stringify(chosen));
+  appState.activeGeneratedQuestions = chosen;
+
+  var actualMarks = chosen.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+  var headerHtml = generateOfficialBoardHeader(schoolName, currentSubj, selectedClass, rawExamType, actualMarks, examDate);
+
+  renderFullExamPaperWithCustomHeader(headerHtml);
+
+  var outSec = document.getElementById('output-section');
+  if (outSec) {
+    outSec.classList.remove('hidden');
+    switchOutputTab('paper');
+    outSec.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  if (typeof injectSetSelectorBarUI === 'function') {
+    injectSetSelectorBarUI();
+  }
+
+  showToast(`⚡ ಯಶಸ್ವಿ: ನಿಖರ ${chosen.length} ಪ್ರಶ್ನೆಗಳು & ${actualMarks} ಅಂಕಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ!`, 'success');
 };
   
     

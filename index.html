@@ -10705,6 +10705,213 @@ window.generateExamPackageFromBank = function() {
 };
 </script>
   
+
+  <!-- ========================================================================= -->
+<!-- 🎒 NALI-KALI AUTO-BOXES, 4-LINE RULING & MATH COLUMN ENGINE               -->
+<!-- ========================================================================= -->
+<style>
+  /* ೧. ಇಂಗ್ಲಿಷ್ ಅಧಿಕೃತ ೪-ಗೆರೆಗಳ ನೋಟ್‌ಬುಕ್ ರೂಲಿಂಗ್ (Four-Line Ruling) */
+  .four-line-notebook-box {
+    width: 100%;
+    margin: 4px 0 8px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5px;
+    padding: 3px 0;
+  }
+  .four-line-single-row {
+    width: 100%;
+    height: 22px;
+    position: relative;
+    border-top: 1px solid #ef4444;    /* ಮೇಲಿನ ಕೆಂಪು ಗೆರೆ */
+    border-bottom: 1px solid #ef4444; /* ಕೆಳಗಿನ ಕೆಂಪು ಗೆರೆ */
+    margin-bottom: 6px;
+  }
+  .four-line-single-row::before {
+    content: '';
+    position: absolute;
+    top: 7px;
+    left: 0;
+    width: 100%;
+    border-top: 1px dashed #3b82f6;   /* ಮಧ್ಯದ ನೀಲಿ ಗೆರೆ */
+  }
+  .four-line-single-row::after {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: 0;
+    width: 100%;
+    border-top: 1px dashed #3b82f6;   /* ಎರಡನೇ ನೀಲಿ ಗೆರೆ */
+  }
+
+  /* ೨. ಕನ್ನಡ ಪದ ನಕಲು ಬರವಣಿಗೆಯ ಗೆರೆಗಳು */
+  .kannada-copy-word-container {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 4px 12px;
+    min-width: 90px;
+  }
+  .kannada-copy-word-title {
+    font-size: 11pt;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .kannada-copy-lines {
+    width: 100%;
+    border-bottom: 1.2px solid #000;
+    height: 18px;
+    margin-top: 2px;
+  }
+
+  /* ೩. ಗಣಿತದ ಲಂಬ ಸಂಕಲನ ಬಾಕ್ಸ್ (Vertical Math Column Box) */
+  .math-vertical-calc-box {
+    display: inline-block;
+    border: 1.5px dashed #000;
+    padding: 6px 12px;
+    margin: 4px 8px;
+    background: #fff;
+    min-width: 85px;
+    text-align: right;
+    font-size: 11pt;
+    font-weight: 800;
+    border-radius: 4px;
+  }
+  .math-calc-line {
+    border-top: 1.5px solid #000;
+    margin-top: 4px;
+    padding-top: 4px;
+    height: 22px;
+  }
+
+  /* ೪. ಸಂಖ್ಯೆಗಳ ಚೌಕ ಬಾಕ್ಸ್‌ಗಳು (Grid Boxes for 1-20 or 1-50) */
+  .nalikali-number-grid-table {
+    border-collapse: collapse;
+    margin: 6px auto;
+    background: #fff;
+  }
+  .nalikali-number-grid-table td {
+    border: 1.5px solid #000;
+    width: 32px;
+    height: 30px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 10.5pt;
+    font-weight: 800;
+  }
+
+  /* ೫. ಸ್ಥಾನಬೆಲೆ ಕೋಷ್ಟಕ (Place Value Table) */
+  .place-value-board-table {
+    border-collapse: collapse;
+    border: 1.5px solid #000;
+    margin: 4px auto;
+    width: 95%;
+    max-width: 320px;
+    font-size: 10pt;
+    text-align: center;
+  }
+  .place-value-board-table th, .place-value-board-table td {
+    border: 1.2px solid #000;
+    padding: 4px 6px;
+    font-weight: 800;
+  }
+
+  /* ೬. ಖಾಲಿ ಅಕ್ಷರ/ಸಂಖ್ಯೆ ಬರೆಯುವ ಬಿಡಿ ಬಾಕ್ಸ್ */
+  .inline-write-box {
+    display: inline-block;
+    width: 30px;
+    height: 26px;
+    border: 1.5px solid #000;
+    vertical-align: middle;
+    margin: 0 3px;
+    background: #fff;
+    text-align: center;
+    line-height: 24px;
+  }
+</style>
+
+<script>
+// 🌟 ನಲಿಕಲಿ ಪಠ್ಯವನ್ನು ಬಾಕ್ಸ್‌ಗಳು ಮತ್ತು ಗೆರೆಗಳಾಗಿ ಆಟೋ-ಪರಿವರ್ತಿಸುವ ಇಂಟೆಲಿಜೆಂಟ್ ಫಾರ್ಮ್ಯಾಟರ್
+const origFormatQuestionForBoxes = window.formatQuestionTextForDisplay;
+window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
+  if (!rawText) return '';
+  let text = String(rawText);
+
+  // ೧. ಗಣಿತದ ಲಂಬ ಸಂಕಲನ ಕಂಡುಬಂದರೆ (ಉದಾ: "24 + 31" ಅಥವಾ "62 + 7")
+  if (text.includes('+') && text.match(/\d+\s*\+\s*\d+/)) {
+    text = text.replace(/(\d+)\s*\+\s*(\d+)/g, function(match, num1, num2) {
+      return `
+        <div class="math-vertical-calc-box">
+          <div>${num1}</div>
+          <div>+ &nbsp; ${num2}</div>
+          <div class="math-calc-line"></div>
+        </div>
+      `;
+    });
+  }
+
+  // ೨. "[____]" ಅಥವಾ "[ ]" ಇದ್ದರೆ ಸುಂದರವಾದ ಬರೆಯುವ ಚೌಕ ಬಾಕ್ಸ್ ಆಗಿ ಪರಿವರ್ತಿಸುವುದು
+  text = text.replace(/\[\s*_{2,}\s*\]|\[\s*\]/g, '<span class="inline-write-box"></span>');
+
+  // ೩. ಸಂಖ್ಯೆಗಳ ಚೌಕ ಗ್ರಿಡ್ (ಉದಾ: "1 ರಿಂದ 20 ರವರೆಗೆ ಸಂಖ್ಯೆಗಳನ್ನು ಬರೆ")
+  if (text.includes('1 ರಿಂದ 20') || text.includes('1 to 20')) {
+    let gridHtml = '<table class="nalikali-number-grid-table"><tr>';
+    for (let i = 1; i <= 10; i++) {
+      gridHtml += `<td>${i === 1 ? '1' : ''}</td>`;
+    }
+    gridHtml += '</tr><tr>';
+    for (let i = 11; i <= 20; i++) {
+      gridHtml += `<td>${i === 20 ? '20' : ''}</td>`;
+    }
+    gridHtml += '</tr></table>';
+    text += gridHtml;
+  }
+
+  // ೪. ಇಂಗ್ಲಿಷ್ ೪-ಗೆರೆಗಳ ನಕಲು ಬರವಣಿಗೆ (Copy the words / Copy the strokes)
+  if (text.toLowerCase().includes('copy the strokes') || text.toLowerCase().includes('copy these sentences') || text.toLowerCase().includes('copy the words')) {
+    text += `
+      <div class="four-line-notebook-box">
+        <div class="four-line-single-row"></div>
+        <div class="four-line-single-row"></div>
+      </div>
+    `;
+  }
+
+  return origFormatQuestionForBoxes ? origFormatQuestionForBoxes(text, isTrueFalse) : text;
+};
+
+// 🌟 JSON ನಲ್ಲಿ ಪದಗಳ ಪಟ್ಟಿ ಕೊಟ್ಟಾಗ ಅವುಗಳ ಕೆಳಗೆ ಪ್ರತ್ಯೇಕ ಗೆರೆಗಳನ್ನು ಮೂಡಿಸುವ ನಲಿಕಲಿ ರೆಂಡರರ್
+const origNalikaliPaperSpecialRender = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  const grade = document.getElementById('cfg-class')?.value || '8';
+  const cleanGrade = String(grade).replace(/\D/g, '');
+  const isNalikali = ['1', '2', '3'].includes(cleanGrade);
+
+  if (!isNalikali) {
+    if (origNalikaliPaperSpecialRender) origNalikaliPaperSpecialRender(headerHtml);
+    return;
+  }
+
+  // ನಲಿಕಲಿ ಪತ್ರಿಕೆಯ ಪ್ರತಿಯೊಂದು ಪ್ರಶ್ನೆಯಲ್ಲೂ ಪದ ನಕಲು ಪರಿಶೀಲನೆ
+  (appState.activeGeneratedQuestions || []).forEach(item => {
+    // ನಕಲು ಪದಗಳ ಪಟ್ಟಿ ಇದ್ದರೆ (ಉದಾ: "ಋಣ", "ಜನಕ", "ಎಡಬಲ"...)
+    if (item.words && Array.isArray(item.words)) {
+      item.q = `<b>${item.q}</b><br/><div style="display:flex; flex-wrap:wrap; justify-content:space-around; margin-top:6px;">` +
+        item.words.map(w => `
+          <div class="kannada-copy-word-container">
+            <span class="kannada-copy-word-title">${w}</span>
+            <div class="kannada-copy-lines"></div>
+            <div class="kannada-copy-lines"></div>
+          </div>
+        `).join('') + `</div>`;
+      delete item.words; // ಪುನರಾವರ್ತನೆ ತಡೆಗಟ್ಟಲು
+    }
+  });
+
+  if (origNalikaliPaperSpecialRender) origNalikaliPaperSpecialRender(headerHtml);
+};
+</script>
+
   
 </body>
 </html>

@@ -10195,222 +10195,21 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
     });
   });
 
- <!-- ========================================================================= -->
-<!-- 🚀 COMPLETE MASTER CONTROLLER: 1-3 NALI-KALI + 4-10 BOARD + EXACT 40 MARKS -->
+  observer.observe(document.body, { childList: true, subtree: true });
+})();
+
+
+
+
+  
+    
+  </script>
+
 <!-- ========================================================================= -->
-<style>
-  /* ೧. ನಲಿಕಲಿ (1-3ನೇ ತರಗತಿ) ವಿಶೇಷ ೨-೩ ಪುಟಗಳ ವರ್ಕ್‌ಶೀಟ್ CSS */
-  .sheet-nalikali-full-worksheet {
-    font-size: 12.5pt !important;
-    line-height: 1.85 !important;
-    padding: 8mm 10mm !important;
-  }
-  .nk-activity-card {
-    margin-bottom: 24px !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    border-bottom: 1.5px dashed #94a3b8 !important;
-    padding-bottom: 16px !important;
-  }
-  .nk-activity-header {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    margin-bottom: 10px !important;
-  }
-  .nk-activity-title {
-    font-size: 13pt !important;
-    font-weight: 900 !important;
-    color: #000 !important;
-  }
-  .nk-activity-marks {
-    font-size: 11.5pt !important;
-    font-weight: 900 !important;
-    border: 1.5px solid #000 !important;
-    padding: 1px 8px !important;
-    border-radius: 4px !important;
-    background: #f8fafc !important;
-    white-space: nowrap !important;
-  }
-  .nk-copy-words-row {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    justify-content: space-around !important;
-    gap: 16px !important;
-    margin: 12px 0 !important;
-  }
-  .nk-copy-word-item {
-    display: inline-flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    min-width: 95px !important;
-  }
-  .nk-copy-word-text {
-    font-size: 14pt !important;
-    font-weight: 900 !important;
-    margin-bottom: 5px !important;
-    letter-spacing: 1px !important;
-  }
-  .nk-handwriting-line {
-    width: 105px !important;
-    border-bottom: 1.5px solid #000 !important;
-    height: 20px !important;
-    margin-top: 3px !important;
-  }
-  .nk-sentence-copy-box {
-    margin: 10px 0 14px 0 !important;
-  }
-  .nk-sentence-title {
-    font-size: 13pt !important;
-    font-weight: 800 !important;
-    margin-bottom: 4px !important;
-  }
-  .nk-wide-ruled-line {
-    width: 100% !important;
-    border-bottom: 1.5px solid #475569 !important;
-    height: 26px !important;
-    margin-bottom: 4px !important;
-  }
-  .nk-square-write-box {
-    display: inline-block !important;
-    width: 36px !important;
-    height: 32px !important;
-    border: 2px solid #000 !important;
-    border-radius: 6px !important;
-    vertical-align: middle !important;
-    margin: 0 4px !important;
-    background: #fff !important;
-    text-align: center !important;
-    line-height: 30px !important;
-  }
-  .nk-two-column-grid {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px 24px !important;
-    margin-top: 8px !important;
-    font-size: 12pt !important;
-    font-weight: 800 !important;
-  }
-  .nk-three-column-grid {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 12px 16px !important;
-    margin-top: 8px !important;
-    font-size: 12pt !important;
-    font-weight: 800 !important;
-  }
-  .nk-write-dash-line {
-    display: inline-block !important;
-    min-width: 140px !important;
-    border-bottom: 1.5px solid #000 !important;
-    margin-left: 6px !important;
-    height: 20px !important;
-    vertical-align: bottom !important;
-  }
-  .nk-help-words-pill {
-    background: #f1f5f9 !important;
-    border: 1.5px dashed #334155 !important;
-    padding: 6px 14px !important;
-    border-radius: 12px !important;
-    text-align: center !important;
-    font-size: 12pt !important;
-    font-weight: 900 !important;
-    margin: 6px 0 10px 0 !important;
-  }
-  .nk-circle-letter-card {
-    border: 1.8px solid #000 !important;
-    padding: 8px 12px !important;
-    text-align: center !important;
-    border-radius: 8px !important;
-    background: #fff !important;
-  }
-  .nk-big-letter-display {
-    font-size: 16pt !important;
-    font-weight: 900 !important;
-    letter-spacing: 5px !important;
-    margin-bottom: 4px !important;
-  }
-  .nk-instruction-sub {
-    font-size: 11pt !important;
-    font-weight: 700 !important;
-    color: #334155 !important;
-  }
-</style>
-
+<!-- 🎯 40 MARKS & 24 QUESTIONS ZERO-ERROR AUTO-FIX (PASTE BEFORE </body>)    -->
+<!-- ========================================================================= -->
 <script>
-// =========================================================================
-// ೧. GitHub ನಿಂದ ಪ್ರಶ್ನೆಗಳನ್ನು ನಿಖರವಾಗಿ ಲೋಡ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಫಂಕ್ಷನ್ (All Classes 1 to 10)
-// =========================================================================
-window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part) {
-  appState.activeSubjectQuestions = [];
-  if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
-
-  var gradeStr = String(grade).replace(/\D/g, '');
-  var subjectKey = (typeof getNormalizedSubjectKey === 'function') ? getNormalizedSubjectKey(rawSubject) : 'kannada';
-
-  showToast(`🌐 ${gradeStr}ನೇ ತರಗತಿ ${rawSubject} ಲೋಡ್ ಆಗುತ್ತಿದೆ...`, 'info');
-
-  var targetFiles = [];
-  if (part === 'part1') targetFiles = [`${subjectKey}_part1.json`, `${subjectKey}_part_1.json`];
-  else if (part === 'part2') targetFiles = [`${subjectKey}_part2.json`, `${subjectKey}_part_2.json`];
-  else targetFiles = [`${subjectKey}_part1.json`, `${subjectKey}_part2.json`, `${subjectKey}.json`];
-
-  var loadedList = [];
-  for (var f = 0; f < targetFiles.length; f++) {
-    var fileName = targetFiles[f];
-    var pathsToTry = [
-      `kannada_medium/class_${gradeStr}/${fileName}`,
-      `class_${gradeStr}/${fileName}`,
-      `kannada_medium/${fileName}`,
-      `${fileName}`
-    ];
-
-    for (var p = 0; p < pathsToTry.length; p++) {
-      var rawUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(pathsToTry[p])}?t=${Date.now()}`;
-      try {
-        var res = await fetch(rawUrl);
-        if (res.ok) {
-          var text = await res.text();
-          var data = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(text) : JSON.parse(text);
-          if (Array.isArray(data) && data.length > 0) {
-            loadedList = data;
-            break;
-          }
-        }
-      } catch(e) {}
-    }
-    if (loadedList.length > 0) break;
-  }
-
-  if (loadedList.length > 0) {
-    appState.activeSubjectQuestions = loadedList;
-    if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
-    if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats();
-    showToast(`⚡ ${loadedList.length} ಪ್ರಶ್ನೆಗಳು ಯಶಸ್ವಿಯಾಗಿ ಲೋಡ್ ಆಗಿವೆ!`, 'success');
-  } else {
-    appState.activeSubjectQuestions = [];
-    if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
-    showToast(`⚠️ ಪ್ರಶ್ನೆಗಳು ಸಿಗಲಿಲ್ಲ. GitHub ಪಾತ್ ಅಥವಾ ಫೈಲ್ ಹೆಸರು ಪರಿಶೀಲಿಸಿ.`, 'error');
-  }
-};
-
-window.handleMediumOrClassChange = function() {
-  if (typeof updateSubjectOptionsForClass === 'function') updateSubjectOptionsForClass();
-  window.handleSubjectOrPartChange();
-};
-
-window.handleSubjectOrPartChange = function() {
-  var medium = document.getElementById('cfg-medium')?.value || 'kannada_medium';
-  var grade = document.getElementById('cfg-class')?.value || '4';
-  var subj = document.getElementById('cfg-subject')?.value || 'ಕನ್ನಡ (Kannada)';
-  var part = document.getElementById('cfg-part')?.value || 'part2';
-  window.loadQuestionsFromGitHub(medium, grade, subj, part);
-};
-
-// =========================================================================
-// ೨. ನಿಖರ 40 ಅಂಕ ಮತ್ತು 24 ಪ್ರಶ್ನೆಗಳ ಆಟೋ-ಸಾಲ್ವರ್ (6ನೇ ಸಮಾಜ & ಎಲ್ಲ ತರಗತಿಗಳಿಗೆ)
-// =========================================================================
+// ೧. ನಿಖರ 40 ಅಂಕ ಮತ್ತು 24 ಪ್ರಶ್ನೆಗಳ ಗಣಿತ ಸಾಲ್ವರ್ (Zero-Tolerance Solver)
 window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selectedTypes) {
   if (!pool || pool.length === 0) return null;
 
@@ -10423,14 +10222,248 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
     return a;
   };
 
-  var b5 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 5 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  var b4 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 4 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  var b3 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 3 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  var b2 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 2 && selectedTypes.includes(getCanonicalQuestionType(q))));
-  var b1 = shuffle(pool.filter(q => getExactQuestionMarks(q) === 1 && selectedTypes.includes(getCanonicalQuestionType(q))));
+  // ಅಂಕವಾರು ವಿಂಗಡಣೆ (ಕೇವಲ ಆಯ್ಕೆಮಾಡಿದ ಪ್ರಕಾರಗಳು ಮಾತ್ರ)
+  var b5 = shuffle(pool.filter(function(q) { return getExactQuestionMarks(q) === 5 && selectedTypes.includes(getCanonicalQuestionType(q)); }));
+  var b4 = shuffle(pool.filter(function(q) { return getExactQuestionMarks(q) === 4 && selectedTypes.includes(getCanonicalQuestionType(q)); }));
+  var b3 = shuffle(pool.filter(function(q) { return getExactQuestionMarks(q) === 3 && selectedTypes.includes(getCanonicalQuestionType(q)); }));
+  var b2 = shuffle(pool.filter(function(q) { return getExactQuestionMarks(q) === 2 && selectedTypes.includes(getCanonicalQuestionType(q)); }));
+  var b1 = shuffle(pool.filter(function(q) { return getExactQuestionMarks(q) === 1 && selectedTypes.includes(getCanonicalQuestionType(q)); }));
 
-  b4.sort((a, b) => (isMatchQuestion(b) ? 1 : 0) - (isMatchQuestion(a) ? 1 : 0));
+  b4.sort(function(a, b) { return (isMatchQuestion(b) ? 1 : 0) - (isMatchQuestion(a) ? 1 : 0); });
 
+  var delta = targetMarks - targetCount; // 40 - 24 = 16
+  if (delta < 0) return null;
+
+  var validSolutions = [];
+  var max5 = Math.min(b5.length, Math.floor(delta / 4));
+
+  for (var c5 = max5; c5 >= 0; c5--) {
+    var rem5 = delta - (4 * c5);
+    var max4 = Math.min(b4.length, Math.floor(rem5 / 3));
+
+    for (var c4 = max4; c4 >= 0; c4--) {
+      var rem4 = rem5 - (3 * c4);
+      var max3 = Math.min(b3.length, Math.floor(rem4 / 2));
+
+      for (var c3 = max3; c3 >= 0; c3--) {
+        var c2 = rem4 - (2 * c3);
+        if (c2 >= 0 && c2 <= b2.length) {
+          var c1 = targetCount - (c2 + c3 + c4 + c5);
+          if (c1 >= 0 && c1 <= b1.length) {
+            var calcMarks = (c1 * 1) + (c2 * 2) + (c3 * 3) + (c4 * 4) + (c5 * 5);
+            var calcCount = c1 + c2 + c3 + c4 + c5;
+            // 🌟 ಕಟ್ಟುನಿಟ್ಟಾದ ನಿಯಮ: ಅಂಕ ಮತ್ತು ಪ್ರಶ್ನೆ ಸಂಖ್ಯೆ ಎರಡೂ 100% ನಿಖರವಿರಲೇಬೇಕು
+            if (calcMarks === targetMarks && calcCount === targetCount) {
+              var score = 0;
+              if (c1 > 0) score += 100;
+              if (c2 > 0) score += 100;
+              if (c3 > 0) score += 100;
+              if (c4 > 0) score += 120;
+              if (c4 > 0 && b4.some(isMatchQuestion)) score += 150;
+              validSolutions.push({ c1: c1, c2: c2, c3: c3, c4: c4, c5: c5, score: score });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (validSolutions.length > 0) {
+    validSolutions.sort(function(a, b) { return b.score - a.score });
+    // ಪ್ರತಿ ಬಾರಿಯೂ ಒಂದೇ ರೀತಿ ಬರದಂತೆ ಟಾಪ್ ಸಂಯೋಜನೆಗಳಲ್ಲಿ ಒಂದನ್ನು ರ್ಯಾಂಡಮ್ ಆಗಿ ಆಯ್ಕೆ ಮಾಡುವುದು
+    var topPicks = validSolutions.slice(0, Math.min(3, validSolutions.length));
+    var best = topPicks[Math.floor(Math.random() * topPicks.length)];
+
+    var selected1MTypes = selectedTypes.filter(function(t) {
+      return ['mcq', 'blanks', 'vsa_1m', 'true_false', 'analogy', 'odd_one_out'].includes(t);
+    });
+    var sub1MBuckets = {};
+    selected1MTypes.forEach(function(t) {
+      sub1MBuckets[t] = b1.filter(function(q) { return getCanonicalQuestionType(q) === t; });
+    });
+
+    var chosenC1 = [];
+    var added = true;
+    while (chosenC1.length < best.c1 && added) {
+      added = false;
+      for (var k = 0; k < selected1MTypes.length; k++) {
+        var tKey = selected1MTypes[k];
+        if (chosenC1.length < best.c1 && sub1MBuckets[tKey] && sub1MBuckets[tKey].length > 0) {
+          var item = sub1MBuckets[tKey].shift();
+          if (!chosenC1.includes(item)) { chosenC1.push(item); added = true; }
+        }
+      }
+    }
+    if (chosenC1.length < best.c1) {
+      var remB1 = b1.filter(function(q) { return !chosenC1.includes(q); });
+      chosenC1.push(...remB1.slice(0, best.c1 - chosenC1.length));
+    }
+
+    var chosenC4 = [];
+    var matchItems = b4.filter(isMatchQuestion);
+    var nonMatchB4 = b4.filter(function(q) { return !isMatchQuestion(q); });
+
+    if (matchItems.length > 0 && best.c4 > 0 && selectedTypes.includes('match')) {
+      chosenC4.push(matchItems[0]);
+    }
+    var needMore4 = best.c4 - chosenC4.length;
+    if (needMore4 > 0) chosenC4.push(...nonMatchB4.slice(0, needMore4));
+
+    var finalResult = [
+      ...b5.slice(0, best.c5),
+      ...chosenC4,
+      ...b3.slice(0, best.c3),
+      ...b2.slice(0, best.c2),
+      ...chosenC1.slice(0, best.c1)
+    ];
+
+    var finalMarks = finalResult.reduce(function(sum, q) { return sum + getExactQuestionMarks(q); }, 0);
+    if (finalResult.length === targetCount && finalMarks === targetMarks) {
+      return finalResult;
+    }
+  }
+
+  // ನಿಖರ ಸಂಯೋಜನೆ ಸಿಗದಿದ್ದಲ್ಲಿ null ನೀಡುವುದು (ಯಾವುದೇ ಕಾರಣಕ್ಕೂ ತಪ್ಪು ಅಂಕ ನೀಡಬಾರದು)
+  return null;
+};
+
+// ೨. ಮಾಸ್ಟರ್ ಜನರೇಟರ್ ಗೇಟ್‌ವೇ (Auto-Cycle Reset & 100% Constant 40 Marks)
+window.generateExamPackageFromBank = function() {
+  // ಲಾಗಿನ್ ಮತ್ತು ವ್ಯಾಲಿಡಿಟಿ ಪರಿಶೀಲನೆ
+  var isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+  var session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+
+  if (!isAdmin && (!session || !session.isLoggedIn)) {
+    alert("🔒 ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ (Login Required)!\n\nದಯವಿಟ್ಟು ಮೊದಲು ಲಾಗಿನ್ ಮಾಡಿಕೊಳ್ಳಿ.");
+    if (typeof openTeacherAuthModal === 'function') openTeacherAuthModal('login');
+    return;
+  }
+
+  if (!isAdmin && session && typeof isAccountExpired === 'function' && isAccountExpired(session.validityDate)) {
+    alert("⚠️ ನಿಮ್ಮ ಖಾತೆಯ ಮಾನ್ಯತೆ ಮುಕ್ತಾಯಗೊಂಡಿದೆ. Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.");
+    return;
+  }
+
+  var selectedClass = document.getElementById('cfg-class')?.value || '6';
+  var currentSubj = document.getElementById('cfg-subject')?.value || 'ಸಮಾಜ ವಿಜ್ಞಾನ';
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+  var targetTotalMarks = parseInt(document.getElementById('cfg-total-marks')?.value) || 40;
+  var targetTotalQuestions = parseInt(document.getElementById('cfg-total-questions')?.value) || 24;
+  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+
+  var checkedTypeNodes = document.querySelectorAll('input[name="qtype_opt"]:checked');
+  var selectedTypes = Array.from(checkedTypeNodes).map(function(cb) { return cb.value; });
+  if (selectedTypes.length === 0) {
+    return alert('⚠️ ದಯವಿಟ್ಟು Step 3 ರಲ್ಲಿ ಕನಿಷ್ಠ ಒಂದು ಪ್ರಶ್ನೆ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+  }
+
+  var selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+  var selectedChapters = Array.from(selectedBoxes).map(function(b) { return b.value; });
+  appState.activeSelectedChapters = selectedChapters;
+
+  // ಪ್ರಶ್ನೆಗಳ ಪೂರ್ಣ ಪೂಲ್
+  var allMatchingPool = (appState.activeSubjectQuestions || []).filter(function(q) {
+    if (!q) return false;
+    var isChapOk = (typeof isChapterMatchedFlexibly === 'function') 
+      ? isChapterMatchedFlexibly(q.chapter, selectedChapters) 
+      : (selectedChapters.length === 0 || selectedChapters.some(function(sc) { return safeCleanMatch(sc) === safeCleanMatch(q.chapter); }));
+    var cType = getCanonicalQuestionType(q);
+    return isChapOk && selectedTypes.includes(cType);
+  });
+
+  if (allMatchingPool.length === 0) {
+    return alert('⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ. Step 2 ಮತ್ತು Step 3 ಪರಿಶೀಲಿಸಿ.');
+  }
+
+  // 🌟 ಹಂತ ೧: ಬಳಕೆಯಾಗದ ಪ್ರಶ್ನೆಗಳಿಂದ (Fresh Pool) ಪ್ರಯತ್ನಿಸುವುದು
+  var usedIds = (typeof getUsedQuestionIdsList === 'function') ? getUsedQuestionIdsList() : [];
+  var freshUnusedPool = allMatchingPool.filter(function(q) {
+    return !usedIds.includes(getQuestionUniqueKey(q));
+  });
+
+  var chosen = null;
+  if (freshUnusedPool.length >= targetTotalQuestions) {
+    chosen = solveStrictExactExamMath(freshUnusedPool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+  }
+
+  // 🌟 ಹಂತ ೨: ಮರು-ಉತ್ಪಾದನೆಯಿಂದ ಪ್ರಶ್ನೆಗಳ ಕೊರತೆಯಾದರೆ, ತಾನಾಗಿಯೇ ಸೈಕಲ್ ರಿಸೆಟ್ ಮಾಡಿ ಪೂರ್ಣ ಪೂಲ್‌ನಿಂದ ನಿಖರ 40 ಅಂಕ ತರುವುದು
+  if (!chosen || chosen.length !== targetTotalQuestions) {
+    if (usedIds.length > 0 && typeof resetQuestionRepeatCycle === 'function') {
+      resetQuestionRepeatCycle(false); // Auto-Reset
+    }
+    chosen = solveStrictExactExamMath(allMatchingPool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+  }
+
+  // 🌟 ಹಂತ ೩: ಇನ್ನೂ ಸಾಧ್ಯವಾಗದಿದ್ದರೆ ಮಾತ್ರ ಎಚ್ಚರಿಕೆ ನೀಡುವುದು (ತಪ್ಪು ಅಂಕದ ಪತ್ರಿಕೆ ಎಂದಿಗೂ ಬರಲ್ಲ)
+  if (!chosen || chosen.length !== targetTotalQuestions) {
+    return alert(
+      "⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪ್ರಕಾರಗಳಲ್ಲಿ ನಿಖರ " + targetTotalMarks + " ಅಂಕಗಳಿಗೆ " + targetTotalQuestions + " ಪ್ರಶ್ನೆಗಳ ಸಂಯೋಜನೆ ಸಾಧ್ಯವಾಗಿಲ್ಲ.\n\n" +
+      "ದಯವಿಟ್ಟು Step 3 ರಲ್ಲಿ MCQ, ಖಾಲಿ ಜಾಗ, 1M, 2M ಮತ್ತು 3M ಎಲ್ಲಾ ಪ್ರಕಾರಗಳನ್ನು Tick ಮಾಡಿ ಜನರೇಟ್ ಮಾಡಿ."
+    );
+  }
+
+  // ಪ್ರಶ್ನೆಗಳನ್ನು ಹಿಸ್ಟರಿಗೆ ಸೇವ್ ಮಾಡುವುದು
+  if (typeof recordQuestionsAsUsed === 'function') {
+    recordQuestionsAsUsed(chosen);
+  }
+
+  appState.activeGeneratedQuestions = chosen;
+  appState.currentExamSet = 'A';
+  appState.baseGeneratedQuestions = JSON.parse(JSON.stringify(chosen));
+
+  var actualMarks = chosen.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
+  var headerHtml = generateOfficialBoardHeader(schoolName, currentSubj, selectedClass, rawExamType, actualMarks, examDate);
+
+  renderFullExamPaperWithCustomHeader(headerHtml);
+
+  if (typeof injectSetSelectorBarUI === 'function') {
+    injectSetSelectorBarUI();
+  }
+
+  if (typeof autoSaveGeneratedPaperToLocalStorage === 'function') {
+    autoSaveGeneratedPaperToLocalStorage(chosen, headerHtml);
+  }
+
+  var outSec = document.getElementById('output-section');
+  if (outSec) {
+    outSec.classList.remove('hidden');
+    switchOutputTab('paper');
+    outSec.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  showToast("⚡ ಯಶಸ್ವಿ: ನಿಖರ " + chosen.length + " ಪ್ರಶ್ನೆಗಳು & " + actualMarks + " ಅಂಕಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ!", "success");
+};
+</script>
+
+
+  <!-- ========================================================================= -->
+<!-- 🎯 6TH SOCIAL SCIENCE SMART AUTO-BALANCING (ZERO ALERT & EXACT 40 MARKS)  -->
+<!-- ========================================================================= -->
+<script>
+// ೧. ಸ್ಮಾರ್ಟ್ ಅಡಾಪ್ಟಿವ್ ಗಣಿತ ಸಾಲ್ವರ್ (Smart Auto-Balancing Solver)
+window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selectedTypes) {
+  if (!pool || pool.length === 0) return null;
+
+  var shuffle = function(arr) {
+    var a = [...arr];
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = a[i]; a[i] = a[j]; a[j] = temp;
+    }
+    return a;
+  };
+
+  // ಅಂಕವಾರು ವರ್ಗೀಕರಣ
+  var b5 = shuffle(pool.filter(function(q) { return getExactQuestionMarks(q) === 5 && selectedTypes.includes(getCanonicalQuestionType(q)); }));
+  var b4 = shuffle(pool.filter(function(q) { return getExactQuestionMarks(q) === 4 && selectedTypes.includes(getCanonicalQuestionType(q)); }));
+  var b3 = shuffle(pool.filter(function(q) { return getExactQuestionMarks(q) === 3 && selectedTypes.includes(getCanonicalQuestionType(q)); }));
+  var b2 = shuffle(pool.filter(function(q) { return getExactQuestionMarks(q) === 2 && selectedTypes.includes(getCanonicalQuestionType(q)); }));
+  var b1 = shuffle(pool.filter(function(q) { return getExactQuestionMarks(q) === 1 && selectedTypes.includes(getCanonicalQuestionType(q)); }));
+
+  b4.sort(function(a, b) { return (isMatchQuestion(b) ? 1 : 0) - (isMatchQuestion(a) ? 1 : 0); });
+
+  // ಹಂತ A: ನೈಸರ್ಗಿಕ ಡಯೋಫಾಂಟೈನ್ ಗಣಿತ ಪರಿಹಾರ ಹುಡುಕಾಟ
   var delta = targetMarks - targetCount;
   var validSolutions = [];
   var max5 = Math.min(b5.length, Math.floor(delta / 4));
@@ -10451,7 +10484,12 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
             var calcMarks = (c1 * 1) + (c2 * 2) + (c3 * 3) + (c4 * 4) + (c5 * 5);
             var calcCount = c1 + c2 + c3 + c4 + c5;
             if (calcMarks === targetMarks && calcCount === targetCount) {
-              validSolutions.push({ c1, c2, c3, c4, c5 });
+              var score = 0;
+              if (c1 > 0) score += 100;
+              if (c2 > 0) score += 100;
+              if (c3 > 0) score += 100;
+              if (c4 > 0) score += 120;
+              validSolutions.push({ c1: c1, c2: c2, c3: c3, c4: c4, c5: c5, score: score });
             }
           }
         }
@@ -10459,262 +10497,211 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
     }
   }
 
-  // ನಿಖರ ಸಂಯೋಜನೆ ಸಿಕ್ಕರೆ
+  // ನಿಖರ ಸಂಯೋಜನೆ ಸಿಕ್ಕರೆ ತಕ್ಷಣ ರಿಟರ್ನ್ ಮಾಡುವುದು
   if (validSolutions.length > 0) {
-    var best = validSolutions[Math.floor(Math.random() * validSolutions.length)];
-    var chosenC1 = b1.slice(0, best.c1);
-    var chosenC4 = b4.slice(0, best.c4);
+    validSolutions.sort(function(a, b) { return b.score - a.score; });
+    var best = validSolutions[Math.floor(Math.random() * Math.min(3, validSolutions.length))];
+
+    var selected1MTypes = selectedTypes.filter(function(t) {
+      return ['mcq', 'blanks', 'vsa_1m', 'true_false', 'analogy', 'odd_one_out'].includes(t);
+    });
+    var sub1MBuckets = {};
+    selected1MTypes.forEach(function(t) {
+      sub1MBuckets[t] = b1.filter(function(q) { return getCanonicalQuestionType(q) === t; });
+    });
+
+    var chosenC1 = [];
+    var added = true;
+    while (chosenC1.length < best.c1 && added) {
+      added = false;
+      for (var k = 0; k < selected1MTypes.length; k++) {
+        var tKey = selected1MTypes[k];
+        if (chosenC1.length < best.c1 && sub1MBuckets[tKey] && sub1MBuckets[tKey].length > 0) {
+          var item = sub1MBuckets[tKey].shift();
+          if (!chosenC1.includes(item)) { chosenC1.push(item); added = true; }
+        }
+      }
+    }
+    if (chosenC1.length < best.c1) {
+      var remB1 = b1.filter(function(q) { return !chosenC1.includes(q); });
+      chosenC1.push(...remB1.slice(0, best.c1 - chosenC1.length));
+    }
+
+    var chosenC4 = [];
+    var matchItems = b4.filter(isMatchQuestion);
+    var nonMatchB4 = b4.filter(function(q) { return !isMatchQuestion(q); });
+    if (matchItems.length > 0 && best.c4 > 0 && selectedTypes.includes('match')) {
+      chosenC4.push(matchItems[0]);
+    }
+    var needMore4 = best.c4 - chosenC4.length;
+    if (needMore4 > 0) chosenC4.push(...nonMatchB4.slice(0, needMore4));
+
     var finalResult = [
       ...b5.slice(0, best.c5),
       ...chosenC4,
       ...b3.slice(0, best.c3),
       ...b2.slice(0, best.c2),
-      ...chosenC1
+      ...chosenC1.slice(0, best.c1)
     ];
-    var finalMarks = finalResult.reduce((sum, q) => sum + getExactQuestionMarks(q), 0);
+
+    var finalMarks = finalResult.reduce(function(sum, q) { return sum + getExactQuestionMarks(q); }, 0);
     if (finalResult.length === targetCount && finalMarks === targetMarks) {
       return finalResult;
     }
   }
 
-  // ಬ್ಯಾಂಕ್‌ನಲ್ಲಿ ಪ್ರಶ್ನೆಗಳ ಕೊರತೆಯಿದ್ದಾಗ ಆಟೋ-ಬ್ಯಾಲೆನ್ಸಿಂಗ್
+  // 🌟 ಹಂತ B: 6ನೇ ಸಮಾಜ ವಿಜ್ಞಾನ ಸ್ಪೆಷಲ್ ಆಟೋ-ಬ್ಯಾಲೆನ್ಸರ್ (Smart Auto-Balance Fallback)
+  // ಬ್ಯಾಂಕ್‌ನಲ್ಲಿ 1M ಅಥವಾ 2M ಪ್ರಶ್ನೆಗಳ ಕೊರತೆಯಿದ್ದರೂ ನಿಖರವಾಗಿ 40 ಅಂಕ ಮತ್ತು 24 ಪ್ರಶ್ನೆಗಳನ್ನು ಫಿಕ್ಸ್ ಮಾಡುವ ತಂತ್ರಜ್ಞಾನ
   var allAvail = shuffle([...pool]);
   if (allAvail.length < targetCount) {
     var fullSubjPool = appState.activeSubjectQuestions || [];
-    var extra = shuffle(fullSubjPool.filter(q => !allAvail.includes(q)));
+    var extra = shuffle(fullSubjPool.filter(function(q) { return !allAvail.includes(q); }));
     allAvail.push(...extra);
   }
+
   if (allAvail.length < targetCount) return null;
 
-  var selectedSet = allAvail.slice(0, targetCount).map(q => JSON.parse(JSON.stringify(q)));
-  var currentTotal = selectedSet.reduce((s, q) => s + getExactQuestionMarks(q), 0);
-  var diff = targetMarks - currentTotal;
+  // 24 ಪ್ರಶ್ನೆಗಳನ್ನು ಆಯ್ದುಕೊಳ್ಳುವುದು
+  var selectedSet = allAvail.slice(0, targetCount).map(function(q) { return JSON.parse(JSON.stringify(q)); });
+
+  // ಅಂಕಗಳ ವ್ಯತ್ಯಾಸ ಲೆಕ್ಕಾಚಾರ
+  var currentTotal = selectedSet.reduce(function(s, q) { return s + getExactQuestionMarks(q); }, 0);
+  var diff = targetMarks - currentTotal; // ಉದಾ: 40 - 44 = -4 (4 ಅಂಕ ಹೆಚ್ಚು)
 
   if (diff < 0) {
+    // ಹೆಚ್ಚುವರಿ ಅಂಕಗಳಿದ್ದಾಗ ಕೆಲವು ಪ್ರಶ್ನೆಗಳನ್ನು 2M ಅಥವಾ 1M ಗೆ ಸರಿದೂಗಿಸುವುದು
     var toReduce = Math.abs(diff);
     for (var i = 0; i < selectedSet.length && toReduce > 0; i++) {
-      if (getExactQuestionMarks(selectedSet[i]) === 3) {
-        selectedSet[i].type = 'sa_2m'; selectedSet[i].marks = 2; toReduce--;
+      var curM = getExactQuestionMarks(selectedSet[i]);
+      if (curM === 3) {
+        selectedSet[i].type = 'sa_2m';
+        selectedSet[i].marks = 2;
+        toReduce--;
       }
     }
     for (var j = 0; j < selectedSet.length && toReduce > 0; j++) {
-      if (getExactQuestionMarks(selectedSet[j]) === 2) {
-        selectedSet[j].type = 'vsa_1m'; selectedSet[j].marks = 1; toReduce--;
+      var curM2 = getExactQuestionMarks(selectedSet[j]);
+      if (curM2 === 2) {
+        selectedSet[j].type = 'vsa_1m';
+        selectedSet[j].marks = 1;
+        toReduce--;
       }
     }
   } else if (diff > 0) {
+    // ಅಂಕಗಳ ಕೊರತೆಯಿದ್ದಾಗ
     var toAdd = diff;
     for (var i = 0; i < selectedSet.length && toAdd > 0; i++) {
-      if (getExactQuestionMarks(selectedSet[i]) === 1) {
-        selectedSet[i].type = 'sa_2m'; selectedSet[i].marks = 2; toAdd--;
+      var curM = getExactQuestionMarks(selectedSet[i]);
+      if (curM === 1) {
+        selectedSet[i].type = 'sa_2m';
+        selectedSet[i].marks = 2;
+        toAdd--;
       }
     }
   }
+
+  var finalBalancedMarks = selectedSet.reduce(function(s, q) { return s + getExactQuestionMarks(q); }, 0);
+  if (selectedSet.length === targetCount && finalBalancedMarks === targetMarks) {
+    return selectedSet;
+  }
+
   return selectedSet.slice(0, targetCount);
 };
 
-// =========================================================================
-// ೩. ಷರತ್ತುಬದ್ಧ ರೆಂಡರಿಂಗ್ ಎಂಜಿನ್ (1-3 ನಲಿಕಲಿ ವರ್ಕ್‌ಶೀಟ್, 4-10 ಅಧಿಕೃತ ಬೋರ್ಡ್ ಪತ್ರಿಕೆ)
-// =========================================================================
-window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
-  var grade = document.getElementById('cfg-class')?.value || '4';
-  var cleanGrade = String(grade).replace(/\D/g, '');
-  var isNalikali = ['1', '2', '3'].includes(cleanGrade);
+// ೨. ಮಾಸ್ಟರ್ ಜನರೇಟರ್ ಗೇಟ್‌ವೇ (Never-Fail Generator)
+window.generateExamPackageFromBank = function() {
+  var isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+  var session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
 
-  var allQuestions = appState.activeGeneratedQuestions || [];
-  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
-  var rawSubj = document.getElementById('cfg-subject')?.value || 'ಕನ್ನಡ';
-  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
-  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
-  var actualMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
-
-  // -------------------------------------------------------------
-  // 🎒 ಶಾಖೆ ಎ: ೧, ೨, ೩ನೇ ತರಗತಿಗೆ (ನಲಿಕಲಿ ೨-೩ ಪುಟಗಳ ವರ್ಕ್‌ಶೀಟ್)
-  // -------------------------------------------------------------
-  if (isNalikali) {
-    var nalikaliHeader = `
-      <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 12px;">
-        <div style="text-align: center; margin-bottom: 3px;">
-          <h1 style="font-size: 15pt; font-weight: 900; margin: 0;">${escapeHtml(schoolName)}</h1>
-          <div style="font-size: 12pt; font-weight: 900; margin-top: 2px;">${escapeHtml(rawExamType)}</div>
-        </div>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 11pt; font-weight: 800;">
-          <tr>
-            <td style="width: 32%; text-align: left;">ವಿಷಯ : <b>${escapeHtml(rawSubj)}</b></td>
-            <td style="width: 24%; text-align: center;">ತರಗತಿ : <b>${grade} ನೇ ತರಗತಿ</b></td>
-            <td style="width: 24%; text-align: center;">ದಿನಾಂಕ : <b>${escapeHtml(examDate)}</b></td>
-            <td style="width: 20%; text-align: right;">ಒಟ್ಟು ಅಂಕಗಳು : <b>${actualMarks}</b></td>
-          </tr>
-        </table>
-        <div style="margin-top: 6px; padding-top: 4px; border-top: 1.5px dashed #000; font-size: 11.5pt; font-weight: 800;">
-          ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು : ____________________________________________________________________
-        </div>
-      </div>
-    `;
-
-    var qNum = 1;
-    var worksheetHtml = allQuestions.map(item => {
-      var qText = String(item.q || '').trim();
-      var marks = parseInt(item.marks) || 4;
-      var contentHtml = '';
-
-      if (item.words || qText.includes('ನಕಲು ಮಾಡಿ ಬರೆ')) {
-        var wordsList = item.words || ["ಋಣ", "ಜನಕ", "ಎಡಬಲ", "ಕಲರವ", "ಗಮನ"];
-        contentHtml = `
-          <div class="nk-copy-words-row">
-            ${wordsList.map(w => `
-              <div class="nk-copy-word-item">
-                <span class="nk-copy-word-text">${escapeHtml(w)}</span>
-                <div class="nk-handwriting-line"></div>
-                <div class="nk-handwriting-line"></div>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      } else if (qText.includes('ವಾಕ್ಯಗಳನ್ನು ನಕಲು')) {
-        contentHtml = `
-          <div style="margin-top: 10px;">
-            <div class="nk-sentence-copy-box">
-              <div class="nk-sentence-title">೧. ಉಷಾ ಕಮಲರ ಆಟ</div>
-              <div class="nk-wide-ruled-line"></div>
-              <div class="nk-wide-ruled-line"></div>
-            </div>
-            <div class="nk-sentence-copy-box">
-              <div class="nk-sentence-title">೨. ಮಜ ಮಜ ದಸರದ ಮಜ</div>
-              <div class="nk-wide-ruled-line"></div>
-              <div class="nk-wide-ruled-line"></div>
-            </div>
-          </div>
-        `;
-      } else if (item.matchPairs || qText.includes('ಹೊಂದಿಸಿ ಬರೆಯಿರಿ')) {
-        contentHtml = renderOfficial3ColumnMatchTable(item, qNum, false);
-      } else {
-        contentHtml = `
-          <div style="margin-top: 8px; font-weight:700;">
-            ${formatQuestionTextForDisplay(qText).replace(/\[\s*_{2,}\s*\]|\[\s*\]/g, '<span class="nk-square-write-box"></span>')}
-          </div>
-        `;
-      }
-
-      return `
-        <div class="nk-activity-card">
-          <div class="nk-activity-header">
-            <div class="nk-activity-title">${qNum++}) ${escapeHtml(qText.split('\n')[0])}</div>
-            <div class="nk-activity-marks">${marks} × 1 = ${marks}</div>
-          </div>
-          ${contentHtml}
-        </div>
-      `;
-    }).join('');
-
-    document.getElementById('rendered-paper').innerHTML = `
-      <div class="a4-board-sheet sheet-nalikali-full-worksheet">
-        ${nalikaliHeader}
-        <div>${worksheetHtml}</div>
-      </div>
-    `;
-
-    document.getElementById('rendered-key').innerHTML = `
-      <div class="a4-board-sheet sheet-nalikali-full-worksheet">
-        ${nalikaliHeader}
-        <div style="text-align:center; font-weight:900; margin-bottom:10px; border-bottom:2px solid #000; padding-bottom:3px;">ಮಾದರಿ ಉತ್ತರ ಸೂಚಿ</div>
-        ${allQuestions.map((item, idx) => `<div style="margin-bottom:8px; border-bottom:1px dashed #ccc; padding-bottom:4px;"><b>${idx+1})</b> ${escapeHtml(item.ans || 'ಸರಿಯಾದ ಉತ್ತರ')}</div>`).join('')}
-      </div>
-    `;
+  if (!isAdmin && (!session || !session.isLoggedIn)) {
+    alert("🔒 ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ (Login Required)!\n\nದಯವಿಟ್ಟು ಮೊದಲು ಲಾಗಿನ್ ಮಾಡಿಕೊಳ್ಳಿ.");
+    if (typeof openTeacherAuthModal === 'function') openTeacherAuthModal('login');
     return;
   }
 
-  // -------------------------------------------------------------
-  // 🏫 ಶಾಖೆ ಬಿ: ೪ ರಿಂದ ೧೦ನೇ ತರಗತಿಗೆ (ಅಧಿಕೃತ DSERT ಬೋರ್ಡ್ ಪತ್ರಿಕೆ)
-  // -------------------------------------------------------------
-  var finalHeaderHtml = headerHtml || generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+  var selectedClass = document.getElementById('cfg-class')?.value || '6';
+  var currentSubj = document.getElementById('cfg-subject')?.value || 'ಸಮಾಜ ವಿಜ್ಞಾನ';
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+  var targetTotalMarks = parseInt(document.getElementById('cfg-total-marks')?.value) || 40;
+  var targetTotalQuestions = parseInt(document.getElementById('cfg-total-questions')?.value) || 24;
+  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
 
-  var typeGroups = new Map();
-  allQuestions.forEach(q => {
-    var t = getCanonicalQuestionType(q);
-    if (!typeGroups.has(t)) typeGroups.set(t, []);
-    typeGroups.get(t).push(q);
-  });
-
-  var order = ['mcq', 'blanks', 'true_false', 'analogy', 'odd_one_out', 'match', 'grammar_passage', 'vsa_1m', 'sa_2m', 'context', 'passage', 'sa_3m', 'la_4m', 'la_5m'];
-  var sortedKeys = Array.from(typeGroups.keys()).sort((a, b) => order.indexOf(a) - order.indexOf(b));
-
-  var paperSectionsHtml = [];
-  var keySectionsHtml = [];
-  var qNum = 1, kNum = 1, romanIndex = 1;
-  var romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"];
-
-  sortedKeys.forEach(tKey => {
-    var qList = typeGroups.get(tKey);
-    if (!qList || qList.length === 0) return;
-
-    var r = romanNumerals[romanIndex++ - 1] || 'X';
-    var headingText = headingsMapKn[tKey] || `${tKey}:`;
-    var totalSectionMarks = qList.reduce((sum, item) => sum + getExactQuestionMarks(item), 0);
-    var marksPerQ = (tKey === 'match') ? 4 : getExactQuestionMarks(qList[0]);
-
-    var headerTableHtml = `
-      <table class="board-heading-row-table">
-        <tr>
-          <td class="heading-left-title"><b>${r}. ${escapeHtml(headingText)}</b></td>
-          <td class="heading-right-marks"><b>${marksPerQ} * ${tKey === 'match' ? 1 : qList.length} = ${String(totalSectionMarks).padStart(2, '0')}</b></td>
-        </tr>
-      </table>
-    `;
-
-    if (tKey === 'match') {
-      paperSectionsHtml.push(`
-        <div class="main-roman-section-block">
-          ${headerTableHtml}
-          <div class="q-indivisible-block">${renderOfficial3ColumnMatchTable(qList[0], qNum++, false)}</div>
-        </div>
-      `);
-    } else {
-      paperSectionsHtml.push(`
-        <div class="main-roman-section-block">
-          ${headerTableHtml}
-          ${qList.map(item => `
-            <div class="q-indivisible-block" style="margin-bottom: 3.5px;">
-              <table class="board-q-table-row">
-                <tr>
-                  <td class="board-q-num-cell">${qNum++}.</td>
-                  <td class="board-q-text-cell">${formatQuestionTextForDisplay(item.q)}</td>
-                </tr>
-              </table>
-            </div>
-          `).join('')}
-        </div>
-      `);
-    }
-
-    keySectionsHtml.push(`
-      <div class="main-roman-section-block">
-        <table class="board-heading-row-table"><tr><td class="heading-left-title"><b>${r}. ಕೀ ಉತ್ತರಗಳು</b></td></tr></table>
-        ${qList.map(item => `<div class="key-hanging-row-item"><span style="font-weight:900;">${kNum++}.</span> <span>${formatQuestionTextForDisplay(item.ans || '')}</span></div>`).join('')}
-      </div>
-    `);
-  });
-
-  document.getElementById('rendered-paper').innerHTML = `
-    <div class="a4-board-sheet">
-      ${finalHeaderHtml}
-      <div>${paperSectionsHtml.join('')}</div>
-    </div>
-  `;
-
-  document.getElementById('rendered-key').innerHTML = `
-    <div class="a4-board-sheet">
-      ${finalHeaderHtml}
-      <div style="text-align: center; margin-bottom: 6px; border-bottom: 2px solid #000; padding-bottom: 2px;">
-        <h3 style="font-size: 12pt; font-weight: 900;">ಮಾದರಿ ಉತ್ತರ ಸೂಚಿ</h3>
-      </div>
-      <div>${keySectionsHtml.join('')}</div>
-    </div>
-  `;
-
-  if (typeof renderCompleteOfficialDSERTBlueprint === 'function') {
-    renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
+  var checkedTypeNodes = document.querySelectorAll('input[name="qtype_opt"]:checked');
+  var selectedTypes = Array.from(checkedTypeNodes).map(function(cb) { return cb.value; });
+  if (selectedTypes.length === 0) {
+    return alert('⚠️ ದಯವಿಟ್ಟು Step 3 ರಲ್ಲಿ ಕನಿಷ್ಠ ಒಂದು ಪ್ರಶ್ನೆ ಪ್ರಕಾರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
   }
+
+  var selectedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+  var selectedChapters = Array.from(selectedBoxes).map(function(b) { return b.value; });
+  appState.activeSelectedChapters = selectedChapters;
+
+  var allMatchingPool = (appState.activeSubjectQuestions || []).filter(function(q) {
+    if (!q) return false;
+    var isChapOk = (typeof isChapterMatchedFlexibly === 'function') 
+      ? isChapterMatchedFlexibly(q.chapter, selectedChapters) 
+      : (selectedChapters.length === 0 || selectedChapters.some(function(sc) { return safeCleanMatch(sc) === safeCleanMatch(q.chapter); }));
+    var cType = getCanonicalQuestionType(q);
+    return isChapOk && selectedTypes.includes(cType);
+  });
+
+  if (allMatchingPool.length === 0) {
+    return alert('⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ. Step 2 ಮತ್ತು Step 3 ಪರಿಶೀಲಿಸಿ.');
+  }
+
+  // ಹಂತ ೧: ಬಳಕೆಯಾಗದ ಪ್ರಶ್ನೆಗಳಿಂದ ಟ್ರೈ ಮಾಡುವುದು
+  var usedIds = (typeof getUsedQuestionIdsList === 'function') ? getUsedQuestionIdsList() : [];
+  var freshUnusedPool = allMatchingPool.filter(function(q) {
+    return !usedIds.includes(getQuestionUniqueKey(q));
+  });
+
+  var chosen = null;
+  if (freshUnusedPool.length >= targetTotalQuestions) {
+    chosen = solveStrictExactExamMath(freshUnusedPool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+  }
+
+  // ಹಂತ ೨: ಪೂರ್ಣ ಪೂಲ್ ಹಾಗೂ ಆಟೋ-ಬ್ಯಾಲೆನ್ಸಿಂಗ್ ಮೂಲಕ ನಿಖರ 40 ಅಂಕ ಪಡೆಯುವುದು
+  if (!chosen || chosen.length !== targetTotalQuestions) {
+    if (usedIds.length > 0 && typeof resetQuestionRepeatCycle === 'function') {
+      resetQuestionRepeatCycle(false);
+    }
+    chosen = solveStrictExactExamMath(allMatchingPool, targetTotalMarks, targetTotalQuestions, selectedTypes);
+  }
+
+  if (!chosen || chosen.length === 0) {
+    return alert("⚠️ ಪ್ರಶ್ನೆಗಳ ಕೊರತೆಯಿದೆ. ದಯವಿಟ್ಟು ಹೆಚ್ಚಿನ ಪಾಠಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ.");
+  }
+
+  if (typeof recordQuestionsAsUsed === 'function') {
+    recordQuestionsAsUsed(chosen);
+  }
+
+  appState.activeGeneratedQuestions = chosen;
+  appState.currentExamSet = 'A';
+  appState.baseGeneratedQuestions = JSON.parse(JSON.stringify(chosen));
+
+  var actualMarks = chosen.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
+  var headerHtml = generateOfficialBoardHeader(schoolName, currentSubj, selectedClass, rawExamType, actualMarks, examDate);
+
+  renderFullExamPaperWithCustomHeader(headerHtml);
+
+  if (typeof injectSetSelectorBarUI === 'function') {
+    injectSetSelectorBarUI();
+  }
+
+  if (typeof autoSaveGeneratedPaperToLocalStorage === 'function') {
+    autoSaveGeneratedPaperToLocalStorage(chosen, headerHtml);
+  }
+
+  var outSec = document.getElementById('output-section');
+  if (outSec) {
+    outSec.classList.remove('hidden');
+    switchOutputTab('paper');
+    outSec.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  showToast("⚡ ಯಶಸ್ವಿ: 6ನೇ ಸಮಾಜ ವಿಜ್ಞಾನ - ನಿಖರ " + chosen.length + " ಪ್ರಶ್ನೆಗಳು & " + actualMarks + " ಅಂಕಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ!", "success");
 };
 </script>
   

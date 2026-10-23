@@ -13699,6 +13699,438 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
 
 
 
+
+    // =========================================================================
+// 🌟 ALL-IN-ONE MASTER ROUTER: NMMS (SUBJECT-WISE & BIG DIAGRAMS) + NALI-KALI + OMR
+// =========================================================================
+
+// ೧. ಗಣಿತದ ದಶಮಾಂಶ ವರ್ಗಮೂಲ (√57.6, √32.4) ಫಾರ್ಮುಲಾ ಫಿಕ್ಸ್
+var originalMathRenderer = window.renderMathFormulaBeautifully;
+window.renderMathFormulaBeautifully = function(str) {
+  if (!str) return '';
+  var text = String(str);
+  // ದಶಮಾಂಶ ಸಂಖ್ಯೆಗಳ ವರ್ಗಮೂಲ ಬೆಂಬಲ (√57.6, √0.576)
+  text = text.replace(/\\sqrt\{([^{}]+)\}|√\[([^\[\]]+)\]|√\(([^()]+)\)|√([0-9a-zA-Zθ\.\/]+)/g, function(m, g1, g2, g3, g4) {
+    var val = g1 || g2 || g3 || g4 || '';
+    return '<span class="inline-flex items-center align-middle mx-1 font-serif">√<span class="border-t border-black px-1">' + val + '</span></span>';
+  });
+  return originalMathRenderer ? originalMathRenderer(text) : text;
+};
+
+// ೨. ಪ್ರಶ್ನೆಯ ಚಿತ್ರವನ್ನು ಪತ್ತೆಹಚ್ಚುವ ನಿಖರ ಫಂಕ್ಷನ್
+function extractFullQuestionImage(q) {
+  if (!q) return null;
+  var src = q.image || q.img || q.diagram || q.figure || q.pic || q.url || q.img_url || null;
+  if (src && typeof src === 'string' && src.trim().length > 4) return src.trim();
+
+  // ಪ್ರಶ್ನೆಯ ಪಠ್ಯದೊಳಗೆ ಮಾರ್ಕ್‌ಡೌನ್ ಅಥವಾ HTML ಇಮೇಜ್ ಲಿಂಕ್ ಇದ್ದರೆ
+  if (q.q) {
+    var mdMatch = String(q.q).match(/!\[.*?\]\((https?:\/\/[^\s\)]+)\)/i);
+    if (mdMatch) return mdMatch[1];
+    var htmlMatch = String(q.q).match(/<img[^>]+src=["'](https?:\/\/[^"']+)["']/i);
+    if (htmlMatch) return htmlMatch[1];
+  }
+  return null;
+}
+
+// ೩. NMMS ಮತ್ತು ಪ್ರವೇಶ ಪರೀಕ್ಷೆಗಳ ಅಧಿಕೃತ ರೆಂಡರರ್ (ವಿಷಯವಾರು ಹೆಡರ್‌ಗಳು & ದೊಡ್ಡ ಚಿತ್ರಗಳು)
+window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks, rawSubj, grade) {
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'NMMS ವಿದ್ಯಾರ್ಥಿವೇತನ ಪರೀಕ್ಷೆ 2026-27';
+  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+  var isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
+  var curSet = appState.currentExamSet || 'A';
+
+  // ಅಧಿಕೃತ NMMS ಹೆಡರ್
+  var finalHeaderHtml = `
+    <div style="width: 100%; border-bottom: 2.2px solid #000; padding-bottom: 3px; margin-bottom: 6px;">
+      <div style="display: flex; justify-content: flex-end; margin-bottom: -20px;">
+        <span style="font-size: 11pt; font-weight: 900; border: 2px solid #000; padding: 1px 8px; background: #f1f5f9; border-radius: 4px; letter-spacing: 1px;">
+          SET - ${curSet}
+        </span>
+      </div>
+      <div style="text-align: center; margin-bottom: 2px;">
+        <h1 style="font-size: 13.5pt; font-weight: 900; margin: 0; line-height: 1.2;">${escapeHtml(schoolName)}</h1>
+        <div style="font-size: 11pt; font-weight: 900; margin-top: 1px; color: #0f172a;">
+          ${escapeHtml(rawExamType)}
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 2px;">
+        <tr>
+          <td style="width: 36%; text-align: left; font-weight: 800; font-size: 10pt;">ವಿಷಯ : <b>${escapeHtml(rawSubj)}</b></td>
+          <td style="width: 20%; text-align: center; font-weight: 800; font-size: 10pt;">ತರಗತಿ : <b>${grade}ನೇ ತರಗತಿ</b></td>
+          <td style="width: 22%; text-align: center; font-weight: 800; font-size: 10pt;">ದಿನಾಂಕ : <b>${escapeHtml(examDate)}</b></td>
+          <td style="width: 22%; text-align: right; font-weight: 800; font-size: 10pt;">ಒಟ್ಟು ಅಂಕಗಳು : <b>${actualMarks}</b></td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  // ವಿಷಯವಾರು ಕ್ರಮಬದ್ಧ ಜೋಡಣೆ (Physics, Chemistry, Biology, History, Geography, Civics, Maths...)
+  var subjectOrder = [
+    'ಭೌತ', 'physics',
+    'ರಸಾಯನ', 'chemistry',
+    'ಜೀವ', 'biology',
+    'ಇತಿಹಾಸ', 'history',
+    'ಭೂಗೋಳ', 'geography',
+    'ರಾಜ್ಯಶಾಸ್ತ್ರ', 'ಪೌರನೀತಿ', 'civics', 'political',
+    'ಅರ್ಥಶಾಸ್ತ್ರ', 'economics',
+    'ಗಣಿತ', 'mathematics', 'maths'
+  ];
+
+  function getSubjectPriority(chap) {
+    if (!chap) return 999;
+    var c = String(chap).toLowerCase();
+    for (var i = 0; i < subjectOrder.length; i++) {
+      if (c.includes(subjectOrder[i])) return i;
+    }
+    return 900;
+  }
+
+  // ಪ್ರಶ್ನೆಗಳನ್ನು ಅವುಗಳ ವಿಷಯದ ಆಧಾರದ ಮೇಲೆ ವಿಂಗಡಿಸುವುದು
+  allQuestions.sort(function(a, b) {
+    return getSubjectPriority(a.chapter) - getSubjectPriority(b.chapter) || String(a.chapter || '').localeCompare(String(b.chapter || ''));
+  });
+
+  var chapterGroups = new Map();
+  allQuestions.forEach(function(q) {
+    var ch = (q.chapter || 'ಸಾಮಾನ್ಯ ವಿಭಾಗ').trim();
+    if (!chapterGroups.has(ch)) chapterGroups.set(ch, []);
+    chapterGroups.get(ch).push(q);
+  });
+
+  var paperSectionsHtml = [];
+  var keySectionsHtml = [];
+  var qNum = 1, kNum = 1;
+
+  chapterGroups.forEach(function(qList, chapterTitle) {
+    // 🌟 ಅಧಿಕೃತ ವಿಷಯವಾರು ಬ್ಯಾನರ್ (✦ ಭೌತಶಾಸ್ತ್ರ ✦, ✦ ರಸಾಯನಶಾಸ್ತ್ರ ✦...)
+    var subjectBannerHtml = `
+      <div style="width: 100%; border: 1.8px solid #000; background: #f1f5f9; text-align: center; padding: 4px 6px; margin: 10px 0 6px 0; font-weight: 900; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px; page-break-after: avoid; break-after: avoid;">
+        ✦ ${escapeHtml(chapterTitle)} ✦ &nbsp; <span style="font-size: 9.5pt; font-weight: 700; color: #475569;">(${qList.length} ಪ್ರಶ್ನೆಗಳು)</span>
+      </div>
+    `;
+
+    paperSectionsHtml.push(`
+      <div class="main-roman-section-block">
+        ${subjectBannerHtml}
+        ${qList.map(function(m) {
+          var globalIdx = allQuestions.indexOf(m);
+
+          // ೧. ನಾಲ್ಕೂ ಆಯ್ಕೆಗಳ ಚಿತ್ರಗಳಿದ್ದರೆ
+          var imgA = m.img_a || m.image_a || m.a_img || m.imgA;
+          var imgB = m.img_b || m.image_b || m.b_img || m.imgB;
+          var imgC = m.img_c || m.image_c || m.c_img || m.imgC;
+          var imgD = m.img_d || m.image_d || m.d_img || m.imgD;
+          var has4OptionImages = !!(imgA || imgB || imgC || imgD);
+
+          // ೨. ಪ್ರಶ್ನೆಯ ಮುಖ್ಯ ಚಿತ್ರ (ಸ್ತಂಭನಕ್ಷೆ, ರೇಖಾಚಿತ್ರ, ಜ್ಯಾಮಿತಿ ಇತ್ಯಾದಿ)
+          var mainImg = !has4OptionImages ? extractFullQuestionImage(m) : null;
+
+          // ೩. ಪ್ರಶ್ನೆ ಪಠ್ಯದಿಂದ ಚಿತ್ರದ ಮಾರ್ಕ್‌ಡೌನ್ ಕ್ಲೀನ್ ಮಾಡುವುದು
+          var cleanQText = String(m.q || '').replace(/!\[.*?\]\([^\)]+\)/g, '').replace(/<img[^>]+>/gi, '').trim();
+
+          return `
+          <div class="q-indivisible-block" style="margin-bottom: ${isBookletMode ? '6px' : '4px'};">
+            
+            <table class="board-q-table-row" style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td class="board-q-num-cell" style="vertical-align: top; width: 28px;">${qNum++}.</td>
+                <td class="board-q-text-cell" style="vertical-align: top;">${formatQuestionTextForDisplay(cleanQText)}</td>
+                <td style="width: 45px; text-align: right; vertical-align: top;" class="no-print">
+                  <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                </td>
+              </tr>
+            </table>
+
+            <!-- 🌟 ಚಿತ್ರವಿದ್ದರೆ (ಸ್ತಂಭನಕ್ಷೆ, ರೇಖಾಚಿತ್ರ) ಮಧ್ಯದಲ್ಲಿ ದೊಡ್ಡದಾಗಿ ಮತ್ತು ಸ್ಪಷ್ಟವಾಗಿ ಪ್ರದರ್ಶನ -->
+            ${mainImg ? `
+              <div style="display: block; text-align: center; margin: 6px auto; width: 100%; clear: both;">
+                <img src="${mainImg}" style="max-height: 165px; max-width: 92%; object-fit: contain; border: 1.5px solid #334155; background: #ffffff; padding: 4px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: inline-block;" alt="Diagram" referrerpolicy="no-referrer" />
+              </div>
+            ` : ''}
+
+            <!-- ೪ ಆಯ್ಕೆಗಳ ಪ್ರದರ್ಶನ -->
+            ${has4OptionImages ? `
+              <table style="width: 100%; margin: 4px 0; border-collapse: collapse;">
+                <tr>
+                  <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px; border: 1.2px dashed #94a3b8; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</div>
+                    ${imgA ? `<img src="${imgA}" style="max-height: 80px; max-width: 95%; margin: 2px auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px; object-fit: contain;" referrerpolicy="no-referrer" />` : ''}
+                  </td>
+                  <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px; border: 1.2px dashed #94a3b8; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</div>
+                    ${imgB ? `<img src="${imgB}" style="max-height: 80px; max-width: 95%; margin: 2px auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px; object-fit: contain;" referrerpolicy="no-referrer" />` : ''}
+                  </td>
+                  <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px; border: 1.2px dashed #94a3b8; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</div>
+                    ${imgC ? `<img src="${imgC}" style="max-height: 80px; max-width: 95%; margin: 2px auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px; object-fit: contain;" referrerpolicy="no-referrer" />` : ''}
+                  </td>
+                  <td style="width: 25%; text-align: center; vertical-align: top; padding: 3px; border: 1.2px dashed #94a3b8; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-size: 9.8pt; font-weight: 700; margin-bottom: 2px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</div>
+                    ${imgD ? `<img src="${imgD}" style="max-height: 80px; max-width: 95%; margin: 2px auto; display: block; border: 1px solid #64748b; background: #fff; padding: 2px; border-radius: 4px; object-fit: contain;" referrerpolicy="no-referrer" />` : ''}
+                  </td>
+                </tr>
+              </table>
+            ` : `
+              <table style="width: 100%; margin: 2px 0;">
+                <tr>
+                  <td style="width: 25%; font-size: 10pt; font-weight: 600; padding: 1px 4px 1px 28px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</td>
+                  <td style="width: 25%; font-size: 10pt; font-weight: 600; padding: 1px 4px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</td>
+                  <td style="width: 25%; font-size: 10pt; font-weight: 600; padding: 1px 4px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</td>
+                  <td style="width: 25%; font-size: 10pt; font-weight: 600; padding: 1px 4px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</td>
+                </tr>
+              </table>
+            `}
+
+            ${isBookletMode ? `<div style="padding-left: 28px; margin-bottom: 4px; font-size: 9.5pt; font-weight: 700;">ಉತ್ತರ : ________________________________________________________________</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    `);
+
+    // ವಿಷಯವಾರು ಕೀ ಉತ್ತರ
+    keySectionsHtml.push(`
+      <div class="main-roman-section-block">
+        <div style="border-bottom: 1.5px solid #000; padding: 3px 6px; margin: 8px 0 4px 0; font-weight: 900; font-size: 10.5pt; background: #f8fafc;">
+          <b>✦ ${escapeHtml(chapterTitle)} ✦</b>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 4px; margin-bottom: 6px;">
+          ${qList.map(function(m) {
+            return `
+              <div class="key-hanging-row-item" style="font-size: 9.8pt; padding: 2px 5px; border: 1px dashed #cbd5e1; background: #fff;">
+                <span style="font-weight:900; min-width: 26px;">${kNum++}.</span>
+                <span><b>${formatQuestionTextForDisplay(m.ans || '')}</b></span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `);
+  });
+
+  // ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಮತ್ತು ಕೀ ಉತ್ತರ ಪ್ರದರ್ಶನ
+  document.getElementById('rendered-paper').innerHTML = `
+    <div class="a4-board-sheet">
+      ${finalHeaderHtml}
+      <div>${paperSectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  document.getElementById('rendered-key').innerHTML = `
+    <div class="a4-board-sheet">
+      ${finalHeaderHtml}
+      <div style="text-align: center; margin-bottom: 6px; border-bottom: 2px solid #000; padding-bottom: 2px;">
+        <h3 style="font-size: 12pt; font-weight: 900; text-transform: uppercase;">ಅಧಿಕೃತ ಕೀ ಉತ್ತರ ಸೂಚಿ & ಪರಿಹಾರಗಳು (KEY ANSWERS - SET ${curSet})</h3>
+      </div>
+      <div>${keySectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  // ನೀಲನಕ್ಷೆ
+  if (typeof renderCompleteOfficialDSERTBlueprint === 'function') {
+    renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
+  }
+};
+
+// =========================================================================
+// 🌟 ಮಾಸ್ಟರ್ ಗೇಟ್‌ವೇ: (೧. ನಲಿಕಲಿ | ೨. NMMS ಸ್ಪರ್ಧಾತ್ಮಕ | ೩. ಹೈಸ್ಕೂಲ್ ಬೋರ್ಡ್) + OMR
+// =========================================================================
+
+// ಪ್ರೌಢಶಾಲೆಯ ಅಧಿಕೃತ ಬೋರ್ಡ್ ರೆಂಡರರ್ ಸುರಕ್ಷಿತ ಬ್ಯಾಕಪ್
+if (!window.__originalHighSchoolRenderer) {
+  window.__originalHighSchoolRenderer = function(headerHtml) {
+    const allQuestions = appState.activeGeneratedQuestions || [];
+    const rawSubj = document.getElementById('cfg-subject')?.value || '';
+    const medium = document.getElementById('cfg-medium')?.value || 'kannada_medium';
+    const isHindi = rawSubj.toLowerCase().includes('hindi') || rawSubj.includes('ಹಿಂದಿ');
+    const isEnglish = rawSubj.toLowerCase().includes('english') || rawSubj.includes('ಇಂಗ್ಲಿಷ್') || (medium === 'english_medium');
+    const isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
+
+    const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+    const grade = document.getElementById('cfg-class')?.value || '8';
+    const rawExamType = document.getElementById('cfg-exam-type')?.value || 'SA-1';
+    const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+    const actualMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+    let finalHeaderHtml = headerHtml || generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+
+    const typeGroups = new Map();
+    allQuestions.forEach(q => {
+      let t = getCanonicalQuestionType(q);
+      if (!typeGroups.has(t)) typeGroups.set(t, []);
+      typeGroups.get(t).push(q);
+    });
+
+    const order = ['mcq', 'blanks', 'true_false', 'analogy', 'odd_one_out', 'match', 'grammar_passage', 'vsa_1m', 'sa_2m', 'context', 'passage', 'sa_3m', 'la_4m', 'la_5m'];
+    const sortedKeys = Array.from(typeGroups.keys()).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
+    let paperSectionsHtml = [];
+    let keySectionsHtml = [];
+    let qNum = 1, kNum = 1, romanIndex = 1;
+    const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"];
+
+    sortedKeys.forEach(tKey => {
+      const qList = typeGroups.get(tKey);
+      if (!qList || qList.length === 0) return;
+
+      const r = romanNumerals[romanIndex++ - 1] || 'X';
+      let headingText = isEnglish ? (headingsMapEn[tKey] || `Answer the following (${tKey}):`) : (isHindi ? (headingsMapHi[tKey] || `${tKey}:`) : (headingsMapKn[tKey] || `${tKey}:`));
+
+      const totalSectionMarks = qList.reduce((sum, item) => sum + getExactQuestionMarks(item), 0);
+      const marksPerQ = (tKey === 'match') ? 4 : getExactQuestionMarks(qList[0]);
+      const isUniform = qList.every(item => getExactQuestionMarks(item) === marksPerQ);
+      const marksDisplayStr = isUniform 
+        ? `${marksPerQ} * ${tKey === 'match' ? 1 : qList.length} = ${String(totalSectionMarks).padStart(2, '0')}`
+        : `1 * ${qList.length} = ${String(totalSectionMarks).padStart(2, '0')}`;
+
+      const headerTableHtml = `
+        <table class="board-heading-row-table">
+          <tr>
+            <td class="heading-left-title"><b>${r}. ${escapeHtml(headingText)}</b></td>
+            <td class="heading-right-marks"><b>${marksDisplayStr}</b></td>
+          </tr>
+        </table>
+      `;
+
+      if (tKey === 'mcq') {
+        paperSectionsHtml.push(`
+          <div class="main-roman-section-block">
+            ${headerTableHtml}
+            ${qList.map((m) => {
+              const globalIdx = allQuestions.indexOf(m);
+              const mainImg = extractFullQuestionImage(m);
+              const cleanText = String(m.q || '').replace(/!\[.*?\]\([^\)]+\)/g, '').replace(/<img[^>]+>/gi, '').trim();
+
+              return `
+              <div class="q-indivisible-block" style="margin-bottom: ${isBookletMode ? '5px' : '3px'};">
+                <table class="board-q-table-row" style="width: 100%;">
+                  <tr>
+                    <td class="board-q-num-cell" style="width: 26px;">${qNum++}.</td>
+                    <td class="board-q-text-cell">${formatQuestionTextForDisplay(cleanText)}</td>
+                    <td style="width: 45px; text-align: right;" class="no-print">
+                      <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                    </td>
+                  </tr>
+                </table>
+
+                ${mainImg ? `
+                  <div style="text-align: center; margin: 4px auto;">
+                    <img src="${mainImg}" style="max-height: 145px; max-width: 90%; object-fit: contain; border: 1.2px solid #334155; padding: 3px; background: #fff; border-radius: 4px;" alt="Diagram" referrerpolicy="no-referrer" />
+                  </div>
+                ` : ''}
+
+                <table style="width: 100%; margin: 2px 0;">
+                  <tr>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px 1px 26px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</td>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</td>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</td>
+                    <td style="width: 25%; font-size: 9.8pt; font-weight: 600; padding: 1px 4px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</td>
+                  </tr>
+                </table>
+              </div>`;
+            }).join('')}
+          </div>
+        `);
+      } else if (tKey === 'match') {
+        const mItem = qList[0];
+        paperSectionsHtml.push(`
+          <div class="main-roman-section-block">
+            ${headerTableHtml}
+            <div class="q-indivisible-block">
+              ${renderOfficial3ColumnMatchTable(mItem, qNum++, isEnglish)}
+            </div>
+          </div>
+        `);
+      } else {
+        paperSectionsHtml.push(`
+          <div class="main-roman-section-block">
+            ${headerTableHtml}
+            ${qList.map((item) => {
+              const globalIdx = allQuestions.indexOf(item);
+              const mainImg = extractFullQuestionImage(item);
+              return `
+                <div class="q-indivisible-block" style="margin-bottom: 4px;">
+                  <table class="board-q-table-row" style="width: 100%;">
+                    <tr>
+                      <td class="board-q-num-cell" style="width: 26px;">${qNum++}.</td>
+                      <td class="board-q-text-cell">${formatQuestionTextForDisplay(item.q)}</td>
+                      <td style="width: 45px; text-align: right;" class="no-print">
+                        <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                      </td>
+                    </tr>
+                  </table>
+                  ${mainImg ? `
+                    <div style="text-align: center; margin: 4px auto;">
+                      <img src="${mainImg}" style="max-height: 145px; max-width: 90%; object-fit: contain; border: 1.2px solid #334155; padding: 3px; background: #fff; border-radius: 4px;" alt="Diagram" referrerpolicy="no-referrer" />
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `);
+      }
+    });
+
+    document.getElementById('rendered-paper').innerHTML = `<div class="a4-board-sheet">${finalHeaderHtml}<div>${paperSectionsHtml.join('')}</div></div>`;
+    renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
+  };
+}
+
+// ೪. ಮುಖ್ಯ ರೂಟರ್ (Master Router)
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  var grade = document.getElementById('cfg-class')?.value || '8';
+  var cleanGrade = String(grade).replace(/\D/g, '');
+  var rawSubj = document.getElementById('cfg-subject')?.value || '';
+  var subjKey = (typeof getNormalizedSubjectKey === 'function') ? getNormalizedSubjectKey(rawSubj) : '';
+
+  var isNalikali = (cleanGrade === '1' || cleanGrade === '2' || cleanGrade === '3');
+  var isCompetitive = (subjKey === 'nmms_sat' || subjKey === 'nmms_gmat' || subjKey === 'morarji_entrance' || subjKey === 'adarsha_entrance' || rawSubj.includes('NMMS') || rawSubj.includes('ಮೊರಾರ್ಜಿ') || rawSubj.includes('ಆದರ್ಶ'));
+
+  var allQuestions = appState.activeGeneratedQuestions || [];
+  var actualMarks = allQuestions.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
+
+  // ೧. ನಲಿಕಲಿ (ತರಗತಿ ೧, ೨, ೩)
+  if (isNalikali) {
+    window.renderDedicatedNalikaliWorksheet(allQuestions, actualMarks, rawSubj, grade);
+  }
+  // ೨. NMMS / ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆ (ವಿಷಯವಾರು ಹೆಡರ್ & ದೊಡ್ಡ ಗ್ರಾಫ್ ಚಿತ್ರಗಳು)
+  else if (isCompetitive) {
+    window.renderDedicatedNMMSCompetitivePaper(allQuestions, actualMarks, rawSubj, grade);
+  }
+  // ೩. ಪ್ರೌಢಶಾಲೆ (ತರಗತಿ ೪ ರಿಂದ ೧೦ ಬೋರ್ಡ್ ಪತ್ರಿಕೆ)
+  else {
+    window.__originalHighSchoolRenderer(headerHtml);
+  }
+
+  // 🌟 ಪ್ರತಿಯೊಂದು ಪರೀಕ್ಷೆಗೂ ಕಡ್ಡಾಯವಾಗಿ OMR ಶೀಟ್ ಸಕ್ರಿಯಗೊಳಿಸುವುದು
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+  var totalQ = allQuestions.length || parseInt(document.getElementById('cfg-total-questions')?.value) || 90;
+
+  window.renderOfficialGovernmentOMRSheet(totalQ, actualMarks, rawExamType, schoolName, rawSubj, grade, examDate);
+};
+
+// ೫. ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ಮೇಲೆ NMMS ಪತ್ರಿಕೆ ಮತ್ತು OMR ರಿಫ್ರೆಶ್
+(function triggerInstantExamRefreshNow() {
+  var allQ = appState.activeGeneratedQuestions || [];
+  if (allQ.length > 0) {
+    var rawSubj = document.getElementById('cfg-subject')?.value || '';
+    var grade = document.getElementById('cfg-class')?.value || '8';
+    var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+    var rawExamType = document.getElementById('cfg-exam-type')?.value || 'NMMS ವಿದ್ಯಾರ್ಥಿವೇತನ ಪರೀಕ್ಷೆ 2026-27';
+    var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+    var actualMarks = allQ.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
+
+    var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+    window.renderFullExamPaperWithCustomHeader(headerHtml);
+  }
+})();
+    
+
+    
     
 </script>
 </body>

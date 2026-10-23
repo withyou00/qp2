@@ -10200,14 +10200,14 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
 
 
 // =========================================================================
-// 🎒 100% PRO-GRADE NALI-KALI (CLASSES 1, 2, 3) 2-PAGE WORKSHEET OVERRIDE
+// 🎒 100% ATTRACTIVE, BIG-FONT & PRO NALI-KALI WORKSHEET ENGINE (CLASSES 1, 2, 3)
 // =========================================================================
 
-(function injectNaliKaliProfessionalStyles() {
-  var styleEl = document.getElementById('wy-nalikali-pro-styles');
+(function injectNaliKaliGrandStyles() {
+  var styleEl = document.getElementById('wy-nalikali-grand-styles');
   if (!styleEl) {
     styleEl = document.createElement('style');
-    styleEl.id = 'wy-nalikali-pro-styles';
+    styleEl.id = 'wy-nalikali-grand-styles';
     document.head.appendChild(styleEl);
   }
 
@@ -10220,55 +10220,55 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
       color: #000 !important;
     }
 
-    /* 🌟 ಪುಟ ೧ ಮತ್ತು ಪುಟ ೨ ರ ಅಧಿಕೃತ ಬೋರ್ಡರ್ (Zero Extra Space) */
+    /* 🌟 ನಲಿಕಲಿ ಅಧಿಕೃತ A4 ವರ್ಕ್‌ಶೀಟ್ ಪುಟ */
     .nk-page-sheet {
       background: #ffffff !important;
-      border: 2.2px solid #000 !important;
-      padding: 5mm 7mm !important;
+      border: 2.5px solid #000 !important;
+      padding: 6mm 8mm !important;
       margin: 0 auto 16px auto !important;
       box-sizing: border-box !important;
       min-height: 280mm !important;
-      height: 280mm !important;
       display: flex !important;
       flex-direction: column !important;
       justify-content: flex-start !important;
       position: relative !important;
-      overflow: hidden !important;
+      page-break-after: always !important;
+      break-after: page !important;
     }
 
-    /* ಹೆಡರ್ ವಿನ್ಯಾಸ */
+    /* ಹೆಡರ್ ಬಾಕ್ಸ್ */
     .nk-header-box {
       border-bottom: 2px solid #000 !important;
-      padding-bottom: 2px !important;
-      margin-bottom: 5px !important;
+      padding-bottom: 4px !important;
+      margin-bottom: 8px !important;
       text-align: center !important;
       flex-shrink: 0 !important;
     }
     .nk-school-title {
-      font-size: 13pt !important;
+      font-size: 14pt !important;
       font-weight: 900 !important;
       line-height: 1.2 !important;
       margin: 0 !important;
       color: #000 !important;
     }
     .nk-exam-title {
-      font-size: 10.5pt !important;
+      font-size: 11.5pt !important;
       font-weight: 900 !important;
-      margin-top: 1px !important;
-      color: #1e293b !important;
+      margin-top: 2px !important;
+      color: #0f172a !important;
     }
     .nk-meta-table {
       width: 100% !important;
       border-collapse: collapse !important;
-      margin-top: 2px !important;
-      font-size: 9.5pt !important;
+      margin-top: 3px !important;
+      font-size: 10.5pt !important;
       font-weight: 800 !important;
     }
     .nk-student-strip {
-      margin-top: 3px !important;
-      padding-top: 3px !important;
-      border-top: 1.5px dashed #000 !important;
-      font-size: 10pt !important;
+      margin-top: 4px !important;
+      padding-top: 4px !important;
+      border-top: 1.8px dashed #000 !important;
+      font-size: 11pt !important;
       font-weight: 800 !important;
       display: flex !important;
       justify-content: space-between !important;
@@ -10278,22 +10278,22 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
     .nk-mini-header {
       border-bottom: 2px solid #000 !important;
       padding-bottom: 3px !important;
-      margin-bottom: 5px !important;
+      margin-bottom: 8px !important;
       display: flex !important;
       justify-content: space-between !important;
       align-items: center !important;
       font-weight: 900 !important;
-      font-size: 9.8pt !important;
+      font-size: 10.5pt !important;
       flex-shrink: 0 !important;
     }
 
-    /* 🌟 ಪ್ರತಿಯೊಂದು ಚಟುವಟಿಕೆಗೂ ಅಚ್ಚುಕಟ್ಟಾದ ಬಾಕ್ಸ್ (DSERT Pro Layout) */
+    /* 🌟 ಪ್ರತಿಯೊಂದು ಚಟುವಟಿಕೆಗೂ ಸುಂದರ, ಅಚ್ಚುಕಟ್ಟಾದ ಕಾರ್ಡ್ ಫ್ರೇಮ್ */
     .nk-activity-block {
       width: 100% !important;
-      border: 1.3px solid #000 !important;
-      border-radius: 6px !important;
-      padding: 4px 8px !important;
-      margin-bottom: 6px !important;
+      border: 1.8px solid #000 !important;
+      border-radius: 8px !important;
+      padding: 6px 12px 8px 12px !important;
+      margin-bottom: 10px !important;
       box-sizing: border-box !important;
       background: #ffffff !important;
       page-break-inside: avoid !important;
@@ -10304,101 +10304,119 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
       display: flex !important;
       justify-content: space-between !important;
       align-items: center !important;
-      border-bottom: 1.3px solid #000 !important;
-      padding-bottom: 2.5px !important;
-      margin-bottom: 4px !important;
+      border-bottom: 1.5px solid #000 !important;
+      padding-bottom: 3px !important;
+      margin-bottom: 6px !important;
     }
     .nk-activity-head-title {
-      font-size: 10.8pt !important;
+      font-size: 12.5pt !important;
       font-weight: 900 !important;
       color: #000 !important;
     }
     .nk-activity-head-marks {
-      font-size: 10.2pt !important;
+      font-size: 11.5pt !important;
       font-weight: 900 !important;
       white-space: nowrap !important;
       padding-left: 8px !important;
     }
 
     .nk-help-box {
-      border: 1.2px dashed #000 !important;
+      border: 1.5px dashed #000 !important;
       background: #f1f5f9 !important;
-      padding: 2.5px 8px !important;
-      border-radius: 5px !important;
+      padding: 4px 10px !important;
+      border-radius: 6px !important;
       text-align: center !important;
-      font-size: 10pt !important;
+      font-size: 11.5pt !important;
       font-weight: 800 !important;
-      margin: 2px auto 5px auto !important;
+      margin: 3px auto 8px auto !important;
       width: 96% !important;
       letter-spacing: 0.5px !important;
     }
 
-    /* 🌟 ಅಧಿಕೃತ ಕನ್ನಡ ೨-ಗೆರೆ ಬರವಣಿಗೆ (Perfect Double-Line Ruling) */
+    /* 🌟 ೧. ಕನ್ನಡ ಅಧಿಕೃತ ದ್ವಿ-ಗೆರೆ (True Kannada Double-Line Notebook Ruling) */
     .nk-kannada-double-line {
       width: 100% !important;
-      height: 24px !important;
-      border-top: 1.8px solid #000 !important;
-      border-bottom: 1.8px solid #000 !important;
+      height: 30px !important;
+      border-top: 2px solid #000 !important;
+      border-bottom: 2px solid #000 !important;
       background-color: #f8fafc !important;
-      margin: 3px 0 5px 0 !important;
+      margin: 4px 0 8px 0 !important;
+      border-radius: 2px !important;
       box-sizing: border-box !important;
     }
 
+    /* 🌟 ೨. ಇಂಗ್ಲಿಷ್ ಅಧಿಕೃತ ೪-ಗೆರೆ (True English 4-Line Ruling Red & Blue) */
     .nk-english-four-line {
       width: 100% !important;
-      height: 26px !important;
+      height: 36px !important;
       position: relative !important;
-      margin: 3px 0 5px 0 !important;
-      background: #fff !important;
+      margin: 4px 0 8px 0 !important;
+      background: #ffffff !important;
       box-sizing: border-box !important;
     }
     .nk-english-four-line::before {
       content: "" !important;
       position: absolute !important;
       left: 0; right: 0; top: 0; bottom: 0;
-      border-top: 1.5px solid #dc2626 !important;
-      border-bottom: 1.5px solid #dc2626 !important;
+      border-top: 2px solid #dc2626 !important;
+      border-bottom: 2px solid #dc2626 !important;
     }
     .nk-english-four-line::after {
       content: "" !important;
       position: absolute !important;
-      left: 0; right: 0; top: 8px;
-      height: 10px;
-      border-top: 1.2px solid #2563eb !important;
-      border-bottom: 1.2px solid #2563eb !important;
+      left: 0; right: 0; top: 11px;
+      height: 12px !important;
+      border-top: 1.5px solid #2563eb !important;
+      border-bottom: 1.5px solid #2563eb !important;
     }
 
-    /* 🌟 ೨-ಕಾಲಂ ಗ್ರಿಡ್ (ಪರ್ಫೆಕ್ಟ್ ಅಳವಡಿಕೆ - ಬಾರ್ಡರ್ ದಾಟುವುದಿಲ್ಲ) */
+    /* 🌟 ೩. ಗಣಿತದ ಚೌಕುಳಿ ಬಾಕ್ಸ್‌ಗಳು (Math Box Grid) */
+    .nk-math-calc-box {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-width: 44px !important;
+      height: 42px !important;
+      border: 2px solid #000 !important;
+      border-radius: 6px !important;
+      background: #ffffff !important;
+      font-size: 15pt !important;
+      font-weight: 900 !important;
+      margin: 0 4px !important;
+    }
+
+    /* 🌟 ೨-ಕಾಲಂ ಪರ್ಫೆಕ್ಟ್ ಗ್ರಿಡ್ (No Overlap, No Cutoff) */
     .nk-two-col-grid {
       display: grid !important;
       grid-template-columns: 1fr 1fr !important;
-      gap: 3px 14px !important;
+      gap: 5px 20px !important;
       width: 100% !important;
       box-sizing: border-box !important;
     }
     .nk-grid-col {
       display: flex !important;
       flex-direction: column !important;
-      gap: 2.5px !important;
+      gap: 4px !important;
       width: 100% !important;
       box-sizing: border-box !important;
     }
+
     .nk-word-row {
       display: flex !important;
       align-items: center !important;
       width: 100% !important;
       box-sizing: border-box !important;
-      height: 32px !important;
+      height: 44px !important;
     }
     .nk-col-num {
-      width: 20px !important;
-      font-size: 10.5pt !important;
+      width: 24px !important;
+      font-size: 12pt !important;
       font-weight: 900 !important;
       flex-shrink: 0 !important;
       text-align: left !important;
     }
     .nk-col-label {
-      font-size: 10.8pt !important;
+      font-size: 13pt !important;
       font-weight: 800 !important;
       white-space: nowrap !important;
       color: #000 !important;
@@ -10406,91 +10424,95 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
     }
     .nk-col-dot-leader {
       flex: 1 !important;
-      border-bottom: 1.5px dotted #64748b !important;
-      margin: 0 6px !important;
-      height: 14px !important;
-      min-width: 8px !important;
+      border-bottom: 2px dotted #64748b !important;
+      margin: 0 8px !important;
+      height: 16px !important;
+      min-width: 12px !important;
     }
-    /* ಸುಂದರ ಬರವಣಿಗೆ ಚೌಕ */
+
+    /* 🌟 ಶಬ್ದ ಬರೆಯಲು ದೊಡ್ಡದಾದ, ಆಕರ್ಷಕ ಆಯತಾಕಾರದ ಬಾಕ್ಸ್ (Large Write-in Box) */
     .nk-write-box {
-      width: 110px !important;
-      min-width: 105px !important;
-      max-width: 115px !important;
-      height: 28px !important;
-      border: 1.6px solid #000 !important;
-      border-radius: 4px !important;
+      width: 155px !important;
+      min-width: 145px !important;
+      max-width: 165px !important;
+      height: 38px !important;
+      border: 2px solid #000 !important;
+      border-radius: 6px !important;
       background: #ffffff !important;
       flex-shrink: 0 !important;
       box-sizing: border-box !important;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05) !important;
     }
 
-    /* ಬಿಟ್ಟ ಅಕ್ಷರದ ಚೌಕ (Letter Square Box) */
+    /* 🌟 ಬಿಟ್ಟ ಅಕ್ಷರದ ದೊಡ್ಡ ಚೌಕ (Big 38px Square Letter Box) */
     .nk-sq-letter-box {
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
-      width: 28px !important;
-      height: 28px !important;
-      border: 1.6px solid #000 !important;
-      border-radius: 4px !important;
-      background: #fff !important;
-      margin: 0 3px !important;
+      width: 38px !important;
+      height: 38px !important;
+      border: 2px solid #000 !important;
+      border-radius: 6px !important;
+      background: #ffffff !important;
+      margin: 0 4px !important;
       box-sizing: border-box !important;
       vertical-align: middle !important;
       flex-shrink: 0 !important;
+      font-size: 16pt !important;
+      font-weight: 900 !important;
     }
 
-    /* ಪ್ರಶ್ನೋತ್ತರ ವಿಭಾಗ */
+    /* ಪ್ರಶ್ನೋತ್ತರ ಸಾಲುಗಳು */
     .nk-qa-item {
       width: 100% !important;
-      margin-bottom: 3.5px !important;
+      margin-bottom: 6px !important;
       box-sizing: border-box !important;
     }
     .nk-qa-q {
-      font-size: 10.5pt !important;
+      font-size: 12pt !important;
       font-weight: 800 !important;
       color: #000 !important;
-      line-height: 1.3 !important;
+      line-height: 1.35 !important;
     }
     .nk-qa-ans-row {
       display: flex !important;
       align-items: flex-end !important;
       width: 100% !important;
-      margin-top: 1.5px !important;
-      padding-left: 12px !important;
+      margin-top: 3px !important;
+      padding-left: 14px !important;
       box-sizing: border-box !important;
     }
     .nk-ans-lbl {
-      font-size: 9.8pt !important;
+      font-size: 11pt !important;
       font-weight: 900 !important;
       color: #000 !important;
-      margin-right: 5px !important;
+      margin-right: 6px !important;
       white-space: nowrap !important;
     }
     .nk-ans-ruled-line {
       flex: 1 !important;
-      border-bottom: 1.3px dashed #475569 !important;
-      height: 15px !important;
+      border-bottom: 1.6px dashed #475569 !important;
+      height: 18px !important;
     }
 
     .nk-copy-sentence-item {
       width: 100% !important;
-      margin-bottom: 4px !important;
+      margin-bottom: 6px !important;
     }
     .nk-sentence-title {
-      font-size: 11pt !important;
+      font-size: 13pt !important;
       font-weight: 800 !important;
       color: #000 !important;
-      margin-bottom: 1px !important;
+      margin-bottom: 2px !important;
     }
 
     .nk-page-footer {
       margin-top: auto !important;
-      padding-top: 3px !important;
-      border-top: 1px dashed #64748b !important;
+      padding-top: 4px !important;
+      border-top: 1.5px dashed #64748b !important;
       display: flex !important;
       justify-content: space-between !important;
-      font-size: 8.8pt !important;
+      font-size: 9.5pt !important;
       font-weight: 800 !important;
       color: #334155 !important;
       flex-shrink: 0 !important;
@@ -10502,12 +10524,10 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
         margin: 4mm 6mm !important;
       }
       .nk-page-sheet {
-        border: 2.2px solid #000 !important;
-        padding: 4mm 6mm !important;
+        border: 2.5px solid #000 !important;
+        padding: 5mm 7mm !important;
         margin: 0 !important;
-        height: 282mm !important;
         min-height: 282mm !important;
-        max-height: 282mm !important;
         page-break-after: always !important;
         break-after: page !important;
       }
@@ -10515,17 +10535,17 @@ window.formatQuestionTextForDisplay = function(rawText, isTrueFalse = false) {
   `;
 })();
 
-// ೨. ನಲಿಕಲಿ ಪೂರ್ಣ ವರ್ಕ್‌ಶೀಟ್ ರೆಂಡರರ್ (Master Engine)
+// ೨. ನಲಿಕಲಿ ಮಾಸ್ಟರ್ ರೆಂಡರರ್ (ಸ್ಮಾರ್ಟ್ ಅಡಾಪ್ಟಿವ್ ಪೇಜಿನೇಷನ್)
 window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, rawSubj, grade) {
   var isEnglishSubj = rawSubj.toLowerCase().includes('english') || (document.getElementById('cfg-medium')?.value === 'english_medium');
+  var isMathSubj = rawSubj.toLowerCase().includes('math') || rawSubj.includes('ಗಣಿತ');
   var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಕಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ';
   var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
   var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
 
-  var romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+  var romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"];
   var kannadaNums = ['೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯', '೧೦', '೧೧', '೧೨', '೧೩', '೧೪', '೧೫'];
 
-  // ಕನ್ನಡ ಅಂಕಿಗಳಿಗೆ ಪರಿವರ್ತಿಸುವ ನಿಖರ ಫಂಕ್ಷನ್
   function toKnNum(n) {
     var kn = ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯'];
     return String(n).replace(/\d/g, function(d) { return kn[d]; });
@@ -10547,7 +10567,7 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
     var rawQText = String(item.q || '').trim();
 
     // -------------------------------------------------------------------------
-    // ೧. ಹೊಂದಿಸಿ ಬರೆಯಿರಿ (I. Match the following)
+    // ೧. ಹೊಂದಿಸಿ ಬರೆಯಿರಿ (Matching)
     // -------------------------------------------------------------------------
     if (qType === 'match') {
       var pairs = extractSmartMatchPairs(item);
@@ -10568,22 +10588,22 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
             <span class="nk-activity-head-title"><b>${actRoman}</b> ${isEnglishSubj ? 'Match the following:' : 'ಗೆರೆ ಎಳೆದು ಹೊಂದಿಸಿ ಬರೆಯಿರಿ:'}</span>
             <span class="nk-activity-head-marks">${matchMarksStr}</span>
           </div>
-          <table style="width: 100%; border-collapse: collapse; border: 1.5px solid #000; font-size: 10pt; margin: 2px 0;">
+          <table style="width: 100%; border-collapse: collapse; border: 1.8px solid #000; font-size: 11pt; margin: 3px 0;">
             <thead>
               <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #000;">
-                <th style="width: 38%; padding: 3px 6px; border: 1px solid #000; text-align: left;">'ಅ' ಗುಂಪು</th>
-                <th style="width: 38%; padding: 3px 6px; border: 1px solid #000; text-align: left;">'ಆ' ಗುಂಪು</th>
-                <th style="width: 24%; padding: 3px 6px; border: 1px solid #000; text-align: center;">ಉತ್ತರ</th>
+                <th style="width: 38%; padding: 4px 8px; border: 1.2px solid #000; text-align: left;">'ಅ' ಗುಂಪು</th>
+                <th style="width: 38%; padding: 4px 8px; border: 1.2px solid #000; text-align: left;">'ಆ' ಗುಂಪು</th>
+                <th style="width: 24%; padding: 4px 8px; border: 1.2px solid #000; text-align: center;">ಉತ್ತರ</th>
               </tr>
             </thead>
             <tbody>
               ${colA.map(function(aText, idx) {
                 return `
-                  <tr style="border-bottom: 1px solid #cbd5e1;">
-                    <td style="padding: 3.5px 6px; border: 1px solid #000; font-weight: 800;">${idx + 1}. ${escapeHtml(aText)}</td>
-                    <td style="padding: 3.5px 6px; border: 1px solid #000; font-weight: 800;">(${String.fromCharCode(65 + idx)}) ${escapeHtml(colB[idx])}</td>
-                    <td style="padding: 2px; border: 1px solid #000; text-align: center;">
-                      <div class="nk-write-box" style="height: 24px; width: 85px; margin: 0 auto;"></div>
+                  <tr style="border-bottom: 1px solid #94a3b8;">
+                    <td style="padding: 5px 8px; border: 1px solid #000; font-weight: 800;">${idx + 1}. ${escapeHtml(aText)}</td>
+                    <td style="padding: 5px 8px; border: 1px solid #000; font-weight: 800;">(${String.fromCharCode(65 + idx)}) ${escapeHtml(colB[idx])}</td>
+                    <td style="padding: 3px; border: 1px solid #000; text-align: center;">
+                      <div class="nk-write-box" style="height: 30px; width: 95px; margin: 0 auto;"></div>
                     </td>
                   </tr>
                 `;
@@ -10596,7 +10616,7 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
     }
 
     // -------------------------------------------------------------------------
-    // ೨. ವಾಕ್ಯ / ಪದ ನಕಲು ಬರೆವಣಿಗೆ (Handwriting Copying)
+    // ೨. ಸುಂದರವಾಗಿ ನಕಲು ಮಾಡಿ ಬರೆ (Handwriting Copying)
     // -------------------------------------------------------------------------
     var isCopyActivity = rawQText.includes('ನಕಲು') || rawQText.toLowerCase().includes('copy') || item.words || Array.isArray(item.words);
 
@@ -10629,11 +10649,11 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
         }).join('');
       } else {
         copyHtml = `
-          <div style="display: flex; justify-content: space-around; flex-wrap: wrap; margin-top: 2px; width: 100%;">
+          <div style="display: flex; justify-content: space-around; flex-wrap: wrap; margin-top: 3px; width: 100%;">
             ${wordsList.map(function(w) {
               return `
-                <div style="flex: 1; min-width: 95px; text-align: center; margin: 1px 4px;">
-                  <div style="font-size: 12pt; font-weight: 900; margin-bottom: 2px;">${escapeHtml(w)}</div>
+                <div style="flex: 1; min-width: 110px; text-align: center; margin: 2px 6px;">
+                  <div style="font-size: 15pt; font-weight: 900; margin-bottom: 2px;">${escapeHtml(w)}</div>
                   ${isEnglishSubj ? `<div class="nk-english-four-line"></div>` : `<div class="nk-kannada-double-line"></div>`}
                 </div>
               `;
@@ -10659,13 +10679,12 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
     }
 
     // -------------------------------------------------------------------------
-    // ೩. ಬಿಟ್ಟ ಅಕ್ಷರ, ಪದ ರಚನೆ, ಪ್ರಶ್ನೋತ್ತರಗಳು (2-Column Grid Alignment)
+    // ೩. ಬಿಟ್ಟ ಅಕ್ಷರ, ಪದ ರಚನೆ, ಗಣಿತ, ಪ್ರಶ್ನೋತ್ತರಗಳು (2-Column Grid Alignment)
     // -------------------------------------------------------------------------
     var qLines = rawQText.split(/\n|<br\s*\/?>/).map(function(l) { return l.trim(); }).filter(Boolean);
     var introTitle = qLines.length > 1 ? cleanAllNumberingPrefixes(qLines[0]) : cleanAllNumberingPrefixes(rawQText);
     var bodySubLines = qLines.length > 1 ? qLines.slice(1) : [];
 
-    // ಕಂಸದಲ್ಲಿರುವ ಆಯ್ಕೆಗಳ ಬ್ಯಾನರ್ (ಉದಾ: ಉದಯ, ಚರಕ, ಮರ)
     var helpMatch = introTitle.match(/\(([^\)]+)\)/);
     var helpBoxHtml = helpMatch ? `<div class="nk-help-box">( ${escapeHtml(helpMatch[1])} )</div>` : '';
     introTitle = introTitle.replace(/\([^\)]+\)/g, '').trim();
@@ -10675,12 +10694,10 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
       ? `${subCount} × 1 = ${subCount}` 
       : `${toKnNum(subCount)} × ೧ = ${toKnNum(subCount)}`;
 
-    // ಕೇವಲ ಒಂದು ಅಕ್ಷರ ಕೇಳಿರುವ ಪ್ರಶ್ನೆಯೇ ಎಂದು ಪರಿಶೀಲನೆ (ಉದಾ: ಕಿ ಟ ಕಿ ➔ ಕೊನೆಯ ಅಕ್ಷರ)
     var isSingleCharTask = bodySubLines.length > 0 && bodySubLines.every(function(l) {
       return l.includes('ಅಕ್ಷರ') || l.includes('➔') || l.includes('->');
     });
 
-    // ಪೂರ್ಣ ವಾಕ್ಯದ ಪ್ರಶ್ನೆಯೇ?
     var isFullSentenceQ = !isSingleCharTask && bodySubLines.some(function(line) {
       var c = cleanAllNumberingPrefixes(line);
       return c.length > 18 || c.includes('?') || c.includes('ಯಾರು') || c.includes('ಎಷ್ಟು') || c.includes('ಯಾವುದು') || c.includes('ಏನು');
@@ -10689,7 +10706,6 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
     var contentHtml = "";
 
     if (isFullSentenceQ) {
-      // ಪ್ರಶ್ನೋತ್ತರ ಸಾಲುಗಳು (ಒಂದು ಸಾಲಿನ ಉತ್ತರ)
       contentHtml = bodySubLines.map(function(line, idx) {
         var cleanLine = cleanAllNumberingPrefixes(line).replace(/\s*(?:➔|->|-|:)?\s*\[\s*_{0,}\s*\]\s*$/, '').trim();
         var qNum = (kannadaNums[idx] || (idx + 1)) + '.';
@@ -10704,7 +10720,6 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
         `;
       }).join('');
     } else {
-      // 🌟 ೨-ಕಾಲಂ ಗ್ರಿಡ್ ಡಾಟ್ ಲೀಡರ್ ಲೇಔಟ್ (೧೦೦% ಬಾರ್ಡರ್‌ನ ಒಳಗಡೆ ನೇರ ಗೆರೆಯಲ್ಲಿ ಹೊಂದಿಕೊಳ್ಳುತ್ತದೆ)
       var halfLen = Math.ceil(bodySubLines.length / 2);
       var col1Lines = bodySubLines.slice(0, halfLen);
       var col2Lines = bodySubLines.slice(halfLen);
@@ -10715,7 +10730,7 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
           var curIdx = startIdx + lIdx;
           var itemNum = (kannadaNums[curIdx] || (curIdx + 1)) + '.';
 
-          // ೧. ಬಿಟ್ಟ ಅಕ್ಷರ (ಉದಾ: ಉ ರ [ ], ಒ ಣ [ ] ರ, ಗ [ ] ಗ ಸ)
+          // ೧. ಬಿಟ್ಟ ಅಕ್ಷರಗಳು (Missing Letter Square Boxes)
           var isInlineBlank = (cleanLine.includes('__') || cleanLine.includes('[___]') || cleanLine.includes('[ ]') || cleanLine.includes('[]')) && !cleanLine.includes('->') && !cleanLine.includes('➔');
           
           if (isInlineBlank) {
@@ -10724,14 +10739,25 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
             return `
               <div class="nk-word-row">
                 <span class="nk-col-num">${itemNum}</span>
-                <span style="font-size:11.5pt; font-weight:800; display:inline-flex; align-items:center; gap:2px;">
+                <span style="font-size:14pt; font-weight:900; display:inline-flex; align-items:center; gap:3px;">
                   ${letterFmt}
                 </span>
               </div>
             `;
           }
 
-          // ೨. ಪದ / ಅಕ್ಷರ ಬರೆಯುವುದು
+          // ೨. ಗಣಿತದ ಲೆಕ್ಕ (Math Digits / Add / Sub)
+          if (isMathSubj && (cleanLine.includes('+') || cleanLine.includes('-') || cleanLine.includes('='))) {
+            return `
+              <div class="nk-word-row" style="height:48px;">
+                <span class="nk-col-num">${itemNum}</span>
+                <span style="font-size:14pt; font-weight:900; margin-right:8px;">${cleanAllNumberingPrefixes(cleanLine)}</span>
+                <span class="nk-math-calc-box"></span>
+              </div>
+            `;
+          }
+
+          // ೩. ಪದ ಬರೆಯಲು ದೊಡ್ಡ ಆಯತಾಕಾರದ ಬಾಕ್ಸ್ (Large Word Write-in Box)
           var purePrompt = cleanAllNumberingPrefixes(cleanLine);
           purePrompt = purePrompt.replace(/\s*(?:➔|->|-|:)?\s*\[\s*_{0,}\s*\]\s*$/, '').replace(/\s*(?:➔|->|-|:)?\s*_{2,}\s*$/, '').trim();
 
@@ -10774,16 +10800,26 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
   });
 
   // -------------------------------------------------------------------------
-  // 🌟 ಪರ್ಫೆಕ್ಟ್ ಪುಟ ವಿಭಜನೆ (ಪುಟ ೧: ೪ ಚಟುವಟಿಕೆಗಳು, ಪುಟ ೨: ೪ ಚಟುವಟಿಕೆಗಳು)
+  // 🌟 ಸ್ಮಾರ್ಟ್ ಪುಟ ಹಂಚಿಕೆ (2 ಅಥವಾ 3 ಪುಟಗಳಿಗೆ ಸಮಾನವಾಗಿ ಹಂಚುವುದು)
   // -------------------------------------------------------------------------
   var totalCount = renderedBlocks.length;
-  var p1Count = Math.ceil(totalCount / 2);
+  var pagesArray = [];
 
-  var page1List = renderedBlocks.slice(0, p1Count);
-  var page2List = renderedBlocks.slice(p1Count);
+  // ಪ್ರತಿ ಪುಟಕ್ಕೆ ಗರಿಷ್ಠ 3 ರಿಂದ 4 ಚಟುವಟಿಕೆಗಳು (ದೊಡ್ಡ ಅಕ್ಷರ & ಬಾಕ್ಸ್ ಇರುವುದರಿಂದ)
+  var itemsPerPage = (totalCount > 6) ? 3 : Math.ceil(totalCount / 2);
 
-  var page1Html = `
-    <div class="nk-page-sheet">
+  for (var i = 0; i < totalCount; i += itemsPerPage) {
+    pagesArray.push(renderedBlocks.slice(i, i + itemsPerPage));
+  }
+
+  var totalPages = pagesArray.length;
+
+  var fullSheetsHtml = pagesArray.map(function(pageList, pageIdx) {
+    var pNum = pageIdx + 1;
+    var isFirst = (pNum === 1);
+    var isLast = (pNum === totalPages);
+
+    var headerSnippet = isFirst ? `
       <div class="nk-header-box">
         <h1 class="nk-school-title">${escapeHtml(schoolName)}</h1>
         <div class="nk-exam-title">${escapeHtml(rawExamType)}</div>
@@ -10800,46 +10836,41 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
           <span>${isEnglishSubj ? "Roll No" : "ಹಾಜರಾತಿ ಸಂಖ್ಯೆ"} : [ &nbsp;&nbsp;&nbsp;&nbsp; ]</span>
         </div>
       </div>
-      
-      <div style="display: flex; flex-direction: column; gap: 0;">
-        ${page1List.join('')}
-      </div>
-
-      <div class="nk-page-footer">
-        <span>ಪುಟ - ೧</span>
-        <span>(ಮುಂದಿನ ಪುಟ ನೋಡಿ ➔)</span>
-      </div>
-    </div>
-  `;
-
-  var page2Html = `
-    <div class="nk-page-sheet">
+    ` : `
       <div class="nk-mini-header">
         <span>${escapeHtml(schoolName)}</span>
         <span>${grade}ನೇ ತರಗತಿ ${escapeHtml(rawSubj)}</span>
-        <span>ಪುಟ - ೨</span>
+        <span>ಪುಟ - ${toKnNum(pNum)}</span>
       </div>
+    `;
 
-      <div style="display: flex; flex-direction: column; gap: 0;">
-        ${page2List.join('')}
-      </div>
-
-      <div style="margin-top: auto; padding-top: 4px; border-top: 1.8px solid #000; display: flex; justify-content: space-between; font-size: 9.8pt; font-weight: 900; flex-shrink: 0;">
+    var footerSnippet = isLast ? `
+      <div style="margin-top: auto; padding-top: 5px; border-top: 2px solid #000; display: flex; justify-content: space-between; font-size: 10.5pt; font-weight: 900; flex-shrink: 0;">
         <span>ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ: _________________</span>
         <span>ಶಿಕ್ಷಕರ ಸಹಿ: _________________</span>
         <span>ಗಳಿಸಿದ ಅಂಕ: [ &nbsp;&nbsp;&nbsp;&nbsp; / ${actualMarks} ]</span>
       </div>
-    </div>
-  `;
+    ` : `
+      <div class="nk-page-footer">
+        <span>ಪುಟ - ${toKnNum(pNum)}</span>
+        <span>(ಮುಂದಿನ ಪುಟ ನೋಡಿ ➔)</span>
+      </div>
+    `;
+
+    return `
+      <div class="nk-page-sheet">
+        ${headerSnippet}
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          ${pageList.join('')}
+        </div>
+        ${footerSnippet}
+      </div>
+    `;
+  }).join('');
 
   var paperEl = document.getElementById('rendered-paper');
   if (paperEl) {
-    paperEl.innerHTML = `
-      <div class="nk-sheet-wrapper">
-        ${page1Html}
-        ${page2Html}
-      </div>
-    `;
+    paperEl.innerHTML = `<div class="nk-sheet-wrapper">${fullSheetsHtml}</div>`;
   }
 
   // ಕೀ ಉತ್ತರ ಸೂಚಿ
@@ -10858,10 +10889,10 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
             </tr>
           </table>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 10.5pt; font-weight: 700;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11pt; font-weight: 700;">
           ${allQuestions.map(function(q, i) {
             return `
-              <div style="padding: 4px 8px; border: 1px dashed #94a3b8; background: #f8fafc; border-radius: 6px;">
+              <div style="padding: 5px 8px; border: 1px dashed #94a3b8; background: #f8fafc; border-radius: 6px;">
                 <b>${i + 1}.</b> ${formatQuestionTextForDisplay(q.ans || 'ಮಾದರಿ ಉತ್ತರ')}
               </div>
             `;
@@ -10875,7 +10906,6 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
     renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
   }
 };
-
     
 </script>
 </body>

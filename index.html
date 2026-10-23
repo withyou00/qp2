@@ -10912,6 +10912,440 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
 };
 </script>
 
+
+<!-- ========================================================================= -->
+<!-- 🎒 NALI-KALI 1ST TO 3RD STD 2-3 PAGE LUXURY WORKSHEET ENGINE              -->
+<!-- ========================================================================= -->
+<style>
+  /* 🌟 ನಲಿಕಲಿ ಅಧಿಕೃತ ೨-೩ ಪುಟಗಳ ವರ್ಕ್‌ಶೀಟ್ ಶೈಲಿ */
+  .sheet-nalikali-full-worksheet {
+    font-size: 12pt !important;
+    line-height: 1.85 !important;
+    padding: 7mm 10mm !important;
+  }
+
+  /* ಚಟುವಟಿಕೆಯ ಮುಖ್ಯ ಶೀರ್ಷಿಕೆ (1) , 2) , 3) ...) */
+  .nk-activity-card {
+    margin-bottom: 26px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    border-bottom: 1.5px dashed #94a3b8 !important;
+    padding-bottom: 18px !important;
+  }
+  .nk-activity-header {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 12px !important;
+  }
+  .nk-activity-title {
+    font-size: 12.8pt !important;
+    font-weight: 900 !important;
+    color: #000 !important;
+  }
+  .nk-activity-marks {
+    font-size: 11.5pt !important;
+    font-weight: 900 !important;
+    border: 1.5px solid #000 !important;
+    padding: 1px 8px !important;
+    border-radius: 4px !important;
+    background: #f8fafc !important;
+    white-space: nowrap !important;
+  }
+
+  /* ೧. ನಕಲು ಬರಹದ ಪದಗಳು ಮತ್ತು ಡಬಲ್ ಲೈನ್‌ಗಳು (Copy Words Lines) */
+  .nk-copy-words-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: space-around !important;
+    gap: 16px !important;
+    margin: 14px 0 !important;
+  }
+  .nk-copy-word-item {
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    min-width: 100px !important;
+  }
+  .nk-copy-word-text {
+    font-size: 14pt !important;
+    font-weight: 900 !important;
+    margin-bottom: 6px !important;
+    letter-spacing: 1px !important;
+  }
+  .nk-handwriting-line {
+    width: 105px !important;
+    border-bottom: 1.5px solid #000 !important;
+    height: 22px !important;
+    margin-top: 4px !important;
+  }
+
+  /* ೨. ವಾಕ್ಯ ನಕಲು ಬರವಣಿಗೆಯ ಪೂರ್ಣ ಪುಟದ ಗೆರೆಗಳು */
+  .nk-sentence-copy-box {
+    margin: 12px 0 16px 0 !important;
+  }
+  .nk-sentence-title {
+    font-size: 13pt !important;
+    font-weight: 800 !important;
+    margin-bottom: 4px !important;
+  }
+  .nk-wide-ruled-line {
+    width: 100% !important;
+    border-bottom: 1.5px solid #475569 !important;
+    height: 26px !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* ೩. ಬಿಟ್ಟ ಅಕ್ಷರ ಬರೆಯಲು ದೊಡ್ಡ ಚೌಕ ಬಾಕ್ಸ್‌ಗಳು (Big Square Write Boxes) */
+  .nk-square-write-box {
+    display: inline-block !important;
+    width: 38px !important;
+    height: 34px !important;
+    border: 2px solid #000 !important;
+    border-radius: 6px !important;
+    vertical-align: middle !important;
+    margin: 0 4px !important;
+    background: #fff !important;
+    text-align: center !important;
+    line-height: 32px !important;
+  }
+
+  /* ೪. ಪದ ರಚನೆ ಮತ್ತು ಆರಂಭಿಕ ಅಕ್ಷರಗಳ ೨-ಕಾಲಂ ಗ್ರಿಡ್ */
+  .nk-two-column-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px 24px !important;
+    margin-top: 8px !important;
+    font-size: 12.5pt !important;
+    font-weight: 800 !important;
+  }
+  .nk-three-column-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px 16px !important;
+    margin-top: 8px !important;
+    font-size: 12.5pt !important;
+    font-weight: 800 !important;
+  }
+  .nk-write-dash-line {
+    display: inline-block !important;
+    min-width: 140px !important;
+    border-bottom: 1.5px solid #000 !important;
+    margin-left: 6px !important;
+    height: 20px !important;
+    vertical-align: bottom !important;
+  }
+
+  /* ೫. ಆಯ್ಕೆ ಪದಗಳ ಹೆಲ್ಪ್ ಬಾಕ್ಸ್ (Help Box) */
+  .nk-help-words-pill {
+    background: #f1f5f9 !important;
+    border: 1.5px dashed #334155 !important;
+    padding: 6px 14px !important;
+    border-radius: 12px !important;
+    text-align: center !important;
+    font-size: 12.5pt !important;
+    font-weight: 900 !important;
+    margin: 6px 0 12px 0 !important;
+    letter-spacing: 1px !important;
+  }
+
+  /* ೬. ಅಕ್ಷರಕ್ಕೆ ವೃತ್ತ ಹಾಕುವ ಚೌಕಟ್ಟುಗಳು (PDF Q9 ಮಾದರಿ) */
+  .nk-circle-letter-card {
+    border: 1.8px solid #000 !important;
+    padding: 8px 12px !important;
+    text-align: center !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+  }
+  .nk-big-letter-display {
+    font-size: 16pt !important;
+    font-weight: 900 !important;
+    letter-spacing: 5px !important;
+    margin-bottom: 4px !important;
+  }
+  .nk-instruction-sub {
+    font-size: 11pt !important;
+    font-weight: 700 !important;
+    color: #334155 !important;
+  }
+
+  @media print {
+    .sheet-nalikali-full-worksheet {
+      padding: 6mm 8mm !important;
+    }
+    .nk-activity-card {
+      margin-bottom: 22px !important;
+      padding-bottom: 14px !important;
+    }
+  }
+</style>
+
+<script>
+// 🌟 ನಲಿಕಲಿ (೧ ರಿಂದ ೩ನೇ ತರಗತಿ) ವಿಶೇಷ ೨-೩ ಪುಟಗಳ ವರ್ಕ್‌ಶೀಟ್ ಜನರೇಟರ್
+window.renderNalikaliLuxuryWorksheet = function(questions, headerHtml) {
+  let qNum = 1;
+  let worksheetHtml = [];
+
+  questions.forEach((item, idx) => {
+    let qText = String(item.q || '').trim();
+    let marks = parseInt(item.marks) || 4;
+    let imgSrc = item.image || item.img;
+
+    // ಮಾರ್ಕ್ಸ್ ಡಿಸ್ಪ್ಲೇ (ಉದಾ: 5 × 1 = 5 ಅಥವಾ 4 × 1 = 4)
+    let marksDisplay = `${marks} × 1 = ${marks}`;
+    if (marks === 6) marksDisplay = `6 × 1 = 6`;
+    if (marks === 4 && qText.includes('ವಾಕ್ಯಗಳನ್ನು ನಕಲು')) marksDisplay = `2 × 2 = 4`;
+
+    let contentHtml = '';
+
+    // =====================================================================
+    // ೧. ನಕಲು ಮಾಡಿ ಬರೆ (ಪದಗಳಿದ್ದರೆ ಅಥವಾ ಪದ ನಕಲು ಶೀರ್ಷಿಕೆಯಿದ್ದರೆ)
+    // =====================================================================
+    if (item.words || qText.includes('ಪದಗಳನ್ನು ಸುಂದರವಾಗಿ ನಕಲು') || qText.includes('ಪದಗಳನ್ನು ನಕಲು ಮಾಡಿ')) {
+      let wordsList = item.words || ["ಋಣ", "ಜನಕ", "ಎಡಬಲ", "ಕಲರವ", "ಗಮನ"];
+      contentHtml = `
+        <div class="nk-copy-words-row">
+          ${wordsList.map(w => `
+            <div class="nk-copy-word-item">
+              <span class="nk-copy-word-text">${escapeHtml(w)}</span>
+              <div class="nk-handwriting-line"></div>
+              <div class="nk-handwriting-line"></div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+    // =====================================================================
+    // ೨. ವಾಕ್ಯಗಳನ್ನು ನಕಲು ಮಾಡಿ ಬರೆ
+    // =====================================================================
+    else if (qText.includes('ವಾಕ್ಯಗಳನ್ನು ಸುಂದರವಾಗಿ ನಕಲು') || qText.includes('ವಾಕ್ಯಗಳನ್ನು ನಕಲು ಮಾಡಿ')) {
+      let sentences = ["೧. ಉಷಾ ಕಮಲರ ಆಟ", "೨. ಮಜ ಮಜ ದಸರದ ಮಜ"];
+      if (qText.includes('೧.') && qText.includes('೨.')) {
+        let parts = qText.split('\n').filter(l => l.includes('೧.') || l.includes('೨.'));
+        if (parts.length >= 2) sentences = parts;
+      }
+      contentHtml = `
+        <div style="margin-top: 10px;">
+          ${sentences.map(s => `
+            <div class="nk-sentence-copy-box">
+              <div class="nk-sentence-title">${escapeHtml(s)}</div>
+              <div class="nk-wide-ruled-line"></div>
+              <div class="nk-wide-ruled-line"></div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+    // =====================================================================
+    // ೩. ಅಕ್ಷರಗಳಿಗೆ ವೃತ್ತ ಹಾಕು (ಕಿಟಕಿ, ಹಸಿರು, ಭಾರತ - PDF Q9 ಮಾದರಿ)
+    // =====================================================================
+    else if (qText.includes('ಆವರಣದಲ್ಲಿರುವ ಅಕ್ಷರ') || qText.includes('ಅಕ್ಷರಗಳಿಗೆ ವೃತ್ತ ಹಾಕು')) {
+      contentHtml = `
+        <div class="nk-three-column-grid" style="margin-top: 12px;">
+          <div class="nk-circle-letter-card">
+            <div class="nk-big-letter-display">ಕಿ &nbsp; ಟ &nbsp; ಕಿ</div>
+            <div class="nk-instruction-sub">(ಕೊನೆಯ ಅಕ್ಷರ)</div>
+          </div>
+          <div class="nk-circle-letter-card">
+            <div class="nk-big-letter-display">ಹ &nbsp; ಸಿ &nbsp; ರು</div>
+            <div class="nk-instruction-sub">(ಮೊದಲ ಅಕ್ಷರ)</div>
+          </div>
+          <div class="nk-circle-letter-card">
+            <div class="nk-big-letter-display">ಭಾ &nbsp; ರ &nbsp; ತ</div>
+            <div class="nk-instruction-sub">(ಮಧ್ಯದ ಅಕ್ಷರ)</div>
+          </div>
+        </div>
+      `;
+    }
+    // =====================================================================
+    // ೪. ಚಿತ್ರ ನೋಡಿ ಪದ ಆರಿಸಿ ಬರೆ (Word Box + Choices)
+    // =====================================================================
+    else if (qText.includes('ಚಿತ್ರ ನೋಡಿ') && qText.includes('ಆರಿಸಿ ಬರೆ')) {
+      let optionsBox = "( ಉದಯ &nbsp;|&nbsp; ಚರಕ &nbsp;|&nbsp; ಮರ &nbsp;|&nbsp; ಚಮಚ &nbsp;|&nbsp; ಪಟ )";
+      let cleanQ = qText.replace(/\([^\)]+\)/, '').trim();
+
+      contentHtml = `
+        <div class="nk-help-words-pill">${optionsBox}</div>
+        <div class="nk-two-column-grid">
+          <div>೧. ಮರದ ಚಿತ್ರ &nbsp;➔ <span class="nk-write-dash-line"></span></div>
+          <div>೨. ಚಮಚದ ಚಿತ್ರ ➔ <span class="nk-write-dash-line"></span></div>
+          <div>೩. ಸೂರ್ಯೋದಯ ➔ <span class="nk-write-dash-line"></span></div>
+          <div>೪. ಗಾಳಿಪಟ &nbsp;&nbsp;&nbsp;➔ <span class="nk-write-dash-line"></span></div>
+          <div>೫. ಗಾಂಧಿ ಚರಕ &nbsp;➔ <span class="nk-write-dash-line"></span></div>
+        </div>
+      `;
+    }
+    // =====================================================================
+    // ೫. ಅಕ್ಷರಗಳಿಂದ ಪದ ರಚನೆ (ಗ, ರ, ಸ, ಮ...)
+    // =====================================================================
+    else if (qText.includes('ಅಕ್ಷರಗಳನ್ನು ಬಳಸಿ') && qText.includes('ಪದಗಳನ್ನು ಬರೆ')) {
+      let lettersBox = "( ಗ , ರ , ಸ , ಮ , ಯ , ಅ , ವ , ಕ , ದ , ಪ , ಆ )";
+      contentHtml = `
+        <div class="nk-help-words-pill">ಅಕ್ಷರಗಳ ಭಂಡಾರ: ${lettersBox}</div>
+        <div class="nk-two-column-grid" style="margin-top: 10px;">
+          <div>೧. <span class="nk-write-dash-line" style="min-width:180px;"></span></div>
+          <div>೨. <span class="nk-write-dash-line" style="min-width:180px;"></span></div>
+          <div>೩. <span class="nk-write-dash-line" style="min-width:180px;"></span></div>
+          <div>೪. <span class="nk-write-dash-line" style="min-width:180px;"></span></div>
+          <div>೫. <span class="nk-write-dash-line" style="min-width:180px;"></span></div>
+        </div>
+      `;
+    }
+    // =====================================================================
+    // ೬. ಬಿಟ್ಟ ಸ್ಥಳದಲ್ಲಿ ಸರಿಯಾದ ಅಕ್ಷರ ಬರೆ (ಉರ[ ], ಒಣ[ ]ರ...)
+    // =====================================================================
+    else if (qText.includes('ಬಿಟ್ಟ ಸ್ಥಳಗಳಲ್ಲಿ ಸರಿಯಾದ ಅಕ್ಷರ')) {
+      contentHtml = `
+        <div class="nk-three-column-grid" style="margin-top: 10px;">
+          <div>೧. ಉ &nbsp; ರ &nbsp;<span class="nk-square-write-box"></span></div>
+          <div>೨. ಒ &nbsp; ಣ &nbsp;<span class="nk-square-write-box"></span>&nbsp; ರ</div>
+          <div>೩. ಗ &nbsp;<span class="nk-square-write-box"></span>&nbsp; ಗ &nbsp; ಸ</div>
+          <div>೪. ನ &nbsp; ಮ &nbsp;<span class="nk-square-write-box"></span></div>
+          <div>೫. <span class="nk-square-write-box"></span>&nbsp; ಬ &nbsp; ಲ</div>
+          <div>೬. ಜ &nbsp;<span class="nk-square-write-box"></span>&nbsp; ಕ</div>
+        </div>
+      `;
+    }
+    // =====================================================================
+    // ೭. ಅಕ್ಷರಗಳನ್ನು ಸರಿಪಡಿಸಿ ಬರೆ (ಣಿತಕು, ಸಂರಸಾ...)
+    // =====================================================================
+    else if (qText.includes('ಸರಿಪಡಿಸಿ') && qText.includes('ಪದ ರಚಿಸು')) {
+      contentHtml = `
+        <div class="nk-two-column-grid" style="margin-top: 10px;">
+          <div>೧. ಣಿತಕು &nbsp;➔ <span class="nk-write-dash-line" style="min-width:160px;"></span></div>
+          <div>೨. ಸಂರಸಾ &nbsp;➔ <span class="nk-write-dash-line" style="min-width:160px;"></span></div>
+          <div>೩. ರಕಾಮಲು ➔ <span class="nk-write-dash-line" style="min-width:160px;"></span></div>
+          <div>೪. ಷುಶಿವಿ &nbsp;➔ <span class="nk-write-dash-line" style="min-width:160px;"></span></div>
+        </div>
+      `;
+    }
+    // =====================================================================
+    // ೮. ಆರಂಭವಾಗುವ ಪದ ಬರೆ (ಬ, ಏ, ಊ, ಹ, ಈ...)
+    // =====================================================================
+    else if (qText.includes('ಆರಂಭವಾಗುವ ಒಂದೊಂದು ಪದ ಬರೆ')) {
+      contentHtml = `
+        <div class="nk-two-column-grid" style="margin-top: 10px;">
+          <div>೧. <b>ಬ</b> &nbsp;➔ <span class="nk-write-dash-line" style="min-width:160px;"></span></div>
+          <div>೨. <b>ಏ</b> &nbsp;➔ <span class="nk-write-dash-line" style="min-width:160px;"></span></div>
+          <div>೩. <b>ಊ</b> ➔ <span class="nk-write-dash-line" style="min-width:160px;"></span></div>
+          <div>೪. <b>ಹ</b> &nbsp;➔ <span class="nk-write-dash-line" style="min-width:160px;"></span></div>
+          <div>೫. <b>ಈ</b> &nbsp;➔ <span class="nk-write-dash-line" style="min-width:160px;"></span></div>
+        </div>
+      `;
+    }
+    // =====================================================================
+    // ೯. ಹೊಂದಿಸಿ ಬರೆಯಿರಿ
+    // =====================================================================
+    else if (item.matchPairs || qText.includes('ಹೊಂದಿಸಿ ಬರೆಯಿರಿ')) {
+      contentHtml = renderOfficial3ColumnMatchTable(item, qNum, false);
+    }
+    // =====================================================================
+    // ೧೦. ಸಾಮಾನ್ಯ ಇತರ ಪ್ರಶ್ನೆಗಳು
+    // =====================================================================
+    else {
+      let lines = qText.split('\n').filter(Boolean);
+      contentHtml = `
+        <div style="margin-top: 6px;">
+          ${lines.map(l => `
+            <div style="margin-bottom: 8px; font-weight:700;">
+              ${escapeHtml(l).replace(/\[\s*_{2,}\s*\]|\[\s*\]/g, '<span class="nk-square-write-box"></span>')}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // ಪ್ರತಿಯೊಂದು ಆಕ್ಟಿವಿಟಿಯ ಸಂಪೂರ್ಣ ಬ್ಲಾಕ್
+    worksheetHtml.push(`
+      <div class="nk-activity-card">
+        <div class="nk-activity-header">
+          <div class="nk-activity-title">${qNum++}) ${escapeHtml(qText.split('\n')[0])}</div>
+          <div class="nk-activity-marks">${marksDisplay}</div>
+        </div>
+        ${contentHtml}
+      </div>
+    `);
+  });
+
+  return `
+    <div class="a4-board-sheet sheet-nalikali-full-worksheet">
+      ${headerHtml}
+      <div>${worksheetHtml.join('')}</div>
+    </div>
+  `;
+};
+
+// 🌟 ಪತ್ರಿಕೆ ರೆಂಡರಿಂಗ್ ಹುಕ್ - ನಲಿಕಲಿ ಆಗಿದ್ದರೆ ಮಾತ್ರ ಈ ಸ್ಪೆಷಲ್ ಎಂಜಿನ್ ರನ್ ಆಗುತ್ತದೆ!
+const origMasterPaperRenderBeforeNalikali = window.renderFullExamPaperWithCustomHeader;
+window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+  const grade = document.getElementById('cfg-class')?.value || '8';
+  const cleanGrade = String(grade).replace(/\D/g, '');
+  const isNalikali = ['1', '2', '3'].includes(cleanGrade);
+
+  // ೪ ರಿಂದ ೧೦ನೇ ತರಗತಿಯಾಗಿದ್ದರೆ ಮೊದಲಿನಂತೆಯೇ ರನ್ ಆಗಲಿ
+  if (!isNalikali) {
+    if (origMasterPaperRenderBeforeNalikali) origMasterPaperRenderBeforeNalikali(headerHtml);
+    return;
+  }
+
+  // ೧, ೨, ೩ನೇ ತರಗತಿಯಾಗಿದ್ದರೆ ಲಕ್ಸುರಿ ನಲಿಕಲಿ ವರ್ಕ್‌ಶೀಟ್ ಎಂಜಿನ್ ರನ್ ಮಾಡುವುದು
+  const allQuestions = appState.activeGeneratedQuestions || [];
+  const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಕಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ';
+  const rawSubj = document.getElementById('cfg-subject')?.value || 'ಕನ್ನಡ';
+  const rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+  const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+  const actualMarks = allQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+  // ಅಧಿಕೃತ ನಲಿಕಲಿ ಹೆಡರ್
+  const nalikaliHeader = `
+    <div style="width: 100%; border-bottom: 2.2px solid #000; padding-bottom: 5px; margin-bottom: 12px;">
+      <div style="text-align: center; margin-bottom: 3px;">
+        <h1 style="font-size: 15pt; font-weight: 900; margin: 0; line-height: 1.2;">${escapeHtml(schoolName)}</h1>
+        <div style="font-size: 12pt; font-weight: 900; margin-top: 2px;">${escapeHtml(rawExamType)}</div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 11pt; font-weight: 800;">
+        <tr>
+          <td style="width: 32%; text-align: left;">ವಿಷಯ : <b>${escapeHtml(rawSubj)}</b></td>
+          <td style="width: 24%; text-align: center;">ತರಗತಿ : <b>${grade} ನೇ ತರಗತಿ</b></td>
+          <td style="width: 24%; text-align: center;">ದಿನಾಂಕ : <b>${escapeHtml(examDate)}</b></td>
+          <td style="width: 20%; text-align: right;">ಒಟ್ಟು ಅಂಕಗಳು : <b>${actualMarks}</b></td>
+        </tr>
+      </table>
+      <div style="margin-top: 6px; padding-top: 4px; border-top: 1.5px dashed #000; font-size: 11.5pt; font-weight: 800;">
+        ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು : ____________________________________________________________________
+      </div>
+    </div>
+  `;
+
+  // ಪತ್ರಿಕೆ ರೆಂಡರ್
+  document.getElementById('rendered-paper').innerHTML = renderNalikaliLuxuryWorksheet(allQuestions, nalikaliHeader);
+
+  // ಕೀ ಉತ್ತರ ಪತ್ರಿಕೆ ರೆಂಡರ್
+  let kNum = 1;
+  document.getElementById('rendered-key').innerHTML = `
+    <div class="a4-board-sheet sheet-nalikali-full-worksheet">
+      ${nalikaliHeader}
+      <div style="text-align: center; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 3px;">
+        <h3 style="font-size: 13pt; font-weight: 900; text-transform: uppercase;">ಮಾದರಿ ಉತ್ತರ ಸೂಚಿ & ಮೌಲ್ಯಮಾಪನ ಯೋಜನೆ</h3>
+      </div>
+      <div style="font-size: 11.5pt; line-height: 1.8;">
+        ${allQuestions.map(item => `
+          <div style="margin-bottom: 10px; padding: 6px 10px; border-bottom: 1px dashed #94a3b8; background:#fff;">
+            <b>ಪ್ರಶ್ನೆ ${kNum++})</b> ${escapeHtml(item.q.split('\n')[0])}<br/>
+            <span style="color:#047857; font-weight:800;">ಉತ್ತರ: ${escapeHtml(item.ans || '')}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  if (typeof renderCompleteOfficialDSERTBlueprint === 'function') {
+    renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
+  }
+};
+</script>
+  
   
 </body>
 </html>

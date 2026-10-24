@@ -16051,6 +16051,400 @@ window.renderDedicatedNalikaliKeyAnswers = function(allQuestions, actualMarks, r
   }
 })();
     
+
+
+// =========================================================================
+// 🎒 SMART DYNAMIC PAGE FLOW (15M = 1 PAGE | 40M = 2 PAGES, ZERO EMPTY SPACE)
+// =========================================================================
+
+// ನಲಿಕಲಿ ಮಾಸ್ಟರ್ ರೆಂಡರರ್ (ಸ್ಮಾರ್ಟ್ ಅಡಾಪ್ಟಿವ್ ಪೇಜ್ ಪ್ಯಾಕಿಂಗ್)
+window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, rawSubj, grade) {
+  var isEnglishSubj = rawSubj.toLowerCase().includes('english') || (document.getElementById('cfg-medium')?.value === 'english_medium');
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಕಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ';
+  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+
+  var romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"];
+  var kannadaNums = ['೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯', '೧೦', '೧೧', '೧೨', '೧೩', '೧೪', '೧೫'];
+
+  function toKnNum(n) {
+    var kn = ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯'];
+    return String(n).replace(/\d/g, function(d) { return kn[d]; });
+  }
+
+  function cleanAllNumberingPrefixes(str) {
+    if (!str) return '';
+    return String(str).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+  }
+
+  var renderedBlocks = [];
+  var actIndex = 0;
+
+  allQuestions.forEach(function(item) {
+    var qType = (typeof getCanonicalQuestionType === 'function') ? getCanonicalQuestionType(item) : 'vsa_1m';
+    var actRoman = (romanNumerals[actIndex] || (actIndex + 1)) + '.';
+    actIndex++;
+
+    var rawQText = String(item.q || '').trim();
+
+    // -------------------------------------------------------------------------
+    // ೧. ಹೊಂದಿಸಿ ಬರೆಯಿರಿ
+    // -------------------------------------------------------------------------
+    if (qType === 'match') {
+      var pairs = extractSmartMatchPairs(item);
+      var colA = pairs.map(function(p) { return cleanAllNumberingPrefixes(p.a || ''); });
+      var colB = pairs.map(function(p) { return cleanAllNumberingPrefixes(p.b || ''); });
+      for (var i = colB.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = colB[i]; colB[i] = colB[j]; colB[j] = temp;
+      }
+
+      var matchMarksStr = isEnglishSubj 
+        ? `${colA.length} × 1 = ${colA.length}` 
+        : `${toKnNum(colA.length)} × ೧ = ${toKnNum(colA.length)}`;
+
+      renderedBlocks.push(`
+        <div class="nk-section-block">
+          <div class="nk-section-head">
+            <span class="nk-section-title"><b>${actRoman}</b> ${isEnglishSubj ? 'Match the following:' : 'ಗೆರೆ ಎಳೆದು ಹೊಂದಿಸಿ ಬರೆಯಿರಿ:'}</span>
+            <span class="nk-section-marks">${matchMarksStr}</span>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; border: 1.6px solid #000; font-size: 11pt; margin: 3px 0;">
+            <thead>
+              <tr style="background-color: #f1f5f9; border-bottom: 1.5px solid #000;">
+                <th style="width: 38%; padding: 5px 8px; border: 1px solid #000; text-align: left;">'ಅ' ಗುಂಪು</th>
+                <th style="width: 38%; padding: 5px 8px; border: 1px solid #000; text-align: left;">'ಆ' ಗುಂಪು</th>
+                <th style="width: 24%; padding: 5px 8px; border: 1px solid #000; text-align: center;">ಉತ್ತರ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${colA.map(function(aText, idx) {
+                return `
+                  <tr style="border-bottom: 1px solid #cbd5e1;">
+                    <td style="padding: 5px 8px; border: 1px solid #000; font-weight: 800;">${idx + 1}. ${formatNaliKaliPromptWithRealImage(aText)}</td>
+                    <td style="padding: 5px 8px; border: 1px solid #000; font-weight: 800;">(${String.fromCharCode(65 + idx)}) ${escapeHtml(colB[idx])}</td>
+                    <td style="padding: 2px; border: 1px solid #000; text-align: center;">
+                      <div class="nk-write-box" style="height: 30px; width: 90px; margin: 0 auto;"></div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `);
+      return;
+    }
+
+    // -------------------------------------------------------------------------
+    // ೨. ಸುಂದರವಾಗಿ ನಕಲು ಮಾಡಿ ಬರೆ
+    // -------------------------------------------------------------------------
+    var isCopyActivity = rawQText.includes('ನಕಲು') || rawQText.toLowerCase().includes('copy') || item.words || Array.isArray(item.words);
+
+    if (isCopyActivity) {
+      var wordsList = item.words && Array.isArray(item.words) ? item.words : [];
+      if (wordsList.length === 0) {
+        var linesArr = rawQText.split(/\n|<br\s*\/?>/).map(function(s) { return s.trim(); }).filter(Boolean);
+        var subLinesArr = linesArr.length > 1 ? linesArr.slice(1) : linesArr;
+        wordsList = subLinesArr.map(function(s) { 
+          return cleanAllNumberingPrefixes(s).replace(/ನಕಲು\s*ಮಾಡಿ\s*ಬರೆ[\:\.\-]*/gi, '').trim(); 
+        });
+      }
+
+      var copyMarksStr = isEnglishSubj 
+        ? `${wordsList.length} × 1 = ${wordsList.length}` 
+        : `${toKnNum(wordsList.length)} × ೧ = ${toKnNum(wordsList.length)}`;
+
+      var isSentence = wordsList.some(function(w) { return String(w || '').split(' ').length > 2; });
+      var copyHtml = "";
+
+      if (isSentence) {
+        copyHtml = wordsList.map(function(line, idx) {
+          var cleanLineText = cleanAllNumberingPrefixes(line);
+          return `
+            <div class="nk-copy-sentence-item">
+              <div class="nk-sentence-title"><b>${kannadaNums[idx] || (idx + 1)}.</b> ${cleanLineText}</div>
+              ${isEnglishSubj ? `<div class="nk-english-four-line"></div>` : `<div class="nk-kannada-double-line"></div>`}
+            </div>
+          `;
+        }).join('');
+      } else {
+        copyHtml = `
+          <div style="display: flex; justify-content: space-around; flex-wrap: wrap; margin-top: 3px; width: 100%;">
+            ${wordsList.map(function(w) {
+              return `
+                <div style="flex: 1; min-width: 100px; text-align: center; margin: 2px 6px;">
+                  <div style="font-size: 14pt; font-weight: 900; margin-bottom: 2px;">${escapeHtml(String(w || ''))}</div>
+                  ${isEnglishSubj ? `<div class="nk-english-four-line"></div>` : `<div class="nk-kannada-double-line"></div>`}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      var headingClean = cleanAllNumberingPrefixes(rawQText.split(/\n|<br/)[0]);
+
+      renderedBlocks.push(`
+        <div class="nk-section-block">
+          <div class="nk-section-head">
+            <span class="nk-section-title"><b>${actRoman}</b> ${headingClean}</span>
+            <span class="nk-section-marks">${copyMarksStr}</span>
+          </div>
+          <div style="width: 100%;">
+            ${copyHtml}
+          </div>
+        </div>
+      `);
+      return;
+    }
+
+    // -------------------------------------------------------------------------
+    // ೩. ಬಿಟ್ಟ ಅಕ್ಷರ, ಪದ ರಚನೆ, ಚಿತ್ರ ನೋಡಿ ಬರೆ, ಪ್ರಶ್ನೋತ್ತರಗಳು
+    // -------------------------------------------------------------------------
+    var qLines = rawQText.split(/\n|<br\s*\/?>/).map(function(l) { return l.trim(); }).filter(Boolean);
+    var introTitle = qLines.length > 1 ? cleanAllNumberingPrefixes(qLines[0]) : cleanAllNumberingPrefixes(rawQText);
+    var bodySubLines = qLines.length > 1 ? qLines.slice(1) : [];
+
+    var helpMatch = introTitle.match(/\(([^\)]+)\)/);
+    var helpBoxHtml = helpMatch ? `<div class="nk-help-banner">( ${escapeHtml(helpMatch[1])} )</div>` : '';
+    introTitle = introTitle.replace(/\([^\)]+\)/g, '').trim();
+
+    var subCount = bodySubLines.length > 0 ? bodySubLines.length : (parseInt(item.marks) || 4);
+    var actMarksStr = isEnglishSubj 
+      ? `${subCount} × 1 = ${subCount}` 
+      : `${toKnNum(subCount)} × ೧ = ${toKnNum(subCount)}`;
+
+    var isSingleLetterTask = bodySubLines.length > 0 && bodySubLines.every(function(l) {
+      return l.includes('ಅಕ್ಷರ') && (l.includes('➔') || l.includes('->'));
+    });
+
+    var isFullSentenceQ = !isSingleLetterTask && bodySubLines.some(function(line) {
+      var c = cleanAllNumberingPrefixes(line);
+      return !c.includes('http') && (c.includes('?') || c.includes('ಯಾರು') || c.includes('ಎಷ್ಟು') || c.includes('ಯಾವುದು') || c.includes('ಏನು'));
+    });
+
+    var contentHtml = "";
+
+    if (isFullSentenceQ) {
+      contentHtml = bodySubLines.map(function(line, idx) {
+        var cleanLine = cleanAllNumberingPrefixes(line).replace(/\s*(?:➔|->|-|:)?\s*\[\s*_{0,}\s*\]\s*$/, '').trim();
+        var qNum = (kannadaNums[idx] || (idx + 1)) + '.';
+        return `
+          <div class="nk-qa-item">
+            <div class="nk-qa-q"><b>${qNum}</b> ${cleanLine}</div>
+            <div class="nk-qa-ans-row">
+              <span class="nk-ans-lbl">ಉತ್ತರ :</span>
+              <span class="nk-ans-ruled-line"></span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      var halfLen = Math.ceil(bodySubLines.length / 2);
+      var col1Lines = bodySubLines.slice(0, halfLen);
+      var col2Lines = bodySubLines.slice(halfLen);
+
+      function renderColumnList(itemsList, startIdx) {
+        return itemsList.map(function(line, lIdx) {
+          var cleanLine = line.trim();
+          var curIdx = startIdx + lIdx;
+          var itemNum = (kannadaNums[curIdx] || (curIdx + 1)) + '.';
+
+          var isInlineBlank = (cleanLine.includes('__') || cleanLine.includes('[___]') || cleanLine.includes('[ ]') || cleanLine.includes('[]')) && !cleanLine.includes('->') && !cleanLine.includes('➔') && !cleanLine.includes('http');
+          
+          if (isInlineBlank) {
+            var rawWordOnly = cleanAllNumberingPrefixes(cleanLine);
+            var letterFmt = rawWordOnly.replace(/_{2,}|\[\s*_{0,}\s*\]|\[\s*\]/g, `<span class="nk-sq-letter-box"></span>`);
+            return `
+              <div class="nk-word-row">
+                <span class="nk-col-num">${itemNum}</span>
+                <span style="font-size:13.5pt; font-weight:900; display:inline-flex; align-items:center; gap:3px;">
+                  ${letterFmt}
+                </span>
+              </div>
+            `;
+          }
+
+          var purePrompt = cleanAllNumberingPrefixes(cleanLine);
+          purePrompt = purePrompt.replace(/\s*(?:➔|->|-|:)?\s*\[\s*_{0,}\s*\]\s*$/, '').replace(/\s*(?:➔|->|-|:)?\s*_{2,}\s*$/, '').trim();
+
+          var arrowSplit = purePrompt.split(/(?:➔|->)/);
+          var labelText = arrowSplit[0].trim();
+          var noteText = arrowSplit[1] ? arrowSplit[1].replace(/[\(\)]/g, '').trim() : '';
+          if (noteText && !noteText.includes('http')) labelText += ` (${noteText})`;
+
+          var isSingleChar = labelText.includes('ಅಕ್ಷರ') && !labelText.includes('http');
+          var promptHtml = (typeof formatNaliKaliPromptWithRealImage === 'function') 
+            ? formatNaliKaliPromptWithRealImage(labelText) 
+            : escapeHtml(labelText);
+
+          return `
+            <div class="nk-word-row">
+              <span class="nk-col-num">${itemNum}</span>
+              <span class="nk-col-label" style="display:inline-flex; align-items:center;">${promptHtml}</span>
+              <span class="nk-col-dot-leader"></span>
+              ${isSingleChar ? `<span class="nk-sq-letter-box"></span>` : `<span class="nk-write-box"></span>`}
+            </div>
+          `;
+        }).join('');
+      }
+
+      contentHtml = `
+        <div class="nk-two-col-grid">
+          <div class="nk-grid-col">${renderColumnList(col1Lines, 0)}</div>
+          <div class="nk-grid-col">${renderColumnList(col2Lines, halfLen)}</div>
+        </div>
+      `;
+    }
+
+    renderedBlocks.push(`
+      <div class="nk-section-block">
+        <div class="nk-section-head">
+          <span class="nk-section-title"><b>${actRoman}</b> ${introTitle}</span>
+          <span class="nk-section-marks">${actMarksStr}</span>
+        </div>
+        ${helpBoxHtml}
+        ${contentHtml}
+      </div>
+    `);
+  });
+
+  // -------------------------------------------------------------------------
+  // 🌟 ಸ್ಮಾರ್ಟ್ ಅಡಾಪ್ಟಿವ್ ಪೇಜ್ ಪ್ಯಾಕಿಂಗ್ (15M = 1 PAGE | 40M = 2 PAGES)
+  // -------------------------------------------------------------------------
+  
+  // ಪ್ರತಿ ಚಟುವಟಿಕೆಯ ಅಂದಾಜು ಎತ್ತರವನ್ನು ಲೆಕ್ಕಹಾಕುವುದು
+  function calculateBlockHeight(item) {
+    var qType = (typeof getCanonicalQuestionType === 'function') ? getCanonicalQuestionType(item) : 'vsa_1m';
+    var rawText = String(item.q || '').trim();
+    if (qType === 'match') return 180;
+    if (rawText.includes('ನಕಲು') || rawText.toLowerCase().includes('copy')) return 140;
+
+    var lines = rawText.split(/\n|<br\s*\/?>/).map(l => l.trim()).filter(Boolean);
+    var bodyLines = lines.length > 1 ? lines.slice(1) : [];
+    var count = bodyLines.length > 0 ? bodyLines.length : (parseInt(item.marks) || 4);
+    var hasHelp = lines.length > 1 && lines[0].includes('(');
+
+    var isFullQ = bodyLines.some(function(l) {
+      var c = cleanAllNumberingPrefixes(l);
+      return !c.includes('http') && (c.includes('?') || c.includes('ಯಾರು') || c.includes('ಎಷ್ಟು') || c.includes('ಯಾವುದು') || c.includes('ಏನು'));
+    });
+
+    if (isFullQ) {
+      return 45 + (count * 44) + 16;
+    } else {
+      var rows = Math.ceil(count / 2);
+      return 45 + (hasHelp ? 35 : 0) + (rows * 48) + 16;
+    }
+  }
+
+  var pagesArray = [];
+  var currentPage = [];
+  var currentHeight = 0;
+  // ಪುಟ-೧ ರಲ್ಲಿ ಹೆಡರ್ ಕಳೆದು ಉಳಿಯುವ ನೈಜ ಪ್ರಿಂಟ್ ಎತ್ತರ = 780px
+  var pageMaxHeight = 780; 
+
+  for (var i = 0; i < renderedBlocks.length; i++) {
+    var blockH = calculateBlockHeight(allQuestions[i]);
+
+    // ಜಾಗ ಸಾಲದಿದ್ದಾಗ ಮಾತ್ರ ಹೊಸ ಪುಟ ಸೃಷ್ಟಿಸುವುದು
+    if (currentHeight + blockH > pageMaxHeight && currentPage.length > 0) {
+      pagesArray.push(currentPage);
+      currentPage = [renderedBlocks[i]];
+      currentHeight = blockH;
+      pageMaxHeight = 840; // ಮುಂದಿನ ಪುಟಗಳಿಗೆ ಹೆಡರ್ ಚಿಕ್ಕದಿರುವುದರಿಂದ ಹೆಚ್ಚು ಜಾಗ ಸಿಗುತ್ತದೆ
+    } else {
+      currentPage.push(renderedBlocks[i]);
+      currentHeight += blockH;
+    }
+  }
+  if (currentPage.length > 0) {
+    pagesArray.push(currentPage);
+  }
+
+  var totalPages = pagesArray.length;
+
+  var fullSheetsHtml = pagesArray.map(function(pageList, pageIdx) {
+    var pNum = pageIdx + 1;
+    var isFirst = (pNum === 1);
+    var isLast = (pNum === totalPages);
+
+    var headerSnippet = isFirst ? `
+      <div class="nk-header-box">
+        <h1 class="nk-school-title">${escapeHtml(schoolName)}</h1>
+        <div class="nk-exam-title">${escapeHtml(rawExamType)}</div>
+        <table class="nk-meta-table">
+          <tr>
+            <td style="width: 34%; text-align: left;">${isEnglishSubj ? 'Subject' : 'ವಿಷಯ'} : <b>${escapeHtml(rawSubj)}</b></td>
+            <td style="width: 24%; text-align: center;">${isEnglishSubj ? 'Class' : 'ತರಗತಿ'} : <b>${grade} ${isEnglishSubj ? 'Standard' : 'ನೇ ತರಗತಿ'}</b></td>
+            <td style="width: 22%; text-align: center;">${isEnglishSubj ? 'Date' : 'ದಿನಾಂಕ'} : <b>${escapeHtml(examDate)}</b></td>
+            <td style="width: 20%; text-align: right;">${isEnglishSubj ? 'Marks' : 'ಒಟ್ಟು ಅಂಕ'} : <b>${actualMarks}</b></td>
+          </tr>
+        </table>
+        <div class="nk-student-strip">
+          <span>${isEnglishSubj ? "Student Name" : "ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು"} : __________________________________________________</span>
+          <span>${isEnglishSubj ? "Roll No" : "ಹಾಜರಾತಿ ಸಂಖ್ಯೆ"} : [ &nbsp;&nbsp;&nbsp;&nbsp; ]</span>
+        </div>
+      </div>
+    ` : `
+      <div class="nk-mini-header">
+        <span>${escapeHtml(schoolName)}</span>
+        <span>${grade}ನೇ ತರಗತಿ ${escapeHtml(rawSubj)}</span>
+        <span>ಪುಟ - ${toKnNum(pNum)}</span>
+      </div>
+    `;
+
+    // 🌟 ಕೇವಲ ಒಂದೇ ಪುಟವಿದ್ದರೆ ಅಥವಾ ಕೊನೆಯ ಪುಟದಲ್ಲಿದ್ದರೆ ಶಿಕ್ಷಕರ ಸಹಿ ಮೂಡುತ್ತದೆ
+    var footerSnippet = isLast ? `
+      <div style="margin-top: auto; padding-top: 5px; border-top: 1.8px solid #000; display: flex; justify-content: space-between; font-size: 10pt; font-weight: 900; flex-shrink: 0;">
+        <span>ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ: _________________</span>
+        <span>ಶಿಕ್ಷಕರ ಸಹಿ: _________________</span>
+        <span>ಗಳಿಸಿದ ಅಂಕ: [ &nbsp;&nbsp;&nbsp;&nbsp; / ${actualMarks} ]</span>
+      </div>
+    ` : `
+      <div class="nk-page-footer">
+        <span>ಪುಟ - ${toKnNum(pNum)}</span>
+        <span>(ಮುಂದಿನ ಪುಟ ನೋಡಿ ➔)</span>
+      </div>
+    `;
+
+    return `
+      <div class="nk-page-sheet">
+        ${headerSnippet}
+        <div style="display: flex; flex-direction: column; gap: 0;">
+          ${pageList.join('')}
+        </div>
+        ${footerSnippet}
+      </div>
+    `;
+  }).join('');
+
+  var paperEl = document.getElementById('rendered-paper');
+  if (paperEl) {
+    paperEl.innerHTML = `<div class="nk-sheet-wrapper">${fullSheetsHtml}</div>`;
+  }
+};
+
+// ⚡ ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ರಿಫ್ರೆಶ್ ಮಾಡುವ ಆಟೋ-ಎಕ್ಸಿಕ್ಯೂಟರ್
+(function runSmartPagePackingNow() {
+  var allQ = appState.activeGeneratedQuestions || [];
+  if (allQ.length > 0) {
+    var rawSubj = document.getElementById('cfg-subject')?.value || 'ಕನ್ನಡ';
+    var grade = document.getElementById('cfg-class')?.value || '1';
+    var actualMarks = allQ.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
+    var curSet = appState.currentExamSet || 'A';
+
+    if (['1', '2', '3'].includes(String(grade).replace(/\D/g, ''))) {
+      window.renderDedicatedNalikaliWorksheet(allQ, actualMarks, rawSubj, grade);
+      window.renderDedicatedNalikaliKeyAnswers(allQ, actualMarks, rawSubj, grade, curSet);
+      window.renderDedicatedNalikaliBlueprint(allQ, actualMarks, rawSubj, grade);
+    }
+  }
+})();
+
+    
+
     
 </script>
 </body>

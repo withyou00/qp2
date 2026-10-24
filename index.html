@@ -16802,7 +16802,59 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
 
 
 
+// =========================================================================
+// 🚀 GITHUB IMAGES AUTO-RESOLVER & GUARANTEED NMMS DIAGRAM DISPLAY
+// =========================================================================
 
+// GitHub ನ ರಿಲೇಟಿವ್ ಪಾತ್ (images/pic.png) ಅಥವಾ ಪೂರ್ಣ ಲಿಂಕ್ ಅನ್ನು ಪರಿವರ್ತಿಸುವ ಫಂಕ್ಷನ್
+function resolveUniversalImageSource(rawSrc) {
+  if (!rawSrc || typeof rawSrc !== 'string') return null;
+  var src = rawSrc.trim();
+  if (src.length < 3) return null;
+
+  // ೧. ಕೇವಲ "images/name.png" ಅಥವಾ "name.png" ಎಂದು ಬರೆದಿದ್ದರೆ GitHub ನ ನೇರ ಲಿಂಕ್‌ಗೆ ಬದಲಾಯಿಸುವುದು
+  if (!src.startsWith('http')) {
+    if (src.startsWith('images/')) {
+      return `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${src}?t=${Date.now()}`;
+    } else {
+      return `https://raw.githubusercontent.com/withyou00/withyouqbank/main/images/${src}?t=${Date.now()}`;
+    }
+  }
+
+  // ೨. GitHub ವೆಬ್ ಲಿಂಕ್ ಆಗಿದ್ದರೆ ಅದನ್ನು "raw" ಲಿಂಕ್‌ಗೆ ಪರಿವರ್ತಿಸುವುದು
+  if (src.includes('github.com') && src.includes('/blob/')) {
+    src = src.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+  }
+
+  return src;
+}
+
+// ಎಲ್ಲಾ ರೀತಿಯ ಕೀಗಳಿಂದ ಚಿತ್ರವನ್ನು ಪತ್ತೆಹಚ್ಚುವ ಸೂಪರ್ ಎಕ್ಸ್‌ಟ್ರಾಕ್ಟರ್
+function extractUniversalImage(q) {
+  if (!q) return null;
+
+  for (var key in q) {
+    if (Object.prototype.hasOwnProperty.call(q, key)) {
+      var k = String(key).trim().toLowerCase();
+      if (k === 'image' || k === 'img' || k === 'diagram' || k === 'figure' || k === 'pic' || k === 'photo') {
+        var val = q[key];
+        if (typeof val === 'string' && val.trim().length > 3) {
+          return resolveUniversalImageSource(val);
+        }
+      }
+    }
+  }
+
+  // ಪ್ರಶ್ನೆಯ ಪಠ್ಯದೊಳಗೆ ಲಿಂಕ್ ಇದ್ದರೆ
+  if (q.q && typeof q.q === 'string') {
+    var mdMatch = q.q.match(/!\[.*?\]\(([^\s\)]+)\)/i);
+    if (mdMatch) return resolveUniversalImageSource(mdMatch[1]);
+    var rawUrlMatch = q.q.match(/(https?:\/\/[^\s\)\"\'\>]+)/i);
+    if (rawUrlMatch) return resolveUniversalImageSource(rawUrlMatch[1]);
+  }
+
+  return null;
+}
 
     
 </script>

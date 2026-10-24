@@ -17561,6 +17561,138 @@ document.addEventListener('error', function(e) {
   }
 })();
 
+
+
+    // =========================================================================
+// 🚀 NMMS SAT MULTI-FILE (nmms_history.json, etc.) PARALLEL AUTO-LOADER
+// =========================================================================
+
+// NMMS SAT ಸಂಬಂಧಿತ ಎಲ್ಲಾ ಫೈಲ್‌ಗಳ ಪಟ್ಟಿ
+window.COMP_FILES_MAP = {
+  'nmms_gmat': ['nmms_gmat.json'],
+  'nmms_sat': [
+    'nmms_sat.json',
+    'nmms_history.json',
+    'nmms_geography.json',
+    'nmms_civics.json',
+    'nmms_science.json',
+    'nmms_physics.json',
+    'nmms_chemistry.json',
+    'nmms_biology.json',
+    'nmms_maths.json'
+  ],
+  'morarji_entrance': ['morarji_entrance.json'],
+  'adarsha_entrance': ['adarsha_entrance.json']
+};
+
+// ಎಲ್ಲಾ ಫೋಲ್ಡರ್‌ಗಳಿಂದಲೂ (kannada_medium, ಇತ್ಯಾದಿ) ಫೈಲ್‌ಗಳನ್ನು ಹುಡುಕಿ ಲೋಡ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಲೋಡರ್
+window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part) {
+  appState.activeSubjectQuestions = [];
+  if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
+
+  var gradeStr = String(grade).replace(/\D/g, '');
+  var subjectKey = window.getNormalizedSubjectKey ? window.getNormalizedSubjectKey(rawSubject) : '';
+  if (rawSubject.includes('SAT')) subjectKey = 'nmms_sat';
+  if (rawSubject.includes('GMAT') || rawSubject.includes('MAT')) subjectKey = 'nmms_gmat';
+
+  var isCompetitive = (subjectKey === 'nmms_sat' || subjectKey === 'nmms_gmat' || subjectKey === 'morarji_entrance' || subjectKey === 'adarsha_entrance');
+
+  showToast(`🌐 ${rawSubject} ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ...`, 'info');
+
+  try {
+    var loadedList = [];
+
+    if (isCompetitive) {
+      var filesList = window.COMP_FILES_MAP[subjectKey] || [`${subjectKey}.json`];
+
+      // ಎಲ್ಲಾ ಫೈಲ್‌ಗಳನ್ನು ಏಕಕಾಲದಲ್ಲಿ ಪ್ಯಾರಲಲ್ ಆಗಿ ಫೆಚ್ ಮಾಡುವುದು
+      var fetchPromises = filesList.map(async function(fileName) {
+        // ನಿಮ್ಮ GitHub ನ ನಿಖರ ಫೋಲ್ಡರ್ ಪಾತ್‌ಗಳು
+        var pathsToTry = [
+          `kannada_medium/${fileName}`,
+          `kannada_medium/class_${gradeStr}/${fileName}`,
+          `class_${gradeStr}/${fileName}`,
+          `${fileName}`
+        ];
+
+        for (var p = 0; p < pathsToTry.length; p++) {
+          var rawUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(pathsToTry[p])}?t=${Date.now()}`;
+          try {
+            var res = await fetch(rawUrl);
+            if (res.ok) {
+              var text = await res.text();
+              var data = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(text) : JSON.parse(text);
+              if (Array.isArray(data) && data.length > 0) {
+                return data;
+              }
+            }
+          } catch(e) {}
+        }
+        return null;
+      });
+
+      var results = await Promise.all(fetchPromises);
+      results.forEach(function(items) {
+        if (items && Array.isArray(items)) {
+          loadedList.push(...items);
+        }
+      });
+
+    } else {
+      // ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳು
+      var targetFiles = [
+        `kannada_medium/class_${gradeStr}/${subjectKey}.json`,
+        `kannada_medium/${subjectKey}.json`,
+        `${subjectKey}.json`
+      ];
+
+      for (var tf = 0; tf < targetFiles.length; tf++) {
+        var rawUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(targetFiles[tf])}?t=${Date.now()}`;
+        try {
+          var res = await fetch(rawUrl);
+          if (res.ok) {
+            var data = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await res.text()) : [];
+            if (Array.isArray(data) && data.length > 0) {
+              loadedList = data;
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+    }
+
+    if (loadedList.length > 0) {
+      // ಡ್ಯೂಪ್ಲಿಕೇಟ್ ಪ್ರಶ್ನೆಗಳನ್ನು ನಿವಾರಿಸುವುದು
+      var seenIds = new Set();
+      appState.activeSubjectQuestions = loadedList.filter(function(q) {
+        if (!q) return false;
+        var uid = q.id || q.q;
+        if (!uid) return true;
+        if (seenIds.has(uid)) return false;
+        seenIds.add(uid);
+        return true;
+      });
+
+      if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
+      if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats();
+      showToast(`⚡ ಒಟ್ಟು ${appState.activeSubjectQuestions.length} ಪ್ರಶ್ನೆಗಳು (ಇತಿಹಾಸ ಸೇರಿ) ಲೋಡ್ ಆಗಿವೆ!`, 'success');
+    } else {
+      appState.activeSubjectQuestions = [];
+      if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
+      showToast(`⚠️ GitHub ನಲ್ಲಿ ಫೈಲ್‌ಗಳು ಸಿಗಲಿಲ್ಲ.`, 'error');
+    }
+  } catch (err) {
+    console.error("Load error:", err);
+  }
+};
+
+// ತಕ್ಷಣವೇ ಹೊಸ ಫೈಲ್‌ಗಳನ್ನು ಮರು-ಲೋಡ್ ಮಾಡುವ ಆಟೋ-ಟ್ರಿಗ್ಗರ್
+(function reloadFreshNMMSFiles() {
+  var rawSubj = document.getElementById('cfg-subject')?.value || '';
+  if (rawSubj.includes('SAT') || rawSubj.includes('GMAT')) {
+    window.loadQuestionsFromGitHub('kannada_medium', '8', rawSubj, 'none');
+  }
+})();
     
 </script>
 </body>

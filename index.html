@@ -15874,6 +15874,182 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
   }
 })();
 
+
+
+
+    // =========================================================================
+// 🎯 100% ACCURATE SINGLE-ANSWER EXTRACTOR FOR NALI-KALI KEY ANSWERS
+// =========================================================================
+
+// JSON ನ ಒಂದೇ ಸಾಲಿನ ಉತ್ತರಗಳಿಂದ ಪ್ರತ್ಯೇಕ ಉತ್ತರಗಳನ್ನು ಬೇರ್ಪಡಿಸುವ ಸ್ಮಾರ್ಟ್ ಫಂಕ್ಷನ್
+function splitNaliKaliAnswersAccurately(ansStr) {
+  if (!ansStr) return [];
+  var raw = String(ansStr).trim();
+
+  // ಕಂಸಗಳನ್ನು ತೆಗೆದುಹಾಕುವುದು
+  raw = raw.replace(/^\((.*?)\)$/, '$1').trim();
+
+  function cleanNum(s) {
+    if (!s) return '';
+    return String(s).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+  }
+
+  // ೧. ನಂಬರಿಂಗ್ ಮಾದರಿಯ ಮೂಲಕ ಸ್ಪ್ಲಿಟ್ ಮಾಡುವುದು (ಉದಾ: "೧. ಮರ, ೨. ಚಮಚ" ಅಥವಾ "೧. ಮರ ೨. ಚಮಚ")
+  var numSplits = raw.split(/(?:^|[\,\;\n\s]+)(?:[೦-೯\d]+|[a-eA-E])[\.\)\-\:\s]+/);
+  var cleanedNumList = numSplits.map(cleanNum).filter(Boolean);
+  if (cleanedNumList.length >= 2) {
+    return cleanedNumList;
+  }
+
+  // ೨. ಕಾಮಾ (,) ಅಥವಾ ಸೆಮಿಕೋಲನ್ (;) ಮೂಲಕ ಸ್ಪ್ಲಿಟ್ ಮಾಡುವುದು
+  var commaSplits = raw.split(/[\,\;\n|<br\s*\/?>]+/);
+  var cleanedCommaList = commaSplits.map(cleanNum).filter(Boolean);
+  if (cleanedCommaList.length >= 2) {
+    return cleanedCommaList;
+  }
+
+  return [cleanNum(raw)];
+}
+
+// ನಲಿಕಲಿ ಅಧಿಕೃತ ಉತ್ತರ ಪತ್ರಿಕೆ (ಏಕೈಕ ನಿಖರ ಉತ್ತರಗಳೊಂದಿಗೆ - No Duplicate Answers)
+window.renderDedicatedNalikaliKeyAnswers = function(allQuestions, actualMarks, rawSubj, grade, curSet) {
+  var keyEl = document.getElementById('rendered-key');
+  if (!keyEl) return;
+
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಕಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ';
+  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+
+  var romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+  var kannadaNums = ['೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯', '೧೦', '೧೧', '೧೨', '೧೩', '೧೪', '೧೫'];
+
+  function toKnNum(n) {
+    var kn = ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯'];
+    return String(n).replace(/\d/g, function(d) { return kn[d]; });
+  }
+
+  function cleanPrefix(str) {
+    if (!str) return '';
+    return String(str).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+  }
+
+  var sectionsHtml = [];
+  var actIndex = 0;
+
+  allQuestions.forEach(function(item) {
+    var qType = (typeof getCanonicalQuestionType === 'function') ? getCanonicalQuestionType(item) : 'vsa_1m';
+    var actRoman = (romanNumerals[actIndex] || (actIndex + 1)) + '.';
+    actIndex++;
+
+    var rawQText = String(item.q || '').trim();
+    var qLines = rawQText.split(/\n|<br\s*\/?>/).map(function(l) { return l.trim(); }).filter(Boolean);
+    var introTitle = qLines.length > 1 ? cleanPrefix(qLines[0]) : cleanPrefix(rawQText);
+    introTitle = introTitle.replace(/\([^\)]+\)/g, '').trim();
+
+    var bodySubLines = qLines.length > 1 ? qLines.slice(1) : [];
+    var subCount = bodySubLines.length > 0 ? bodySubLines.length : 4;
+    var marksStr = `${toKnNum(subCount)} × ೧ = ${toKnNum(subCount)}`;
+
+    var answerContent = "";
+
+    // ೧. ಹೊಂದಿಸಿ ಬರೆಯಿರಿ
+    if (qType === 'match') {
+      var pairs = extractSmartMatchPairs(item);
+      answerContent = `
+        <div style="font-size: 11pt; font-weight: 700; color: #0f172a; padding: 4px 6px;">
+          ${pairs.map(function(p, idx) {
+            return `<b>(${idx + 1})</b> ➔ <b>${escapeHtml(p.b || '')}</b> &nbsp;(೧ ಅಂಕ)`;
+          }).join(' &nbsp;&nbsp;|&nbsp;&nbsp; ')}
+        </div>
+      `;
+    }
+    // ೨. ನಕಲು ಬರೆವಣಿಗೆ
+    else if (rawQText.includes('ನಕಲು') || rawQText.toLowerCase().includes('copy')) {
+      answerContent = `
+        <div style="font-size: 10.5pt; font-weight: 700; color: #334155; padding: 3px 6px;">
+          ✓ ಸರಿಯಾದ ಅಕ್ಷರ ವಿನ್ಯಾಸ ಹಾಗೂ ಸ್ವಚ್ಛ ಕೈಬರಹಕ್ಕೆ ತಲಾ ೧ ಅಂಕ.
+        </div>
+      `;
+    }
+    // ೩. ಇತರ ಎಲ್ಲಾ ಚಟುವಟಿಕೆಗಳು (ಪ್ರತ್ಯೇಕ ನಿಖರ ಉತ್ತರ)
+    else {
+      var answersList = splitNaliKaliAnswersAccurately(item.ans);
+
+      answerContent = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; padding: 4px 6px;">
+          ${bodySubLines.map(function(subL, sIdx) {
+            var promptClean = cleanPrefix(subL).replace(/\s*(?:➔|->|-|:)?\s*\[\s*_{0,}\s*\]\s*$/, '').trim();
+            // 🌟 ಪ್ರತಿ ಉಪ-ಪ್ರಶ್ನೆಗೂ ಕೇವಲ ಅದರ ೧ ನಿಖರವಾದ ಉತ್ತರ ಮಾತ್ರ!
+            var singleModelAns = (answersList[sIdx] !== undefined) ? answersList[sIdx] : 'ಸೂಕ್ತ ಉತ್ತರ';
+            
+            return `
+              <div style="border: 1px dashed #cbd5e1; background: #fff; padding: 4px 8px; border-radius: 5px; font-size: 10.5pt;">
+                <span style="font-weight: 900;">${kannadaNums[sIdx] || (sIdx + 1)}.</span>
+                <span style="color: #475569; font-weight: 700;">${escapeHtml(promptClean.substring(0, 16))}:</span>
+                <b style="color: #047857; font-size: 11pt;">${escapeHtml(singleModelAns)}</b> &nbsp;(೧ ಅಂಕ)
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    sectionsHtml.push(`
+      <div style="margin-bottom: 8px; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 5px 8px; background: #f8fafc;">
+        <div style="display: flex; justify-content: space-between; border-bottom: 1.2px solid #94a3b8; padding-bottom: 2px; margin-bottom: 4px;">
+          <b style="font-size: 11.5pt;">${actRoman} ${introTitle}</b>
+          <b style="font-size: 10.5pt;">${marksStr}</b>
+        </div>
+        ${answerContent}
+      </div>
+    `);
+  });
+
+  keyEl.innerHTML = `
+    <div class="a4-board-sheet">
+      <div class="nk-header-box">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: -18px;">
+          <span style="font-size: 11pt; font-weight: 900; border: 2px solid #000; padding: 1px 8px; background: #f1f5f9; border-radius: 4px;">
+            SET - ${curSet}
+          </span>
+        </div>
+        <h1 class="nk-school-title">${escapeHtml(schoolName)}</h1>
+        <div class="nk-exam-title">ನಲಿಕಲಿ ಮಾದರಿ ಮೌಲ್ಯಮಾಪನ ಸೂಚಿ (MODEL KEY ANSWERS & SCHEME OF VALUATION)</div>
+        <table class="nk-meta-table">
+          <tr>
+            <td style="text-align: left; width: 33%;">ವಿಷಯ : <b>${escapeHtml(rawSubj)}</b></td>
+            <td style="text-align: center; width: 33%;">ತರಗತಿ : <b>${grade}ನೇ ತರಗತಿ</b></td>
+            <td style="text-align: right; width: 34%;">ಒಟ್ಟು ಅಂಕಗಳು : <b>${actualMarks}</b></td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="margin-top: 8px;">
+        ${sectionsHtml.join('')}
+      </div>
+
+      <div style="margin-top: 12px; padding: 6px; border: 1.5px solid #000; background: #f1f5f9; text-align: center; font-size: 10pt; font-weight: 800;">
+        ಸೂಚನೆ: ಮೌಲ್ಯಮಾಪನ ಮಾಡುವಾಗ ವಿದ್ಯಾರ್ಥಿಯ ಕಲಿಕಾ ಮಟ್ಟ, ಅಕ್ಷರ ರಚನೆ ಮತ್ತು ಮೈಲಿಗಲ್ಲು ಪ್ರಗತಿಯನ್ನು ಪರಿಗಣಿಸಿ ಅಂಕಗಳನ್ನು ನೀಡುವುದು.
+      </div>
+    </div>
+  `;
+};
+
+// ⚡ ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಉತ್ತರ ಪತ್ರಿಕೆಯನ್ನು ಸರಿಪಡಿಸುವ ಆಟೋ-ಎಕ್ಸಿಕ್ಯೂಟರ್
+(function runLiveKeyAnswerFixNow() {
+  var allQ = appState.activeGeneratedQuestions || [];
+  if (allQ.length > 0) {
+    var rawSubj = document.getElementById('cfg-subject')?.value || 'ಕನ್ನಡ';
+    var grade = document.getElementById('cfg-class')?.value || '1';
+    var cleanGrade = String(grade).replace(/\D/g, '');
+    var actualMarks = allQ.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
+    var curSet = appState.currentExamSet || 'A';
+
+    if (['1', '2', '3'].includes(cleanGrade)) {
+      window.renderDedicatedNalikaliKeyAnswers(allQ, actualMarks, rawSubj, grade, curSet);
+    }
+  }
+})();
     
     
 </script>

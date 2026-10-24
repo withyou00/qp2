@@ -17470,6 +17470,97 @@ window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
   }
 })();
     
+
+// =========================================================================
+// 🚀 GMAT & SAT 100% EQUAL IMAGE MATCHER & AUTO-RESOLVER
+// =========================================================================
+
+// GMAT ನಲ್ಲಿ ಕೆಲಸ ಮಾಡಿದಂತೆಯೇ SAT ನಲ್ಲೂ ಯಾವುದೇ ಲಿಂಕ್ ಬರೆದರೂ ೧೦೦% ಕೆಲಸ ಮಾಡುವ ಫಂಕ್ಷನ್
+function fixAnyGitHubImageUrl(urlStr) {
+  if (!urlStr || typeof urlStr !== 'string') return '';
+  var s = urlStr.trim();
+  if (s.length < 3) return '';
+
+  // ೧. ಕೇವಲ "images/name.png" ಅಥವಾ "name.png" ಎಂದು ಬರೆದಿದ್ದರೆ
+  if (!s.startsWith('http://') && !s.startsWith('https://')) {
+    var fileName = s.replace(/^images\//i, '').replace(/^\.\//, '').trim();
+    return 'https://raw.githubusercontent.com/withyou00/withyouqbank/main/images/' + fileName;
+  }
+
+  // ೨. raw.github.com ಅಥವಾ github.com ಇದ್ದರೆ ಅದನ್ನು raw.githubusercontent.com ಗೆ ಪರಿವರ್ತಿಸುವುದು
+  if (s.includes('github')) {
+    s = s.replace(/\/blob\//g, '/');
+    s = s.replace(/https?:\/\/(?:raw\.)?github\.com\//i, 'https://raw.githubusercontent.com/');
+    s = s.replace(/https?:\/\/raw\.githubusercontent\.com\//i, 'https://raw.githubusercontent.com/');
+    return s;
+  }
+
+  return s;
+}
+
+// ಪ್ರಶ್ನೆಯ ಯಾವುದೇ ಕೀಲಿಯಿಂದ ಚಿತ್ರವನ್ನು ಎಳೆಯುವ ಫಂಕ್ಷನ್
+function extractUniversalImage(q) {
+  if (!q) return null;
+
+  for (var key in q) {
+    if (Object.prototype.hasOwnProperty.call(q, key)) {
+      var k = String(key).trim().toLowerCase();
+      if (k === 'image' || k === 'img' || k === 'diagram' || k === 'figure' || k === 'pic' || k === 'photo' || k === 'imgurl' || k === 'imageurl') {
+        var val = q[key];
+        if (typeof val === 'string' && val.trim().length > 3) {
+          return fixAnyGitHubImageUrl(val);
+        }
+      }
+    }
+  }
+
+  if (q.q && typeof q.q === 'string') {
+    var mdMatch = q.q.match(/!\[.*?\]\(([^\s\)]+)\)/i);
+    if (mdMatch) return fixAnyGitHubImageUrl(mdMatch[1]);
+    var rawUrlMatch = q.q.match(/(https?:\/\/[^\s\)\"\'\>]+)/i);
+    if (rawUrlMatch) return fixAnyGitHubImageUrl(rawUrlMatch[1]);
+  }
+
+  return null;
+}
+window.extractFullQuestionImage = extractUniversalImage;
+
+// ಒಂದು ವೇಳೆ ಫೈಲ್ .png ಬದಲು .jpg / .jpeg ಆಗಿದ್ದರೆ ಆಟೋಮ್ಯಾಟಿಕ್ ರಿಕವರಿ ಮಾಡುವುದು
+document.addEventListener('error', function(e) {
+  if (e.target && e.target.tagName === 'IMG') {
+    var img = e.target;
+    var src = img.src || '';
+
+    if (src.includes('.png') && !img.dataset.triedJpg) {
+      img.dataset.triedJpg = 'true';
+      img.src = src.replace('.png', '.jpg');
+    } else if (src.includes('.jpg') && !img.dataset.triedUpper) {
+      img.dataset.triedUpper = 'true';
+      // ಮೊದಲ ಅಕ್ಷರ Capital ಇದ್ದರೆ ಪ್ರಯತ್ನಿಸುವುದು (ಉದಾ: gopal -> Gopal)
+      var parts = src.split('/');
+      var last = parts[parts.length - 1];
+      parts[parts.length - 1] = last.charAt(0).toUpperCase() + last.slice(1);
+      img.src = parts.join('/');
+    }
+  }
+}, true);
+
+// ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಚಿತ್ರ ರಿಫ್ರೆಶ್ ಮಾಡುವ ಆಟೋ-ಎಕ್ಸಿಕ್ಯೂಟರ್
+(function runSyncNMMSImages() {
+  var allQ = appState.activeGeneratedQuestions || [];
+  if (allQ.length > 0) {
+    var rawSubj = document.getElementById('cfg-subject')?.value || '';
+    var grade = document.getElementById('cfg-class')?.value || '8';
+    var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+    var rawExamType = document.getElementById('cfg-exam-type')?.value || 'NMMS ವಿದ್ಯಾರ್ಥಿವೇತನ ಪರೀಕ್ಷೆ 2026-27';
+    var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+    var actualMarks = allQ.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+    var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+    window.renderFullExamPaperWithCustomHeader(headerHtml);
+  }
+})();
+
     
 </script>
 </body>

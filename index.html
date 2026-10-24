@@ -16856,6 +16856,77 @@ function extractUniversalImage(q) {
   return null;
 }
 
+
+
+
+// =========================================================================
+// 🚀 GITHUB BLOB & EXTRA-SPACE AUTO-FIXER FOR NMMS / ALL IMAGES
+// =========================================================================
+
+// ಲಿಂಕ್‌ನಲ್ಲಿರುವ ಕೊನೆಯ ಸ್ಪೇಸ್ ಮತ್ತು /blob/ ಅನ್ನು ಆಟೋಮ್ಯಾಟಿಕ್ ಸರಿಪಡಿಸುವ ಫಂಕ್ಷನ್
+function resolveUniversalImageSource(rawSrc) {
+  if (!rawSrc || typeof rawSrc !== 'string') return null;
+  // ೧. ಕೊನೆಯಲ್ಲಿ ಬಿದ್ದಿರುವ ಅನಗತ್ಯ ಸ್ಪೇಸ್‌ಗಳನ್ನು ಸ್ವಚ್ಛಗೊಳಿಸುವುದು (.trim())
+  var src = rawSrc.trim();
+  if (src.length < 3) return null;
+
+  // ೨. ಕೇವಲ "images/tringle.png" ಅಥವಾ "tringle.png" ಎಂದು ಹಾಕಿದ್ದರೆ
+  if (!src.startsWith('http')) {
+    var cleanPath = src.replace(/^images\//, '');
+    return 'https://raw.githubusercontent.com/withyou00/withyouqbank/main/images/' + cleanPath + '?t=' + Date.now();
+  }
+
+  // ೩. github.com/.../blob/ ಲಿಂಕ್ ಇದ್ದರೆ ಅದನ್ನು raw.githubusercontent.com ಗೆ ಪರಿವರ್ತಿಸುವುದು
+  if (src.includes('github.com') && src.includes('/blob/')) {
+    src = src.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+  }
+
+  return src;
+}
+
+// ಎಲ್ಲಾ ಚಿತ್ರಗಳಿಗೂ ಈ ಸ್ವಚ್ಛಗೊಳಿಸಿದ ಲಿಂಕ್ ಅನ್ವಯಿಸುವುದು
+var origExtractUniversalImg = window.extractUniversalImage;
+window.extractUniversalImage = function(q) {
+  if (!q) return null;
+
+  for (var key in q) {
+    if (Object.prototype.hasOwnProperty.call(q, key)) {
+      var k = String(key).trim().toLowerCase();
+      if (k === 'image' || k === 'img' || k === 'diagram' || k === 'figure' || k === 'pic' || k === 'photo') {
+        var val = q[key];
+        if (typeof val === 'string' && val.trim().length > 3) {
+          return resolveUniversalImageSource(val);
+        }
+      }
+    }
+  }
+
+  if (q.q && typeof q.q === 'string') {
+    var mdMatch = q.q.match(/!\[.*?\]\(([^\s\)]+)\)/i);
+    if (mdMatch) return resolveUniversalImageSource(mdMatch[1]);
+    var rawUrlMatch = q.q.match(/(https?:\/\/[^\s\)\"\'\>]+)/i);
+    if (rawUrlMatch) return resolveUniversalImageSource(rawUrlMatch[1]);
+  }
+
+  return null;
+};
+
+// ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಚಿತ್ರ ರಿಫ್ರೆಶ್ ಮಾಡುವ ಆಟೋ-ಎಕ್ಸಿಕ್ಯೂಟರ್
+(function refreshBrokenImagesNow() {
+  var allQ = appState.activeGeneratedQuestions || [];
+  if (allQ.length > 0) {
+    var rawSubj = document.getElementById('cfg-subject')?.value || '';
+    var grade = document.getElementById('cfg-class')?.value || '8';
+    var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+    var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+    var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+    var actualMarks = allQ.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
+
+    var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+    window.renderFullExamPaperWithCustomHeader(headerHtml);
+  }
+})();
+    
     
 </script>
 </body>

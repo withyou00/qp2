@@ -20539,44 +20539,74 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
     
 // =========================================================================
-    // 🚫 "5. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್" ಸಂಪೂರ್ಣ ತೆಗೆದುಹಾಕಿ "1. ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ" ತೋರಿಸುವ ಫಿಕ್ಸ್
+    // 🌟 SHARE & RESULTS BUTTONS RESTORED (ONLY BLANK 5TH TAB REMOVED)
     // =========================================================================
-    (function removeQuizTabAndRestorePaper() {
-      // ೧. CSS ಮೂಲಕ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಮತ್ತು ಶೇರ್ ಬಟನ್ ಕಣ್ಣಿಗೆ ಕಾಣದಂತೆ ಹೈಡ್ ಮಾಡುವುದು
-      var style = document.createElement('style');
-      style.innerHTML = '#tab-btn-quiz, #tab-content-quiz, #btn-share-online-quiz, #btn-nav-teacher-results, #rendered-quiz-panel { display: none !important; visibility: hidden !important; }';
-      document.head.appendChild(style);
+    (function restoreShareAndResultsFeatures() {
+      // ೧. ಕೇವಲ ಬ್ಲಾಂಕ್ ಬರುತ್ತಿದ್ದ "5. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್" ಟ್ಯಾಬ್ ಬಟನ್ ಮಾತ್ರ ತೆಗೆಯುವುದು
+      function removeBlankQuizTabOnly() {
+        var tabBtn = document.getElementById('tab-btn-quiz');
+        if (tabBtn && tabBtn.parentNode) {
+          tabBtn.parentNode.removeChild(tabBtn);
+        }
+        var tabContent = document.getElementById('tab-content-quiz');
+        if (tabContent && tabContent.parentNode) {
+          tabContent.parentNode.removeChild(tabContent);
+        }
+      }
+      removeBlankQuizTabOnly();
+      setInterval(removeBlankQuizTabOnly, 250);
 
-      // ೨. DOM ನಿಂದ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಎಲಿಮೆಂಟ್‌ಗಳನ್ನು ಸಂಪೂರ್ಣವಾಗಿ ಡಿಲೀಟ್ ಮಾಡುವುದು
-      function deleteQuizElements() {
-        var badIds = ['tab-btn-quiz', 'tab-content-quiz', 'btn-share-online-quiz', 'btn-nav-teacher-results', 'rendered-quiz-panel'];
-        for (var i = 0; i < badIds.length; i++) {
-          var el = document.getElementById(badIds[i]);
-          if (el && el.parentNode) {
-            el.parentNode.removeChild(el);
+      // ೨. ಮೇಲ್ಭಾಗದ ಹೆಡರ್‌ನಲ್ಲಿ "ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ" ಬಟನ್ ಮರಳಿ ತರುವುದು
+      function ensureTeacherResultsNavButton() {
+        var topNav = document.getElementById('top-nav-actions-container');
+        if (topNav && !document.getElementById('btn-nav-teacher-results')) {
+          var resBtn = document.createElement('button');
+          resBtn.id = 'btn-nav-teacher-results';
+          resBtn.type = 'button';
+          resBtn.onclick = function() {
+            if (typeof window.openTeacherQuizzesDashboardModal === 'function') {
+              window.openTeacherQuizzesDashboardModal();
+            } else {
+              alert("⚠️ ಇನ್ನೂ ಯಾವುದೇ ಆನ್‌ಲೈನ್ ಪರೀಕ್ಷೆಗಳನ್ನು ಕಳುಹಿಸಿಲ್ಲ.");
+            }
+          };
+          resBtn.className = 'px-3 py-1.5 rounded-xl font-black text-xs bg-purple-50 text-purple-900 border border-purple-300 hover:bg-purple-100 flex items-center gap-1.5 cursor-pointer transition shadow-sm';
+          resBtn.innerHTML = '<i class="fa-solid fa-square-poll-vertical text-purple-600"></i> <span>ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ</span>';
+          topNav.appendChild(resBtn);
+        }
+      }
+      ensureTeacherResultsNavButton();
+      setInterval(ensureTeacherResultsNavButton, 500);
+
+      // ೩. Print ಬಟನ್ ಪಕ್ಕದಲ್ಲಿ "ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ" ಶೇರ್ ಬಟನ್ ಮರಳಿ ತರುವುದು
+      function ensureShareOnlineTestButton() {
+        var actionContainer = document.querySelector('#output-section .no-print');
+        if (actionContainer && !document.getElementById('btn-share-online-quiz')) {
+          var shareBtn = document.createElement('button');
+          shareBtn.id = 'btn-share-online-quiz';
+          shareBtn.type = 'button';
+          shareBtn.onclick = function() {
+            if (typeof window.openCreateOnlineQuizModal === 'function') {
+              window.openCreateOnlineQuizModal();
+            }
+          };
+          shareBtn.className = 'px-4 py-2 rounded-xl text-xs font-black text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:shadow-lg transition flex items-center gap-1.5 cursor-pointer shadow-md border border-purple-400';
+          shareBtn.innerHTML = '<i class="fa-solid fa-share-nodes text-amber-300"></i> <span>ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ</span>';
+          
+          var printBtn = actionContainer.querySelector('button[onclick*="exportCurrentTabToPDF"], button[onclick*="print"]');
+          if (printBtn && printBtn.parentNode) {
+            printBtn.parentNode.insertBefore(shareBtn, printBtn);
+          } else {
+            actionContainer.appendChild(shareBtn);
           }
         }
       }
-      deleteQuizElements();
-      setInterval(deleteQuizElements, 200);
+      ensureShareOnlineTestButton();
+      setInterval(ensureShareOnlineTestButton, 500);
 
-      // ೩. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಬಟನ್ ಮರು-ಸೃಷ್ಟಿಸುವ ಬ್ಯಾಕ್‌ಗ್ರೌಂಡ್ ಫಂಕ್ಷನ್ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸುವುದು
-      window.setupAllOutputTabsWithQuiz = function() {
-        var tabsContainer = document.querySelector('#output-section .flex.items-center.space-x-2');
-        if (tabsContainer && !document.getElementById('tab-btn-omr')) {
-          var omrBtn = document.createElement('button');
-          omrBtn.id = 'tab-btn-omr';
-          omrBtn.className = 'px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer';
-          omrBtn.onclick = function() { window.switchOutputTab('omr'); };
-          omrBtn.innerHTML = '<i class="fa-solid fa-circle-dot text-amber-600"></i> <span>4. OMR ಶೀಟ್</span>';
-          tabsContainer.appendChild(omrBtn);
-        }
-        deleteQuizElements();
-      };
-
-      // ೪. ಟ್ಯಾಬ್ ಸ್ವಿಚರ್ (ಯಾವುದೇ ಕಾರಣಕ್ಕೂ ಬ್ಲಾಂಕ್ ಆಗದಂತೆ ತಡೆದು ನೇರವಾಗಿ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗೆ ತರುವುದು)
+      // ೪. ಟ್ಯಾಬ್ ಸ್ವಿಚರ್ (ಕೇವಲ ೪ ಮುಖ್ಯ ಟ್ಯಾಬ್‌ಗಳು: 1.ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ, 2.ಉತ್ತರ ಪತ್ರಿಕೆ, 3.ನೀಲನಕ್ಷೆ, 4.OMR)
       window.switchOutputTab = function(t) {
-        if (!t || t === 'quiz') t = 'paper'; // Quiz ಬಂದರೂ ಬ್ಲಾಂಕ್ ಆಗದೆ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ತೆರೆಯುತ್ತದೆ!
+        if (!t || t === 'quiz') t = 'paper';
         var tabs = ['paper', 'key', 'blueprint', 'omr'];
         for (var i = 0; i < tabs.length; i++) {
           var x = tabs[i];
@@ -20597,17 +20627,11 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
       };
 
-      // ೫. ತಕ್ಷಣವೇ ಬ್ಲಾಂಕ್ ಸ್ಕ್ರೀನ್ ತೆಗೆದು '1. ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ' ಪ್ರದರ್ಶಿಸುವುದು
+      // ೫. ಆರಂಭದಲ್ಲಿ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ತೆರೆದಿರುವುದು
       setTimeout(function() {
         window.switchOutputTab('paper');
-        var dash = document.getElementById('view-dashboard');
-        if (dash && (!dash.innerHTML || dash.innerHTML.trim() === '')) {
-          if (typeof renderUltraModernDashboard === 'function') renderUltraModernDashboard();
-          if (typeof navigateToSection === 'function') navigateToSection('dashboard');
-        }
       }, 100);
     })();
-
     
 </script>
 </body>

@@ -20543,16 +20543,17 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
 // =========================================================================
-    // 🌟 COMPLETE MASTER FIX: CLASS 6 MORARJI / ADARSHA + ALL TABS & NALI-KALI
+    // 🌟 COMPLETE PERMANENT FIX: STRICT PART 1 / PART 2 + MORARJI + ALL TABS
     // =========================================================================
-    (function fixClass6MorarjiAndAllFeatures() {
-      // ೧. ಬ್ಲಿಂಕ್ ತಡೆಗಟ್ಟಲು ಹಳೆಯ ಟೈಮರ್‌ಗಳ ಕ್ಲಿಯರ್
+    (function installBulletproofPartAndClassHandler() {
+      // ೧. ಸ್ಕ್ರೀನ್ ಬ್ಲಿಂಕ್ ತಡೆಯಲು ಹಳೆಯ ಟೈಮರ್‌ಗಳ ಕ್ಲಿಯರ್
       for (var t = 1; t < 9999; t++) {
         if (t !== window.mySafeTimer) clearInterval(t);
       }
 
-      // ೨. ಕೀ ನಾರ್ಮಲೈಜರ್ (ಮೊರಾರ್ಜಿ & ಆದರ್ಶ ನಿಖರ ಕೀ ಮ್ಯಾಪಿಂಗ್)
-      var origGetNormKey = window.getNormalizedSubjectKey;
+      window.wy_active_fetch_id = 0;
+
+      // ೨. ಕೀ ನಾರ್ಮಲೈಜರ್ (ಮೊರಾರ್ಜಿ, ಆದರ್ಶ, NMMS & ಶಾಲಾ ವಿಷಯಗಳು)
       window.getNormalizedSubjectKey = function(subjectStr) {
         if (!subjectStr) return 'general';
         var s = String(subjectStr).toLowerCase().trim();
@@ -20562,15 +20563,23 @@ window.reShareQuizFromHistory = function(quizId, title) {
         if (s.includes('gmat') || s.includes('ಬೌದ್ಧಿಕ')) return 'nmms_gmat';
         if (s.includes('sat') || s.includes('ಶೈಕ್ಷಣಿಕ')) return 'nmms_sat';
 
-        return (typeof origGetNormKey === 'function') ? origGetNormKey(subjectStr) : (typeof safeCleanMatch === 'function' ? safeCleanMatch(subjectStr) : s);
+        if (s.includes('ಗಣಿತ') || s.includes('math')) return 'mathematics';
+        if (s.includes('ಸಮಾಜ') || s.includes('social')) return 'social_science';
+        if (s.includes('ವಿಜ್ಞಾನ') || s.includes('science')) return 'science';
+        if (s.includes('ಕನ್ನಡ') || s.includes('kannada')) return 'kannada';
+        if (s.includes('ಇಂಗ್ಲಿಷ್') || s.includes('english')) return 'english';
+        if (s.includes('ಹಿಂದಿ') || s.includes('hindi')) return 'hindi';
+        if (s.includes('ಪರಿಸರ') || s.includes('evs')) return 'evs';
+
+        return (typeof safeCleanMatch === 'function') ? safeCleanMatch(subjectStr) : s;
       };
 
-      // ೩. ೬ನೇ ತರಗತಿಯ ಮೊರಾರ್ಜಿ ಸೇರಿದಂತೆ ಎಲ್ಲಾ ಪರೀಕ್ಷೆಗಳ ಮಾಸ್ಟರ್ ಲೋಡರ್
+      // ೩. ೧ ರಿಂದ ೧೦ನೇ ತರಗತಿಯವರೆಗೂ ಭಾಗ ೧ & ಭಾಗ ೨ ಅನ್ನು ಕಟ್ಟುನಿಟ್ಟಾಗಿ ಪ್ರತ್ಯೇಕಿಸುವ ಮಾಸ್ಟರ್ ಲೋಡರ್
       window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part) {
         window.wy_active_fetch_id = (window.wy_active_fetch_id || 0) + 1;
         var currentRequestId = window.wy_active_fetch_id;
 
-        var gradeStr = String(grade).replace(/\D/g, '') || '6';
+        var gradeStr = String(grade).replace(/\D/g, '') || '1';
         var subjectKey = window.getNormalizedSubjectKey(rawSubject);
 
         var isMorarji = (subjectKey === 'morarji_entrance');
@@ -20578,28 +20587,24 @@ window.reShareQuizFromHistory = function(quizId, title) {
         var isGMAT = (subjectKey === 'nmms_gmat');
         var isSAT = (subjectKey === 'nmms_sat');
         var isCompetitive = (isMorarji || isAdarsha || isGMAT || isSAT);
-        var isNalikali = (gradeStr === '1' || gradeStr === '2' || gradeStr === '3');
 
-        showToast(`🌐 ${rawSubject} ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ...`, 'info');
+        var partLabel = part === 'part1' ? 'ಭಾಗ ೧' : (part === 'part2' ? 'ಭಾಗ ೨' : 'ಸಂಪೂರ್ಣ ಪಠ್ಯಕ್ರಮ');
+        showToast(`🌐 ${gradeStr}ನೇ ತರಗತಿ ${rawSubject} (${partLabel}) ಲೋಡ್ ಆಗುತ್ತಿದೆ...`, 'info');
 
         try {
           var loadedList = [];
 
-          // 🌟 ಎ) ೬ನೇ ತರಗತಿ ಮೊರಾರ್ಜಿ / ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪರೀಕ್ಷೆಗಳ ಫೈಲ್ ಲೋಡಿಂಗ್
-          if (isMorarji || isAdarsha) {
-            var compFiles = isMorarji 
-              ? ['morarji_entrance.json', 'morarji_kannada.json', 'morarji_maths.json', 'morarji_science.json', 'morarji_social.json', 'morarji_english.json', 'morarji_gk.json']
-              : ['adarsha_entrance.json', 'adarsha_kannada.json', 'adarsha_maths.json', 'adarsha_science.json', 'adarsha_english.json', 'adarsha_social.json'];
+          // 🌟 ಎ) ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು (೬ನೇ ತರಗತಿ ಮೊರಾರ್ಜಿ / ಆದರ್ಶ & ೮ನೇ ತರಗತಿ NMMS)
+          if (isCompetitive) {
+            var compFiles = [];
+            if (isMorarji) compFiles = ['morarji_entrance.json', 'morarji_kannada.json', 'morarji_maths.json', 'morarji_science.json', 'morarji_social.json', 'morarji_english.json', 'morarji_gk.json'];
+            else if (isAdarsha) compFiles = ['adarsha_entrance.json', 'adarsha_kannada.json', 'adarsha_maths.json', 'adarsha_science.json', 'adarsha_english.json', 'adarsha_social.json'];
+            else if (isGMAT) compFiles = ['nmms_gmat.json'];
+            else compFiles = ['nmms_sat.json', 'nmms_history.json', 'nmms_geography.json', 'nmms_science.json', 'nmms_physics.json', 'nmms_chemistry.json', 'nmms_biology.json', 'nmms_maths.json', 'nmms_civics.json'];
 
             for (var f = 0; f < compFiles.length; f++) {
               var cFile = compFiles[f];
-              var cPaths = [
-                `class_${gradeStr}/${cFile}`,
-                `kannada_medium/class_${gradeStr}/${cFile}`,
-                `kannada_medium/${cFile}`,
-                `${cFile}`
-              ];
-
+              var cPaths = [`class_${gradeStr}/${cFile}`, `kannada_medium/class_${gradeStr}/${cFile}`, `kannada_medium/${cFile}`, `${cFile}`];
               for (var cp = 0; cp < cPaths.length; cp++) {
                 var cUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(cPaths[cp])}?t=${Date.now()}`;
                 try {
@@ -20615,62 +20620,42 @@ window.reShareQuizFromHistory = function(quizId, title) {
               }
             }
           }
-          // ಬಿ) NMMS ಪರೀಕ್ಷೆಗಳು (೮ನೇ ತರಗತಿ)
-          else if (isGMAT || isSAT) {
-            var nmmsFiles = isGMAT 
-              ? ['nmms_gmat.json']
-              : ['nmms_sat.json', 'nmms_history.json', 'nmms_geography.json', 'nmms_science.json', 'nmms_physics.json', 'nmms_chemistry.json', 'nmms_biology.json', 'nmms_maths.json', 'nmms_civics.json'];
-
-            for (var nf = 0; nf < nmmsFiles.length; nf++) {
-              var nFile = nmmsFiles[nf];
-              var nPaths = [`kannada_medium/${nFile}`, `kannada_medium/class_${gradeStr}/${nFile}`, `class_${gradeStr}/${nFile}`, `${nFile}`];
-              for (var np = 0; np < nPaths.length; np++) {
-                var nUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(nPaths[np])}?t=${Date.now()}`;
-                try {
-                  var nRes = await fetch(nUrl);
-                  if (nRes.ok) {
-                    var nData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await nRes.text()) : [];
-                    if (Array.isArray(nData) && nData.length > 0) {
-                      loadedList.push(...nData);
-                      break;
-                    }
-                  }
-                } catch(e) {}
-              }
-            }
-          }
-          // ಸಿ) ನಲಿಕಲಿ (೧ ರಿಂದ ೩ನೇ ತರಗತಿ)
-          else if (isNalikali) {
-            var naliKaliFiles = [
-              `class_${gradeStr}/${subjectKey}.json`,
-              `kannada_medium/class_${gradeStr}/${subjectKey}.json`,
-              `kannada_medium/${subjectKey}.json`,
-              `${subjectKey}.json`,
-              `kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`,
-              `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`
-            ];
-
-            for (var ni = 0; ni < naliKaliFiles.length; ni++) {
-              if (currentRequestId !== window.wy_active_fetch_id) return;
-              var nkUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(naliKaliFiles[ni])}?t=${Date.now()}`;
-              try {
-                var nkRes = await fetch(nkUrl);
-                if (nkRes.ok) {
-                  var nkData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await nkRes.text()) : [];
-                  if (Array.isArray(nkData) && nkData.length > 0) {
-                    loadedList = nkData;
-                    break;
-                  }
-                }
-              } catch(e) {}
-            }
-          }
-          // ಡಿ) ಸಾಮಾನ್ಯ ವಿಷಯಗಳು (೪ ರಿಂದ ೧೦ನೇ ತರಗತಿ ಭಾಗ ೧ & ಭಾಗ ೨)
+          // 🌟 ಬಿ) ೧ ರಿಂದ ೧೦ನೇ ತರಗತಿಯ ಎಲ್ಲಾ ಶಾಲಾ ವಿಷಯಗಳು - ಕಟ್ಟುನಿಟ್ಟಾದ ಭಾಗ ೧ / ಭಾಗ ೨ ಶೋಧನೆ
           else {
             var targetFiles = [];
-            if (part === 'part1') targetFiles = [`class_${gradeStr}/${subjectKey}_part1.json`, `kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`, `kannada_medium/${subjectKey}_part1.json`, `${subjectKey}_part1.json`];
-            else if (part === 'part2') targetFiles = [`class_${gradeStr}/${subjectKey}_part2.json`, `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`, `kannada_medium/${subjectKey}_part2.json`, `${subjectKey}_part2.json`];
-            else targetFiles = [`class_${gradeStr}/${subjectKey}_part1.json`, `class_${gradeStr}/${subjectKey}_part2.json`, `kannada_medium/class_${gradeStr}/${subjectKey}.json`, `${subjectKey}.json`];
+
+            if (part === 'part2') {
+              // 🌟 ಕೇವಲ ಭಾಗ ೨ ರ ಫೈಲ್‌ಗಳು ಮಾತ್ರ (ಭಾಗ ೧ ರ ಫೈಲ್ ಹುಡುಕುವುದೇ ಇಲ್ಲ!)
+              targetFiles = [
+                `class_${gradeStr}/${subjectKey}_part2.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`,
+                `class_${gradeStr}/${subjectKey}_part_2.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part_2.json`,
+                `kannada_medium/${subjectKey}_part2.json`,
+                `${subjectKey}_part2.json`
+              ];
+            } else if (part === 'part1') {
+              // 🌟 ಕೇವಲ ಭಾಗ ೧ ರ ಫೈಲ್‌ಗಳು ಮಾತ್ರ
+              targetFiles = [
+                `class_${gradeStr}/${subjectKey}_part1.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`,
+                `class_${gradeStr}/${subjectKey}_part_1.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part_1.json`,
+                `kannada_medium/${subjectKey}_part1.json`,
+                `${subjectKey}_part1.json`
+              ];
+            } else {
+              // ಸಂಪೂರ್ಣ ಪಠ್ಯಕ್ರಮ (ಭಾಗ ೧ + ಭಾಗ ೨)
+              targetFiles = [
+                `class_${gradeStr}/${subjectKey}_part1.json`,
+                `class_${gradeStr}/${subjectKey}_part2.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`,
+                `class_${gradeStr}/${subjectKey}.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}.json`,
+                `${subjectKey}.json`
+              ];
+            }
 
             for (var tf = 0; tf < targetFiles.length; tf++) {
               if (currentRequestId !== window.wy_active_fetch_id) return;
@@ -20681,11 +20666,28 @@ window.reShareQuizFromHistory = function(quizId, title) {
                 if (tRes.ok) {
                   var tData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await tRes.text()) : [];
                   if (Array.isArray(tData) && tData.length > 0) {
-                    if (part === 'all') loadedList.push(...tData);
-                    else { loadedList = tData; break; }
+                    if (part === 'all') {
+                      loadedList.push(...tData);
+                    } else {
+                      loadedList = tData;
+                      break; // ನಿಖರ ಭಾಗ ಸಿಕ್ಕ ತಕ್ಷಣ ನಿಲ್ಲಿಸುವುದು!
+                    }
                   }
                 }
               } catch(e) {}
+            }
+
+            // ಒಂದು ವೇಳೆ ಪ್ರಶ್ನೆಗಳೊಳಗೆ 'part' ಅಥವಾ 'semester' ಟ್ಯಾಗ್ ಇದ್ದರೆ ನಿಖರವಾಗಿ ಫಿಲ್ಟರ್
+            if (loadedList.length > 0 && (part === 'part1' || part === 'part2')) {
+              var hasPartTags = loadedList.some(q => q.part || q.sem || q.semester);
+              if (hasPartTags) {
+                loadedList = loadedList.filter(function(q) {
+                  var p = String(q.part || q.sem || q.semester || '').toLowerCase().trim();
+                  if (part === 'part1') return p === 'part1' || p === '1' || p.includes('1');
+                  if (part === 'part2') return p === 'part2' || p === '2' || p.includes('2');
+                  return true;
+                });
+              }
             }
           }
 
@@ -20704,24 +20706,31 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
             window.renderChapterCheckboxes();
             if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats();
-            showToast(`⚡ ${appState.activeSubjectQuestions.length} ಪ್ರಶ್ನೆಗಳು ಯಶಸ್ವಿಯಾಗಿ ಲೋಡ್ ಆಗಿವೆ!`, 'success');
+            showToast(`⚡ ${gradeStr}ನೇ ತರಗತಿ (${partLabel}) ${appState.activeSubjectQuestions.length} ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗಿವೆ!`, 'success');
           } else {
             appState.activeSubjectQuestions = [];
             window.renderChapterCheckboxes();
-            showToast(`⚠️ ಈ ಪರೀಕ್ಷೆಯ ಪ್ರಶ್ನೆಗಳು GitHub ನಲ್ಲಿ ಕಂಡುಬಂದಿಲ್ಲ.`, 'error');
+            showToast(`⚠️ ${gradeStr}ನೇ ತರಗತಿಯ '${partLabel}' ಫೈಲ್ GitHub ನಲ್ಲಿ ಕಂಡುಬಂದಿಲ್ಲ.`, 'error');
           }
         } catch (err) {
           console.error("Load error:", err);
         }
       };
 
-      // ೪. ಮೊರಾರ್ಜಿ ಆಯ್ಕೆ ಮಾಡಿದಾಗ ಭಾಗ ಮತ್ತು ಪರೀಕ್ಷೆಯನ್ನು ಆಟೋ-ಸೆಟ್ ಮಾಡುವ ಕಂಟ್ರೋಲರ್
+      // ೪. ಭಾಗ ಅಥವಾ ವಿಷಯ ಬದಲಾದಾಗ ಕರೆಯುವ ಕಂಟ್ರೋಲರ್ (ಆಟೋ-ಸೆಟ್ & ಅನ್‌ಲಾಕ್)
       window.handleSubjectOrPartChange = function() {
-        var subj = document.getElementById('cfg-subject')?.value || '';
+        var gradeSelect = document.getElementById('cfg-class');
+        var subjSelect = document.getElementById('cfg-subject');
         var partSelect = document.getElementById('cfg-part');
         var examSelect = document.getElementById('cfg-exam-type');
         var marksInput = document.getElementById('cfg-total-marks');
         var qCountInput = document.getElementById('cfg-total-questions');
+        var mediumSelect = document.getElementById('cfg-medium');
+
+        var grade = gradeSelect ? gradeSelect.value : '1';
+        var subj = subjSelect ? subjSelect.value : 'ಕನ್ನಡ (Kannada)';
+        var medium = mediumSelect ? mediumSelect.value : 'kannada_medium';
+        var part = partSelect ? partSelect.value : 'part1';
 
         var isMorarji = subj.includes('ಮೊರಾರ್ಜಿ') || subj.includes('ಕಿತ್ತೂರು');
         var isAdarsha = subj.includes('ಆದರ್ಶ');
@@ -20739,12 +20748,11 @@ window.reShareQuizFromHistory = function(quizId, title) {
             else if (isAdarsha) examSelect.innerHTML = `<option value="ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ 2026-27" selected>ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ 2026-27</option>`;
             else if (subj.includes('GMAT')) examSelect.innerHTML = `<option value="NMMS ಪತ್ರಿಕೆ-1 (ಬೌದ್ಧಿಕ ಸಾಮರ್ಥ್ಯ - GMAT) 2026-27" selected>NMMS ಪತ್ರಿಕೆ-1 (GMAT) 2026-27</option>`;
             else examSelect.innerHTML = `<option value="NMMS ಪತ್ರಿಕೆ-2 (ಶೈಕ್ಷಣಿಕ ಸಾಮರ್ಥ್ಯ - SAT) 2026-27" selected>NMMS ಪತ್ರಿಕೆ-2 (SAT) 2026-27</option>`;
-            
+
             examSelect.disabled = true;
             examSelect.classList.add('bg-slate-200', 'cursor-not-allowed', 'text-slate-700');
           }
 
-          // ೧೦೦ ಅಥವಾ ೯೦ ಅಂಕಗಳು
           if (marksInput) marksInput.value = isNMMS ? 90 : 100;
           if (qCountInput) qCountInput.value = isNMMS ? 90 : 100;
 
@@ -20752,16 +20760,18 @@ window.reShareQuizFromHistory = function(quizId, title) {
             cb.checked = (cb.value === 'mcq');
           });
 
+          part = 'none';
         } else {
-          // ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳಿಗೆ ಎಂದಿನಂತೆ ರೀಸ್ಟೋರ್
+          // ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳಿಗೆ (1 ರಿಂದ 10) ಭಾಗ ೧ & ಭಾಗ ೨ ಅನ್‌ಲಾಕ್
           if (partSelect && partSelect.disabled) {
             partSelect.disabled = false;
             partSelect.classList.remove('bg-slate-200', 'cursor-not-allowed', 'text-slate-500');
             partSelect.innerHTML = `
-              <option value="part2" selected>📙 ಭಾಗ ೨ (Semester 2 / FA-3, FA-4)</option>
-              <option value="part1">📘 ಭಾಗ ೧ (Semester 1 / FA-1, FA-2, SA-1)</option>
+              <option value="part2">📙 ಭಾಗ ೨ (Semester 2 / FA-3, FA-4)</option>
+              <option value="part1" selected>📘 ಭಾಗ ೧ (Semester 1 / FA-1, FA-2, SA-1)</option>
               <option value="all">🌟 ಸಂಪೂರ್ಣ ಪಠ್ಯಕ್ರಮ (ಭಾಗ ೧ + ೨ / SA-2)</option>
             `;
+            part = 'part1';
           }
           if (examSelect && examSelect.disabled) {
             examSelect.disabled = false;
@@ -20778,20 +20788,16 @@ window.reShareQuizFromHistory = function(quizId, title) {
           }
         }
 
-        var medium = document.getElementById('cfg-medium')?.value || 'kannada_medium';
-        var grade = document.getElementById('cfg-class')?.value || '6';
-        var part = document.getElementById('cfg-part')?.value || 'part1';
-
         window.loadQuestionsFromGitHub(medium, grade, subj, part);
       };
 
-      // ೫. ೬ನೇ ತರಗತಿಯ ವಿಷಯಗಳ ಡ್ರಾಪ್‌ಡೌನ್‌ನಲ್ಲಿ ಮೊರಾರ್ಜಿ ಮತ್ತು ಆದರ್ಶ ಪರೀಕ್ಷೆಗಳ ಖಚಿತ ಜೋಡಣೆ
+      // ೫. ತರಗತಿ ಬದಲಾದಾಗ ವಿಷಯಗಳ ಪಟ್ಟಿ ನಿರ್ವಹಣೆ (೬ನೇ ತರಗತಿಗೆ ಮೊರಾರ್ಜಿ, ೮ಕ್ಕೆ NMMS)
       window.updateSubjectOptionsForClass = function() {
         var classSelect = document.getElementById('cfg-class');
         var subjSelect = document.getElementById('cfg-subject');
         if (!classSelect || !subjSelect) return;
 
-        var activeGrade = parseInt(classSelect.value) || 6;
+        var activeGrade = parseInt(classSelect.value) || 1;
         var availableSubjects = [];
 
         if (activeGrade >= 1 && activeGrade <= 5) {
@@ -20802,7 +20808,6 @@ window.reShareQuizFromHistory = function(quizId, title) {
             { val: "ಪರಿಸರ ಅಧ್ಯಯನ (EVS)", key: "evs" }
           ];
         } else if (activeGrade === 6) {
-          // ೬ನೇ ತರಗತಿ
           availableSubjects = [
             { val: "ವಿಜ್ಞಾನ (Science)", key: "science" },
             { val: "ಕನ್ನಡ (Kannada)", key: "kannada" },
@@ -20814,7 +20819,6 @@ window.reShareQuizFromHistory = function(quizId, title) {
             { val: "ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ (Adarsha Entrance)", key: "adarsha_entrance", isComp: true }
           ];
         } else if (activeGrade === 8) {
-          // ೮ನೇ ತರಗತಿ
           availableSubjects = [
             { val: "ವಿಜ್ಞಾನ (Science)", key: "science" },
             { val: "ಕನ್ನಡ (Kannada)", key: "kannada" },
@@ -20861,7 +20865,12 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
       };
 
-      // ೬. ಟ್ಯಾಬ್‌ಗಳನ್ನು ೧ ರಿಂದ ೫ ರವರೆಗೆ ಕಾಯಂ ಆಗಿ ನಿಲ್ಲಿಸುವುದು
+      window.handleMediumOrClassChange = function() {
+        window.updateSubjectOptionsForClass();
+        window.handleSubjectOrPartChange();
+      };
+
+      // ೬. ಟ್ಯಾಬ್‌ಗಳ ಸಾಲಿನ ಜೋಡಣೆ: 1, 2, 3, 4 + ಕೊನೆಯಲ್ಲಿ 'ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ'
       window.renderAllOutputTabsSolidly = function() {
         var actionRow = document.querySelector('#output-section .border-b.border-slate-200.bg-slate-50');
         if (!actionRow) return;
@@ -20926,18 +20935,10 @@ window.reShareQuizFromHistory = function(quizId, title) {
         window.ensureTopNavResultsButton();
       };
 
-      // ತಕ್ಷಣವೇ ಕಾರ್ಯಗತಗೊಳಿಸುವುದು
+      // ತಕ್ಷಣವೇ ಸಕ್ರಿಯಗೊಳಿಸುವುದು
       window.renderAllOutputTabsSolidly();
       window.ensureTopNavResultsButton();
-
-      // ಪ್ರಸ್ತುತ ೬ನೇ ತರಗತಿ ಆಯ್ಕೆಯಾಗಿದ್ದರೆ ತಕ್ಷಣ ವಿಷಯಗಳ ಪಟ್ಟಿ ರಿಫ್ರೆಶ್
-      var curCls = document.getElementById('cfg-class')?.value;
-      if (curCls === '6') {
-        window.updateSubjectOptionsForClass();
-        window.handleSubjectOrPartChange();
-      }
     })();
-
     
     
     

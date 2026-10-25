@@ -20543,395 +20543,341 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
 // =========================================================================
-    // 🏆 FINAL BULLETPROOF SUITE: NO BLANK SPACE + STRICT PART 1/2 + ALL TABS
+    // 🌟 COMPLETE MASTER SUITE: LBA CHAPTER NAME + 20M PAGE SPREAD + ALL TABS
     // =========================================================================
-    (function installFinalRockSolidEngine() {
-      // ೧. ಬ್ಲಿಂಕ್ ತಡೆಗಟ್ಟಲು ಹಳೆಯ ಟೈಮರ್‌ಗಳ ಕ್ಲಿಯರ್
+    (function installCompleteFinalMasterFix() {
+      // ೧. ಸ್ಕ್ರೀನ್ ಬ್ಲಿಂಕ್ ತಡೆಯಲು ಹಳೆಯ ಟೈಮರ್‌ಗಳ ಕ್ಲಿಯರ್
       for (var t = 1; t < 9999; t++) {
         if (t !== window.mySafeTimer) clearInterval(t);
       }
 
       window.wy_active_fetch_id = 0;
 
-      // ೨. ಕೃತಕ ಪೇಜ್ ಬ್ರೇಕ್ ಶೈಲಿಗಳನ್ನು ರದ್ದುಪಡಿಸಿ ಅಚ್ಚುಕಟ್ಟಾದ ನೈಸರ್ಗಿಕ ಹರಿವಿನ CSS
-      var oldStyle = document.getElementById('wy-nalikali-natural-flow-styles');
-      if (oldStyle) oldStyle.remove();
+      // ೨. 20 ಅಂಕದ / 15 ಪ್ರಶ್ನೆಗಳ ಪತ್ರಿಕೆಗೆ ಪೂರ್ಣ ಪುಟ ತುಂಬುವ ಸುಂದರ CSS
+      var oldStyle20m = document.getElementById('wy-20m-spread-styles');
+      if (oldStyle20m) oldStyle20m.remove();
 
-      var newStyle = document.createElement('style');
-      newStyle.id = 'wy-nalikali-natural-flow-styles';
-      newStyle.innerHTML = `
-        .nk-board-sheet {
-          width: 100% !important; max-width: 820px !important; border: 2px solid #000 !important;
-          padding: 5mm 8mm !important; margin: 0 auto 12px auto !important; box-sizing: border-box !important;
-          background: #ffffff !important; color: #000 !important; font-family: 'Anek Kannada', 'Anek Devanagari', sans-serif !important;
+      var newStyle20m = document.createElement('style');
+      newStyle20m.id = 'wy-20m-spread-styles';
+      newStyle20m.innerHTML = `
+        /* 🌟 20 ಅಂಕದ ಪತ್ರಿಕೆಗೆ ಪೂರ್ಣ A4 ಪುಟ ತುಂಬುವ ಬ್ಯಾಲೆನ್ಸ್‌ಡ್ ಅಂತರ (No Blank Space) */
+        .sheet-mode-20m .main-roman-section-block {
+          margin-bottom: 14px !important;
         }
-        .nk-section-block { width: 100% !important; margin-bottom: 10px !important; box-sizing: border-box !important; page-break-inside: avoid !important; break-inside: avoid !important; }
-        .nk-section-head { display: flex !important; justify-content: space-between !important; align-items: center !important; border-bottom: 1.5px solid #000 !important; padding-bottom: 2px !important; margin-bottom: 5px !important; }
-        .nk-section-title { font-size: 11.5pt !important; font-weight: 900 !important; color: #000 !important; }
-        .nk-section-marks { font-size: 10.5pt !important; font-weight: 900 !important; white-space: nowrap !important; }
-        .nk-help-banner { border: 1.2px dashed #000 !important; background: #f8fafc !important; padding: 3px 8px !important; border-radius: 4px !important; text-align: center !important; font-size: 11pt !important; font-weight: 800 !important; margin: 2px auto 6px auto !important; width: 96% !important; }
-        .nk-kannada-double-line { width: 100% !important; height: 28px !important; border-top: 1.8px solid #000 !important; border-bottom: 1.8px solid #000 !important; background-color: #f8fafc !important; margin: 4px 0 8px 0 !important; border-radius: 2px !important; }
-        .nk-english-four-line { width: 100% !important; height: 32px !important; position: relative !important; margin: 4px 0 8px 0 !important; background: #ffffff !important; }
-        .nk-english-four-line::before { content: "" !important; position: absolute !important; left: 0; right: 0; top: 0; bottom: 0; border-top: 1.8px solid #dc2626 !important; border-bottom: 1.8px solid #dc2626 !important; }
-        .nk-english-four-line::after { content: "" !important; position: absolute !important; left: 0; right: 0; top: 10px; height: 11px !important; border-top: 1.3px solid #2563eb !important; border-bottom: 1.3px solid #2563eb !important; }
-        .nk-two-col-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 4px 16px !important; width: 100% !important; }
-        .nk-grid-col { display: flex !important; flex-direction: column !important; gap: 3px !important; width: 100% !important; }
-        .nk-word-row { display: flex !important; align-items: center !important; width: 100% !important; height: 38px !important; }
-        .nk-col-num { width: 22px !important; font-size: 11pt !important; font-weight: 900 !important; flex-shrink: 0 !important; }
-        .nk-col-label { font-size: 12pt !important; font-weight: 800 !important; max-width: 52% !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; flex-shrink: 0 !important; }
-        .nk-col-dot-leader { flex: 1 !important; border-bottom: 1.8px dotted #64748b !important; margin: 0 6px !important; height: 14px !important; }
-        .nk-write-box { width: 130px !important; height: 32px !important; border: 1.6px solid #000 !important; border-radius: 4px !important; background: #ffffff !important; flex-shrink: 0 !important; }
-        .nk-sq-letter-box { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 32px !important; height: 32px !important; border: 1.6px solid #000 !important; border-radius: 4px !important; background: #ffffff !important; margin: 0 2px !important; font-size: 14pt !important; font-weight: 900 !important; }
-        .nk-qa-item { width: 100% !important; margin-bottom: 5px !important; }
-        .nk-qa-q { font-size: 11.5pt !important; font-weight: 800 !important; line-height: 1.3 !important; }
-        .nk-qa-ans-row { display: flex !important; align-items: flex-end !important; width: 100% !important; margin-top: 2px !important; padding-left: 14px !important; }
-        .nk-ans-lbl { font-size: 10.5pt !important; font-weight: 900 !important; margin-right: 6px !important; }
-        .nk-ans-ruled-line { flex: 1 !important; border-bottom: 1.5px dashed #475569 !important; height: 18px !important; }
-        @media print {
-          @page { size: A4 portrait; margin: 4mm 6mm !important; }
-          .nk-board-sheet { border: 2px solid #000 !important; padding: 4mm 7mm !important; -webkit-box-decoration-break: clone !important; box-decoration-break: clone !important; }
+        .sheet-mode-20m .board-heading-row-table {
+          margin-top: 11px !important;
+          margin-bottom: 6px !important;
+          padding-bottom: 2.5px !important;
+        }
+        .sheet-mode-20m .heading-left-title {
+          font-size: 11.2pt !important;
+        }
+        .sheet-mode-20m .heading-right-marks {
+          font-size: 10.8pt !important;
+        }
+        .sheet-mode-20m .q-indivisible-block {
+          margin-bottom: 8.5px !important;
+        }
+        .sheet-mode-20m .board-q-text-cell {
+          font-size: 10.6pt !important;
+          line-height: 1.48 !important;
+        }
+        .sheet-mode-20m .board-q-num-cell {
+          font-size: 11pt !important;
+          line-height: 1.48 !important;
+        }
+        .sheet-mode-20m .mcq-opt-table {
+          margin-top: 3px !important;
+          margin-bottom: 5px !important;
+        }
+        .sheet-mode-20m .mcq-opt-td {
+          padding: 2.5px 6px !important;
+          font-size: 10.2pt !important;
         }
       `;
-      document.head.appendChild(newStyle);
+      document.head.appendChild(newStyle20m);
 
-      // ೩. ನಲಿಕಲಿ ಪತ್ರಿಕೆ (ಯಾವುದೇ ಖಾಲಿ ಜಾಗವಿಲ್ಲದೆ ಪೂರ್ಣವಾಗಿ ತುಂಬುವ ಅಚ್ಚುಕಟ್ಟಾದ ರೆಂಡರರ್)
-      window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, rawSubj, grade) {
-        var isEnglishSubj = rawSubj.toLowerCase().includes('english') || (document.getElementById('cfg-medium')?.value === 'english_medium');
-        var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಕಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ';
-        var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
-        var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
-        var romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"];
-        var kannadaNums = ['೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯', '೧೦', '೧೧', '೧೨', '೧೩', '೧೪', '೧೫'];
+      // ೩. LBA ಪರೀಕ್ಷೆಗೆ ಮಾತ್ರ ಪಾಠದ ಹೆಸರು ಬರುವ ಅಧಿಕೃತ ಹೆಡರ್ ಜನರೇಟರ್
+      window.generateOfficialBoardHeader = function(schoolName, subject, grade, examType, marks, examDate) {
+        var activeSet = appState.currentExamSet || 'A';
+        var isLBA = String(examType).includes('LBA') || String(examType).includes('ಘಟಕ');
 
-        function toKnNum(n) {
-          var kn = ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯'];
-          return String(n).replace(/\d/g, function(d) { return kn[d]; });
-        }
-        function cleanPrefix(str) {
-          return String(str || '').replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
-        }
-
-        var renderedBlocks = [];
-        var actIndex = 0;
-
-        allQuestions.forEach(function(item) {
-          var qType = (typeof getCanonicalQuestionType === 'function') ? getCanonicalQuestionType(item) : 'vsa_1m';
-          var actRoman = (romanNumerals[actIndex] || (actIndex + 1)) + '.';
-          actIndex++;
-          var rawQText = String(item.q || '').trim();
-
-          if (qType === 'match') {
-            var pairs = extractSmartMatchPairs(item);
-            var colA = pairs.map(p => cleanPrefix(p.a || ''));
-            var colB = pairs.map(p => cleanPrefix(p.b || ''));
-            for (var i = colB.length - 1; i > 0; i--) {
-              var j = Math.floor(Math.random() * (i + 1));
-              var temp = colB[i]; colB[i] = colB[j]; colB[j] = temp;
-            }
-            var matchMarksStr = isEnglishSubj ? `${colA.length} × 1 = ${colA.length}` : `${toKnNum(colA.length)} × ೧ = ${toKnNum(colA.length)}`;
-
-            renderedBlocks.push(`
-              <div class="nk-section-block">
-                <div class="nk-section-head">
-                  <span class="nk-section-title"><b>${actRoman}</b> ${isEnglishSubj ? 'Match the following:' : 'ಗೆರೆ ಎಳೆದು ಹೊಂದಿಸಿ ಬರೆಯಿರಿ:'}</span>
-                  <span class="nk-section-marks">${matchMarksStr}</span>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; border: 1.5px solid #000; font-size: 10.5pt; margin: 2px 0;">
-                  <thead>
-                    <tr style="background-color: #f1f5f9; border-bottom: 1.2px solid #000;">
-                      <th style="width: 38%; padding: 4px 6px; border: 1px solid #000; text-align: left;">'ಅ' ಗುಂಪು</th>
-                      <th style="width: 38%; padding: 4px 6px; border: 1px solid #000; text-align: left;">'ಆ' ಗುಂಪು</th>
-                      <th style="width: 24%; padding: 4px 6px; border: 1px solid #000; text-align: center;">ಉತ್ತರ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${colA.map((aText, idx) => `
-                      <tr style="border-bottom: 1px solid #cbd5e1;">
-                        <td style="padding: 4px 6px; border: 1px solid #000; font-weight: 800;">${idx + 1}. ${(typeof formatNaliKaliPromptWithRealImage === 'function') ? formatNaliKaliPromptWithRealImage(aText) : escapeHtml(aText)}</td>
-                        <td style="padding: 4px 6px; border: 1px solid #000; font-weight: 800;">(${String.fromCharCode(65 + idx)}) ${escapeHtml(colB[idx])}</td>
-                        <td style="padding: 2px; border: 1px solid #000; text-align: center;">
-                          <div class="nk-write-box" style="height: 26px; width: 85px; margin: 0 auto;"></div>
-                        </td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-            `);
-            return;
+        // 🌟 LBA ಪರೀಕ್ಷೆಯಾಗಿದ್ದಾಗ ಮಾತ್ರ ಪಾಠದ ಹೆಸರು ಪಡೆಯುವುದು
+        var chapterNames = "";
+        if (isLBA) {
+          if (appState.activeSelectedChapters && appState.activeSelectedChapters.length > 0) {
+            chapterNames = appState.activeSelectedChapters.join(', ');
+          } else {
+            var checkedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+            chapterNames = Array.from(checkedBoxes).map(b => b.value).join(', ');
           }
-
-          var isCopy = rawQText.includes('ನಕಲು') || rawQText.toLowerCase().includes('copy') || item.words || Array.isArray(item.words);
-          if (isCopy) {
-            var wordsList = item.words && Array.isArray(item.words) ? item.words : [];
-            if (wordsList.length === 0) {
-              var linesArr = rawQText.split(/\n|<br\s*\/?>/).map(s => s.trim()).filter(Boolean);
-              var subLinesArr = linesArr.length > 1 ? linesArr.slice(1) : linesArr;
-              wordsList = subLinesArr.map(s => cleanPrefix(s).replace(/ನಕಲು\s*ಮಾಡಿ\s*ಬರೆ[\:\.\-]*/gi, '').trim());
-            }
-            var copyMarksStr = isEnglishSubj ? `${wordsList.length} × 1 = ${wordsList.length}` : `${toKnNum(wordsList.length)} × ೧ = ${toKnNum(wordsList.length)}`;
-            var isSentence = wordsList.some(w => String(w || '').split(' ').length > 2);
-            var copyHtml = isSentence ? wordsList.map((line, idx) => `
-              <div style="margin-bottom: 5px;">
-                <div style="font-size: 11.5pt; font-weight: 800; margin-bottom: 2px;"><b>${kannadaNums[idx] || (idx + 1)}.</b> ${cleanPrefix(line)}</div>
-                ${isEnglishSubj ? `<div class="nk-english-four-line"></div>` : `<div class="nk-kannada-double-line"></div>`}
-              </div>
-            `).join('') : `
-              <div style="display: flex; justify-content: space-around; flex-wrap: wrap; margin-top: 2px; width: 100%;">
-                ${wordsList.map(w => `
-                  <div style="flex: 1; min-width: 95px; text-align: center; margin: 2px 5px;">
-                    <div style="font-size: 13.5pt; font-weight: 900; margin-bottom: 2px;">${escapeHtml(String(w || ''))}</div>
-                    ${isEnglishSubj ? `<div class="nk-english-four-line"></div>` : `<div class="nk-kannada-double-line"></div>`}
-                  </div>
-                `).join('')}
-              </div>
-            `;
-
-            renderedBlocks.push(`
-              <div class="nk-section-block">
-                <div class="nk-section-head">
-                  <span class="nk-section-title"><b>${actRoman}</b> ${cleanPrefix(rawQText.split(/\n|<br/)[0])}</span>
-                  <span class="nk-section-marks">${copyMarksStr}</span>
-                </div>
-                <div style="width: 100%;">${copyHtml}</div>
-              </div>
-            `);
-            return;
+          if (!chapterNames && appState.activeGeneratedQuestions && appState.activeGeneratedQuestions.length > 0) {
+            var chSet = new Set(appState.activeGeneratedQuestions.map(q => q.chapter).filter(Boolean));
+            chapterNames = Array.from(chSet).join(', ');
           }
+        }
 
-          var qLines = rawQText.split(/\n|<br\s*\/?>/).map(l => l.trim()).filter(Boolean);
-          var introTitle = qLines.length > 1 ? cleanPrefix(qLines[0]) : cleanPrefix(rawQText);
-          var bodySubLines = qLines.length > 1 ? qLines.slice(1) : [];
-          var helpMatch = introTitle.match(/\(([^\)]+)\)/);
-          var helpBoxHtml = helpMatch ? `<div class="nk-help-banner">( ${escapeHtml(helpMatch[1])} )</div>` : '';
-          introTitle = introTitle.replace(/\([^\)]+\)/g, '').trim();
-
-          var subCount = bodySubLines.length > 0 ? bodySubLines.length : (parseInt(item.marks) || 4);
-          var actMarksStr = isEnglishSubj ? `${subCount} × 1 = ${subCount}` : `${toKnNum(subCount)} × ೧ = ${toKnNum(subCount)}`;
-
-          var isFullQ = bodySubLines.some(line => {
-            var c = cleanPrefix(line);
-            return !c.includes('http') && (c.includes('?') || c.includes('ಯಾರು') || c.includes('ಎಷ್ಟು') || c.includes('ಯಾವುದು') || c.includes('ಏನು'));
-          });
-
-          var contentHtml = isFullQ ? bodySubLines.map((line, idx) => `
-            <div class="nk-qa-item">
-              <div class="nk-qa-q"><b>${(kannadaNums[idx] || (idx + 1))}.</b> ${cleanPrefix(line).replace(/\s*(?:➔|->|-|:)?\s*\[\s*_{0,}\s*\]\s*$/, '').trim()}</div>
-              <div class="nk-qa-ans-row">
-                <span class="nk-ans-lbl">ಉತ್ತರ :</span>
-                <span class="nk-ans-ruled-line"></span>
+        return `
+          <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 5px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div style="width: 80px;"></div>
+              <div style="text-align: center; flex: 1;">
+                <h1 style="font-size: 13.5pt; font-weight: 900; margin: 0; line-height: 1.2;">${escapeHtml(schoolName)}</h1>
+                <div style="font-size: 11pt; font-weight: 900; margin-top: 1px;">${escapeHtml(examType)}</div>
+              </div>
+              <div style="width: 80px; text-align: right;">
+                <span style="font-size: 11pt; font-weight: 900; border: 2px solid #000; padding: 1px 8px; background: #f1f5f9; border-radius: 4px; letter-spacing: 1px;">
+                  SET - ${activeSet}
+                </span>
               </div>
             </div>
-          `).join('') : (function() {
-            var halfLen = Math.ceil(bodySubLines.length / 2);
-            var col1Lines = bodySubLines.slice(0, halfLen);
-            var col2Lines = bodySubLines.slice(halfLen);
-
-            function renderCol(itemsList, startIdx) {
-              return itemsList.map((line, lIdx) => {
-                var curIdx = startIdx + lIdx;
-                var itemNum = (kannadaNums[curIdx] || (curIdx + 1)) + '.';
-                var cleanLine = line.trim();
-                var isInlineBlank = (cleanLine.includes('__') || cleanLine.includes('[___]') || cleanLine.includes('[ ]') || cleanLine.includes('[]')) && !cleanLine.includes('->') && !cleanLine.includes('➔') && !cleanLine.includes('http');
-                if (isInlineBlank) {
-                  var letterFmt = cleanPrefix(cleanLine).replace(/_{2,}|\[\s*_{0,}\s*\]|\[\s*\]/g, `<span class="nk-sq-letter-box"></span>`);
-                  return `<div class="nk-word-row"><span class="nk-col-num">${itemNum}</span><span style="font-size:13pt; font-weight:900; display:inline-flex; align-items:center; gap:3px;">${letterFmt}</span></div>`;
-                }
-                var purePrompt = cleanPrefix(cleanLine).replace(/\s*(?:➔|->|-|:)?\s*\[\s*_{0,}\s*\]\s*$/, '').replace(/\s*(?:➔|->|-|:)?\s*_{2,}\s*$/, '').trim();
-                var arrowSplit = purePrompt.split(/(?:➔|->)/);
-                var labelText = arrowSplit[0].trim();
-                var isSingleChar = labelText.includes('ಅಕ್ಷರ') && !labelText.includes('http');
-                var promptHtml = (typeof formatNaliKaliPromptWithRealImage === 'function') ? formatNaliKaliPromptWithRealImage(labelText) : escapeHtml(labelText);
-                return `<div class="nk-word-row"><span class="nk-col-num">${itemNum}</span><span class="nk-col-label" style="display:inline-flex; align-items:center;">${promptHtml}</span><span class="nk-col-dot-leader"></span>${isSingleChar ? `<span class="nk-sq-letter-box"></span>` : `<span class="nk-write-box"></span>`}</div>`;
-              }).join('');
-            }
-            return `<div class="nk-two-col-grid"><div class="nk-grid-col">${renderCol(col1Lines, 0)}</div><div class="nk-grid-col">${renderCol(col2Lines, halfLen)}</div></div>`;
-          })();
-
-          renderedBlocks.push(`
-            <div class="nk-section-block">
-              <div class="nk-section-head">
-                <span class="nk-section-title"><b>${actRoman}</b> ${introTitle}</span>
-                <span class="nk-section-marks">${actMarksStr}</span>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
+              <tr>
+                <td style="width: 33%; text-align: left; font-weight: 800; font-size: 10pt;">ವಿಷಯ : <b>${escapeHtml(subject)}</b></td>
+                <td style="width: 23%; text-align: center; font-weight: 800; font-size: 10pt;">ತರಗತಿ : <b>${grade}ನೇ ತರಗತಿ</b></td>
+                <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10pt;">ದಿನಾಂಕ : <b>${escapeHtml(examDate)}</b></td>
+                <td style="width: 20%; text-align: right; font-weight: 800; font-size: 10pt;">ಗರಿಷ್ಠ ಅಂಕಗಳು : <b>${marks}</b></td>
+              </tr>
+            </table>
+            ${isLBA && chapterNames ? `
+              <div style="text-align: center; font-size: 10pt; font-weight: 800; border-top: 1.2px dashed #000; margin-top: 3px; padding-top: 2px; color: #000;">
+                ಘಟಕದ ಹೆಸರು : <b>${escapeHtml(chapterNames)}</b>
               </div>
-              ${helpBoxHtml}
-              ${contentHtml}
-            </div>
-          `);
+            ` : ''}
+          </div>
+        `;
+      };
+
+      // ೪. ಪ್ರೌಢಶಾಲೆ ಪತ್ರಿಕೆ ರೆಂಡರರ್ (20 ಅಂಕಕ್ಕೆ sheet-mode-20m ಅನ್ವಯಿಸಿ ಪೂರ್ಣ ಪುಟ ತುಂಬುವುದು)
+      window.renderRegularBoardPaperAndKeySynchronized = function(allQuestions, actualMarks, rawSubj, grade, curSet, finalHeaderHtml) {
+        var isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
+        var isEnglish = rawSubj.toLowerCase().includes('english') || (document.getElementById('cfg-medium')?.value === 'english_medium');
+        var isHindi = rawSubj.toLowerCase().includes('hindi');
+        var is20MarkPaper = (actualMarks <= 25 || allQuestions.length <= 16);
+
+        var typeGroups = new Map();
+        allQuestions.forEach(function(q) {
+          var t = getCanonicalQuestionType(q);
+          if (!typeGroups.has(t)) typeGroups.set(t, []);
+          typeGroups.get(t).push(q);
         });
 
-        // 🌟 ನೈಸರ್ಗಿಕ ಶೀಟ್ (ಯಾವುದೇ ಬಲವಂತದ ಪೇಜ್ ಬ್ರೇಕ್ ಇಲ್ಲದೆ 1ನೇ ಪುಟ ಪೂರ್ಣ ತುಂಬಿ ಬರುವುದು)
-        var fullSheetHtml = `
-          <div class="nk-board-sheet">
-            <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 8px;">
-              <div style="text-align: center; margin-bottom: 2px;">
-                <h1 style="font-size: 14pt; font-weight: 900; margin: 0; line-height: 1.2;">${escapeHtml(schoolName)}</h1>
-                <div style="font-size: 11pt; font-weight: 900; margin-top: 2px;">${escapeHtml(rawExamType)}</div>
-              </div>
-              <table style="width: 100%; border-collapse: collapse; margin-top: 3px; font-size: 10pt; font-weight: 800;">
-                <tr>
-                  <td style="width: 34%; text-align: left;">ವಿಷಯ : <b>${escapeHtml(rawSubj)}</b></td>
-                  <td style="width: 24%; text-align: center;">ತರಗತಿ : <b>${grade}ನೇ ತರಗತಿ</b></td>
-                  <td style="width: 22%; text-align: center;">ದಿನಾಂಕ : <b>${escapeHtml(examDate)}</b></td>
-                  <td style="width: 20%; text-align: right;">ಒಟ್ಟು ಅಂಕಗಳು : <b>${actualMarks}</b></td>
-                </tr>
-              </table>
-              <div style="margin-top: 4px; padding-top: 3px; border-top: 1.5px dashed #000; font-size: 10.5pt; font-weight: 800; display: flex; justify-content: space-between;">
-                <span>ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು : __________________________________________________</span>
-                <span>ಹಾಜರಾತಿ ಸಂಖ್ಯೆ : [ &nbsp;&nbsp;&nbsp;&nbsp; ]</span>
-              </div>
+        var order = ['mcq', 'blanks', 'true_false', 'analogy', 'odd_one_out', 'match', 'grammar_passage', 'vsa_1m', 'sa_2m', 'context', 'passage', 'sa_3m', 'la_4m', 'la_5m'];
+        var sortedKeys = Array.from(typeGroups.keys()).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+
+        var paperSectionsHtml = [];
+        var keySectionsHtml = [];
+        var sharedQNum = 1;
+        var romanIndex = 1;
+        var romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV"];
+
+        sortedKeys.forEach(function(tKey) {
+          var qList = typeGroups.get(tKey);
+          if (!qList || qList.length === 0) return;
+
+          var r = romanNumerals[romanIndex++ - 1] || 'X';
+          var headingText = isEnglish ? (headingsMapEn[tKey] || `${tKey}:`) : (isHindi ? (headingsMapHi[tKey] || `${tKey}:`) : (headingsMapKn[tKey] || `${tKey}:`));
+
+          var totalSectionMarks = qList.reduce((sum, item) => sum + getExactQuestionMarks(item), 0);
+          var marksPerQ = (tKey === 'match') ? 4 : getExactQuestionMarks(qList[0]);
+          var isUniform = qList.every(item => getExactQuestionMarks(item) === marksPerQ);
+          var marksDisplayStr = isUniform 
+            ? `${marksPerQ} * ${tKey === 'match' ? 1 : qList.length} = ${String(totalSectionMarks).padStart(2, '0')}`
+            : `1 * ${qList.length} = ${String(totalSectionMarks).padStart(2, '0')}`;
+
+          var paperHeaderHtml = `
+            <table class="board-heading-row-table">
+              <tr>
+                <td class="heading-left-title"><b>${r}. ${escapeHtml(headingText)}</b></td>
+                <td class="heading-right-marks"><b>${marksDisplayStr}</b></td>
+              </tr>
+            </table>
+          `;
+
+          var keySectionBannerHtml = `
+            <div style="background: #f1f5f9; border: 1.2px solid #000; padding: 4px 8px; margin: 8px 0 5px 0; font-weight: 900; font-size: 10.5pt; display: flex; justify-content: space-between; align-items: center;">
+              <span><b>${r}. ${escapeHtml(headingText)}</b></span>
+              <span style="font-size: 9.5pt; color: #334155;">[ ${marksDisplayStr} ]</span>
             </div>
-            <div style="width: 100%;">${renderedBlocks.join('')}</div>
-            <div style="margin-top: 14px; padding-top: 6px; border-top: 1.8px solid #000; display: flex; justify-content: space-between; font-size: 10.5pt; font-weight: 900; page-break-inside: avoid; break-inside: avoid;">
-              <span>ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ: _________________</span>
-              <span>ಶಿಕ್ಷಕರ ಸಹಿ: _________________</span>
-              <span>ಗಳಿಸಿದ ಅಂಕ: [ &nbsp;&nbsp;&nbsp;&nbsp; / ${actualMarks} ]</span>
-            </div>
+          `;
+
+          var currentSectionKeyItems = [];
+
+          if (tKey === 'mcq') {
+            var sectionPaperQuestions = qList.map(function(m) {
+              var globalIdx = allQuestions.indexOf(m);
+              var qNum = sharedQNum++;
+              var mainImg = extractUniversalImage(m);
+              var cleanText = String(m.q || '').replace(/!\[.*?\]\([^\)]+\)/g, '').replace(/<img[^>]+>/gi, '').trim();
+              var ansPrefix = isEnglish ? 'Answer' : (isHindi ? 'उत्तर' : 'ಉತ್ತರ');
+
+              var correctOptText = m.ans || (m.a ? `(A) ${m.a}` : 'ಸರಿಯಾದ ಆಯ್ಕೆ');
+              currentSectionKeyItems.push(`
+                <div style="display: flex; align-items: flex-start; gap: 6px; padding: 3px 6px; border: 1px dashed #cbd5e1; background: #fff; border-radius: 4px; font-size: 10pt;">
+                  <span style="font-weight: 900; min-width: 26px;">${qNum}.</span>
+                  <span style="font-weight: 900; color: #047857;">${formatQuestionTextForDisplay(correctOptText)}</span>
+                  <span style="margin-left: auto; font-size: 9pt; color: #64748b;">[ 1 ಅಂಕ ]</span>
+                </div>
+              `);
+
+              return `
+                <div class="q-indivisible-block" style="margin-bottom: ${isBookletMode ? '5px' : '3px'};">
+                  <table class="board-q-table-row" style="width: 100%;">
+                    <tr>
+                      <td class="board-q-num-cell" style="width: 26px;">${qNum}.</td>
+                      <td class="board-q-text-cell">${formatQuestionTextForDisplay(cleanText)}</td>
+                      <td style="width: 45px; text-align: right;" class="no-print">
+                        <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                      </td>
+                    </tr>
+                  </table>
+
+                  ${mainImg ? `
+                    <div style="text-align: center; margin: 4px auto;">
+                      <img src="${mainImg}" style="max-height: 145px; max-width: 90%; object-fit: contain; border: 1.2px solid #334155; padding: 3px; background: #fff; border-radius: 4px;" alt="Diagram" referrerpolicy="no-referrer" />
+                    </div>
+                  ` : ''}
+
+                  <table class="mcq-opt-table" style="width: 100%; margin: 2px 0;">
+                    <tr>
+                      <td class="mcq-opt-td" style="width: 25%; font-weight: 600; padding: 1px 4px 1px 26px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</td>
+                      <td class="mcq-opt-td" style="width: 25%; font-weight: 600; padding: 1px 4px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</td>
+                      <td class="mcq-opt-td" style="width: 25%; font-weight: 600; padding: 1px 4px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</td>
+                      <td class="mcq-opt-td" style="width: 25%; font-weight: 600; padding: 1px 4px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</td>
+                    </tr>
+                  </table>
+
+                  ${isBookletMode ? `<div style="padding-left: 26px; margin: 3px 0 6px 0; font-size: 9.5pt; font-weight: 700;">${ansPrefix} : ________________________________________________________________</div>` : ''}
+                </div>
+              `;
+            }).join('');
+
+            paperSectionsHtml.push(`<div class="main-roman-section-block">${paperHeaderHtml}${sectionPaperQuestions}</div>`);
+            keySectionsHtml.push(`
+              <div class="main-roman-section-block">
+                ${keySectionBannerHtml}
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 5px; margin-bottom: 6px;">
+                  ${currentSectionKeyItems.join('')}
+                </div>
+              </div>
+            `);
+          } else if (tKey === 'match') {
+            var mItem = qList[0];
+            var qNum = sharedQNum++;
+            var pairs = extractSmartMatchPairs(mItem);
+
+            paperSectionsHtml.push(`
+              <div class="main-roman-section-block">
+                ${paperHeaderHtml}
+                <div class="q-indivisible-block">
+                  ${renderOfficial3ColumnMatchTable(mItem, qNum, isEnglish)}
+                </div>
+              </div>
+            `);
+
+            keySectionsHtml.push(`
+              <div class="main-roman-section-block">
+                ${keySectionBannerHtml}
+                <div style="padding: 6px 10px; border: 1px dashed #cbd5e1; background: #fff; border-radius: 4px; font-size: 10.5pt; font-weight: 800;">
+                  <b>${qNum}.</b> ${pairs.map((p, i) => `(${i + 1}) ➔ <b>${escapeHtml(p.b || '')}</b>`).join(' &nbsp;|&nbsp; ')} &nbsp; [ ೪ ಅಂಕ ]
+                </div>
+              </div>
+            `);
+          } else {
+            var isTF = (tKey === 'true_false');
+            var sectionPaperQuestions = qList.map(function(item) {
+              var globalIdx = allQuestions.indexOf(item);
+              var qNum = sharedQNum++;
+              var m = getExactQuestionMarks(item);
+              var defaultLines = (m === 1) ? 1 : (m * 2);
+              var activeLines = (item.customLinesCount !== undefined) ? item.customLinesCount : defaultLines;
+              var mainImg = extractUniversalImage(item);
+              var modelAnswerText = item.ans || 'ಮಾದರಿ ವಿವರಣೆ / ಸೂಕ್ತ ಅಂಶಗಳಿಗೆ ಅಂಕ ನೀಡುವುದು.';
+
+              currentSectionKeyItems.push(`
+                <div style="padding: 5px 8px; border-bottom: 1px dashed #cbd5e1; font-size: 10pt; line-height: 1.35; margin-bottom: 4px;">
+                  <div style="display: flex; justify-content: space-between; font-weight: 900;">
+                    <span><b>${qNum}.</b> <span style="color: #475569; font-size: 9.5pt;">(${escapeHtml(item.q.substring(0, 36))}...)</span></span>
+                    <span style="color: #047857; font-size: 9.5pt;">[ ${m} ಅಂಕ ]</span>
+                  </div>
+                  <div style="margin-top: 3px; padding-left: 14px; font-weight: 700; color: #047857;">
+                    ${formatQuestionTextForDisplay(modelAnswerText)}
+                  </div>
+                </div>
+              `);
+
+              var spaceLinesHtml = '';
+              if (isBookletMode && activeLines > 0 && !isTF) {
+                var lines = Array(activeLines).fill('<div class="answer-writing-space-line"></div>').join('');
+                spaceLinesHtml = `<div class="answer-lines-container">${lines}</div>`;
+              }
+
+              return `
+                <div class="q-indivisible-block" style="margin-bottom: ${isBookletMode ? '5px' : '3px'};">
+                  <table class="board-q-table-row" style="width: 100%;">
+                    <tr>
+                      <td class="board-q-num-cell" style="width: 26px;">${qNum}.</td>
+                      <td class="board-q-text-cell">
+                        ${tKey === 'context' && !item.q.startsWith('"') ? `"${formatQuestionTextForDisplay(item.q, isTF)}"` : formatQuestionTextForDisplay(item.q, isTF)}
+                        ${isTF ? ` &nbsp; <b>[ &nbsp;&nbsp;&nbsp;&nbsp; ]</b>` : ""}
+                      </td>
+                      <td style="width: ${isBookletMode && !isTF ? '85px' : '45px'}; text-align: right; vertical-align: top;" class="no-print">
+                        <div style="display:inline-flex; align-items:center; gap:2px;">
+                          ${isBookletMode && !isTF ? `
+                            <button type="button" onclick="addAnswerLineToQuestion(${globalIdx})" class="px-1.5 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-400 rounded font-black text-[9px] cursor-pointer">+ Line</button>
+                            <button type="button" onclick="removeAnswerLineFromQuestion(${globalIdx})" class="px-1.5 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-900 border border-rose-400 rounded font-black text-[9px] cursor-pointer">- Line</button>
+                          ` : ''}
+                          <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  ${mainImg ? `
+                    <div style="text-align: center; margin: 4px auto;">
+                      <img src="${mainImg}" style="max-height: 150px; max-width: 90%; object-fit: contain; border: 1.2px solid #334155; padding: 3px; background: #fff; border-radius: 4px;" alt="Diagram" referrerpolicy="no-referrer" />
+                    </div>
+                  ` : ''}
+
+                  ${spaceLinesHtml}
+                </div>
+              `;
+            }).join('');
+
+            paperSectionsHtml.push(`<div class="main-roman-section-block">${paperHeaderHtml}${sectionPaperQuestions}</div>`);
+            keySectionsHtml.push(`
+              <div class="main-roman-section-block">
+                ${keySectionBannerHtml}
+                <div>${currentSectionKeyItems.join('')}</div>
+              </div>
+            `);
+          }
+        });
+
+        // 🌟 20 ಅಂಕಕ್ಕೆ sheet-mode-20m ಅನ್ವಯಿಸಿ ಪೂರ್ಣ ಪುಟ ತುಂಬುವಂತೆ ಮಾಡುವುದು
+        document.getElementById('rendered-paper').innerHTML = `
+          <div class="a4-board-sheet ${is20MarkPaper ? 'sheet-mode-20m' : ''}">
+            ${finalHeaderHtml}
+            <div>${paperSectionsHtml.join('')}</div>
           </div>
         `;
 
-        var paperEl = document.getElementById('rendered-paper');
-        if (paperEl) paperEl.innerHTML = fullSheetHtml;
+        document.getElementById('rendered-key').innerHTML = `
+          <div class="a4-board-sheet ${is20MarkPaper ? 'sheet-mode-20m' : ''}">
+            ${finalHeaderHtml}
+            <div style="text-align: center; margin-bottom: 6px; border-bottom: 2px solid #000; padding-bottom: 2px;">
+              <h3 style="font-size: 12pt; font-weight: 900; text-transform: uppercase;">
+                ಮಾದರಿ ಉತ್ತರ ಸೂಚಿ & ಮೌಲ್ಯಮಾಪನ ಯೋಜನೆ (MODEL KEY ANSWERS - SET ${curSet})
+              </h3>
+            </div>
+            <div>${keySectionsHtml.join('')}</div>
+          </div>
+        `;
+
+        renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
       };
 
-      // ೪. ಕಟ್ಟುನಿಟ್ಟಾದ ಭಾಗ ೧ / ಭಾಗ ೨ / ಮೊರಾರ್ಜಿ ಲೋಡರ್
-      window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part) {
-        window.wy_active_fetch_id = (window.wy_active_fetch_id || 0) + 1;
-        var currentRequestId = window.wy_active_fetch_id;
-
-        var gradeStr = String(grade).replace(/\D/g, '') || '1';
-        var subjectKey = window.getNormalizedSubjectKey ? window.getNormalizedSubjectKey(rawSubject) : 'kannada';
-
-        var isMorarji = (subjectKey === 'morarji_entrance');
-        var isAdarsha = (subjectKey === 'adarsha_entrance');
-        var isGMAT = (subjectKey === 'nmms_gmat');
-        var isSAT = (subjectKey === 'nmms_sat');
-        var isCompetitive = (isMorarji || isAdarsha || isGMAT || isSAT);
-
-        var partLabel = part === 'part1' ? 'ಭಾಗ ೧' : (part === 'part2' ? 'ಭಾಗ ೨' : 'ಸಂಪೂರ್ಣ ಪಠ್ಯಕ್ರಮ');
-        showToast(`🌐 ${gradeStr}ನೇ ತರಗತಿ ${rawSubject} (${partLabel}) ಲೋಡ್ ಆಗುತ್ತಿದೆ...`, 'info');
-
-        try {
-          var loadedList = [];
-
-          if (isCompetitive) {
-            var compFiles = [];
-            if (isMorarji) compFiles = ['morarji_entrance.json', 'morarji_kannada.json', 'morarji_maths.json', 'morarji_science.json', 'morarji_social.json', 'morarji_english.json', 'morarji_gk.json'];
-            else if (isAdarsha) compFiles = ['adarsha_entrance.json', 'adarsha_kannada.json', 'adarsha_maths.json', 'adarsha_science.json', 'adarsha_english.json', 'adarsha_social.json'];
-            else if (isGMAT) compFiles = ['nmms_gmat.json'];
-            else compFiles = ['nmms_sat.json', 'nmms_history.json', 'nmms_geography.json', 'nmms_science.json', 'nmms_physics.json', 'nmms_chemistry.json', 'nmms_biology.json', 'nmms_maths.json', 'nmms_civics.json'];
-
-            for (var f = 0; f < compFiles.length; f++) {
-              var cFile = compFiles[f];
-              var cPaths = [`class_${gradeStr}/${cFile}`, `kannada_medium/class_${gradeStr}/${cFile}`, `kannada_medium/${cFile}`, `${cFile}`];
-              for (var cp = 0; cp < cPaths.length; cp++) {
-                var cUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(cPaths[cp])}?t=${Date.now()}`;
-                try {
-                  var cRes = await fetch(cUrl);
-                  if (cRes.ok) {
-                    var cData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await cRes.text()) : [];
-                    if (Array.isArray(cData) && cData.length > 0) {
-                      loadedList.push(...cData);
-                      break;
-                    }
-                  }
-                } catch(e) {}
-              }
-            }
-          } else {
-            // 🌟 ಶಾಲಾ ವಿಷಯಗಳು (1 ರಿಂದ 10): ಭಾಗ ೧ ಆರಿಸಿದರೆ ಕೇವಲ ಭಾಗ ೧, ಭಾಗ ೨ ಆರಿಸಿದರೆ ಕೇವಲ ಭಾಗ ೨!
-            var targetFiles = [];
-
-            if (part === 'part2') {
-              targetFiles = [
-                `class_${gradeStr}/${subjectKey}_part2.json`,
-                `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`,
-                `class_${gradeStr}/${subjectKey}_part_2.json`,
-                `kannada_medium/class_${gradeStr}/${subjectKey}_part_2.json`,
-                `kannada_medium/${subjectKey}_part2.json`,
-                `${subjectKey}_part2.json`
-              ];
-            } else if (part === 'part1') {
-              targetFiles = [
-                `class_${gradeStr}/${subjectKey}_part1.json`,
-                `kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`,
-                `class_${gradeStr}/${subjectKey}_part_1.json`,
-                `kannada_medium/class_${gradeStr}/${subjectKey}_part_1.json`,
-                `kannada_medium/${subjectKey}_part1.json`,
-                `${subjectKey}_part1.json`
-              ];
-            } else {
-              targetFiles = [
-                `class_${gradeStr}/${subjectKey}_part1.json`,
-                `class_${gradeStr}/${subjectKey}_part2.json`,
-                `kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`,
-                `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`,
-                `class_${gradeStr}/${subjectKey}.json`,
-                `kannada_medium/class_${gradeStr}/${subjectKey}.json`,
-                `${subjectKey}.json`
-              ];
-            }
-
-            for (var tf = 0; tf < targetFiles.length; tf++) {
-              if (currentRequestId !== window.wy_active_fetch_id) return;
-              var tFile = targetFiles[tf];
-              var tUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(tFile)}?t=${Date.now()}`;
-              try {
-                var tRes = await fetch(tUrl);
-                if (tRes.ok) {
-                  var tData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await tRes.text()) : [];
-                  if (Array.isArray(tData) && tData.length > 0) {
-                    if (part === 'all') {
-                      loadedList.push(...tData);
-                    } else {
-                      loadedList = tData;
-                      break;
-                    }
-                  }
-                }
-              } catch(e) {}
-            }
-
-            if (loadedList.length > 0 && (part === 'part1' || part === 'part2')) {
-              var hasPartTags = loadedList.some(q => q.part || q.sem || q.semester);
-              if (hasPartTags) {
-                loadedList = loadedList.filter(function(q) {
-                  var p = String(q.part || q.sem || q.semester || '').toLowerCase().trim();
-                  if (part === 'part1') return p === 'part1' || p === '1' || p.includes('1');
-                  if (part === 'part2') return p === 'part2' || p === '2' || p.includes('2');
-                  return true;
-                });
-              }
-            }
-          }
-
-          if (currentRequestId !== window.wy_active_fetch_id) return;
-
-          if (loadedList.length > 0) {
-            var seen = new Set();
-            appState.activeSubjectQuestions = loadedList.filter(function(q) {
-              if (!q) return false;
-              var uid = q.id || q.q;
-              if (!uid) return true;
-              if (seen.has(uid)) return false;
-              seen.add(uid);
-              return true;
-            });
-
-            window.renderChapterCheckboxes();
-            if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats();
-            showToast(`⚡ ${gradeStr}ನೇ ತರಗತಿ (${partLabel}) ${appState.activeSubjectQuestions.length} ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗಿವೆ!`, 'success');
-          } else {
-            appState.activeSubjectQuestions = [];
-            window.renderChapterCheckboxes();
-            showToast(`⚠️ ${gradeStr}ನೇ ತರಗತಿಯ '${partLabel}' ಫೈಲ್ GitHub ನಲ್ಲಿ ಕಂಡುಬಂದಿಲ್ಲ.`, 'error');
-          }
-        } catch (err) {
-          console.error("Load error:", err);
-        }
-      };
-
-      // ೫. ಟ್ಯಾಬ್‌ಗಳ ಸಾಲು & ಮೇಲ್ಭಾಗದ ರಿಸಲ್ಟ್ ಬಟನ್ ಗ್ಯಾರಂಟಿ
+      // ೫. ಟ್ಯಾಬ್‌ಗಳನ್ನು ೧ ರಿಂದ ೫ ರವರೆಗೆ ಕಾಯಂ ಆಗಿ ನಿಲ್ಲಿಸುವುದು
       window.renderAllOutputTabsSolidly = function() {
         var actionRow = document.querySelector('#output-section .border-b.border-slate-200.bg-slate-50');
         if (!actionRow) return;
@@ -20961,6 +20907,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         `;
       };
 
+      // ೬. ಹೆಡರ್‌ನಲ್ಲಿ "ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು" ನಂತರವೇ "ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ" ಬಟನ್
       window.ensureTopNavResultsButton = function() {
         var topNav = document.getElementById('top-nav-actions-container');
         if (!topNav) return;
@@ -20987,7 +20934,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
       };
 
-      // ೬. ಮಾಸ್ಟರ್ ರೂಟರ್ (ಪತ್ರಿಕೆ ಪ್ರದರ್ಶನ & ಟ್ಯಾಬ್ ಸ್ಥಿರತೆ)
+      // ೭. ಮಾಸ್ಟರ್ ರೂಟರ್ (ಪತ್ರಿಕೆ ಪ್ರದರ್ಶನ)
       window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
         var grade = document.getElementById('cfg-class')?.value || '8';
         var cleanGrade = String(grade).replace(/\D/g, '');
@@ -21005,14 +20952,19 @@ window.reShareQuizFromHistory = function(quizId, title) {
         var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
         var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
 
+        // ೧. ನಲಿಕಲಿ
         if (isNalikali) {
           window.renderDedicatedNalikaliWorksheet(allQuestions, actualMarks, rawSubj, grade);
           window.renderDedicatedNalikaliKeyAnswers(allQuestions, actualMarks, rawSubj, grade, curSet);
           window.renderDedicatedNalikaliBlueprint(allQuestions, actualMarks, rawSubj, grade);
-        } else if (isCompetitive) {
+        }
+        // ೨. NMMS / ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆ
+        else if (isCompetitive) {
           window.renderDedicatedNMMSCompetitivePaper(allQuestions, actualMarks, rawSubj, grade);
           window.renderGeneralExamKeyAnswers(allQuestions, actualMarks, rawSubj, grade, curSet, headerHtml);
-        } else {
+        }
+        // ೩. ಪ್ರೌಢಶಾಲೆ (೪ ರಿಂದ ೧೦ ಬೋರ್ಡ್ ಪತ್ರಿಕೆ)
+        else {
           window.renderRegularBoardPaperAndKeySynchronized(allQuestions, actualMarks, rawSubj, grade, curSet, headerHtml);
         }
 
@@ -21023,21 +20975,24 @@ window.reShareQuizFromHistory = function(quizId, title) {
         window.ensureTopNavResultsButton();
       };
 
-      // ತಕ್ಷಣವೇ ಅನ್ವಯಿಸುವುದು
+      // ತಕ್ಷಣವೇ ಕಾರ್ಯಗತಗೊಳಿಸುವುದು
       window.renderAllOutputTabsSolidly();
       window.ensureTopNavResultsButton();
 
-      // ಪ್ರಸ್ತುತ ನಲಿಕಲಿ ಪತ್ರಿಕೆ ತೆರೆದಿದ್ದರೆ ತಕ್ಷಣ ನ್ಯಾಚುರಲ್ ಶೀಟ್‌ಗೆ ಪರಿವರ್ತಿಸುವುದು
+      // ಪ್ರಸ್ತುತ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಪತ್ರಿಕೆ ಇದ್ದರೆ ತಕ್ಷಣ ಹೊಸ ಹೆಡರ್ & ಸ್ಪ್ರೆಡ್‌ನೊಂದಿಗೆ ರಿಫ್ರೆಶ್
       var allQ = appState.activeGeneratedQuestions || [];
-      var curCls = document.getElementById('cfg-class')?.value || '1';
-      var cleanG = String(curCls).replace(/\D/g, '');
-      if (['1', '2', '3'].includes(cleanG) && allQ.length > 0) {
-        var rawSubj = document.getElementById('cfg-subject')?.value || 'ಕನ್ನಡ';
+      if (allQ.length > 0) {
+        var rawSubj = document.getElementById('cfg-subject')?.value || '';
+        var grade = document.getElementById('cfg-class')?.value || '8';
+        var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+        var rawExamType = document.getElementById('cfg-exam-type')?.value || 'LBA (ಘಟಕ ಪರೀಕ್ಷೆ)';
+        var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
         var actualMarks = allQ.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
-        window.renderDedicatedNalikaliWorksheet(allQ, actualMarks, rawSubj, curCls);
+
+        var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+        window.renderFullExamPaperWithCustomHeader(headerHtml);
       }
     })();
-    
     
     
 </script>

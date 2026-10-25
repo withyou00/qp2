@@ -19441,6 +19441,253 @@ window.exportQuizResultsToExcel = async function(quizId) {
 };
 
     
+
+
+
+    // =========================================================================
+// 🎯 100% ACCURATE QUIZ SCORING & UNATTEMPTED QUESTION EVALUATION ENGINE
+// =========================================================================
+
+// ವಿದ್ಯಾರ್ಥಿ ಉತ್ತರ ಸಬ್ಮಿಷನ್ ಮತ್ತು ಕರಾರುವಾಕ್ ಅಂಕ ಲೆಕ್ಕಾಚಾರ (No False Auto-Select)
+window.submitStudentExamAnswers = async function() {
+  var quiz = window.currentStudentQuizData;
+  if (!quiz) return;
+
+  var stName = document.getElementById('st-name-input')?.value.trim();
+  var stRoll = document.getElementById('st-roll-input')?.value.trim() || '1';
+
+  if (!stName) {
+    alert("⚠️ ದಯವಿಟ್ಟು ನಿಮ್ಮ ಪೂರ್ಣ ಹೆಸರನ್ನು ನಮೂದಿಸಿ.");
+    document.getElementById('st-name-input')?.focus();
+    return;
+  }
+
+  if (!confirm("ನೀವು ಪರೀಕ್ಷೆಯನ್ನು ಅಂತಿಮವಾಗಿ Submit ಮಾಡಲು ಖಚಿತವೇ?\n(ಗಮನಿಸಿ: ಒಮ್ಮೆ Submit ಮಾಡಿದ ನಂತರ ಬದಲಾಯಿಸಲು ಬರುವುದಿಲ್ಲ).")) return;
+
+  showToast("⚡ ನಿಖರ ಫಲಿತಾಂಶ ಲೆಕ್ಕಹಾಕಲಾಗುತ್ತಿದೆ...", "info");
+
+  var totalScore = 0;
+  var correctCount = 0;
+  var wrongCount = 0;
+  var skippedCount = 0;
+  var reviewData = [];
+
+  quiz.questions.forEach(function(q, qIdx) {
+    var studentAnswer = "";
+
+    // 🌟 ರೇಡಿಯೋ ಬಟನ್ (MCQ) ಟಿಕ್ ಆಗಿದೆಯೇ ಎಂದು ಕಟ್ಟುನಿಟ್ಟಾಗಿ ಪರಿಶೀಲನೆ
+    var radioGroup = document.querySelectorAll(`input[type="radio"][name="student_ans_${qIdx}"]`);
+    if (radioGroup && radioGroup.length > 0) {
+      var radioChecked = document.querySelector(`input[type="radio"][name="student_ans_${qIdx}"]:checked`);
+      if (radioChecked) {
+        studentAnswer = radioChecked.value.trim();
+      } else {
+        studentAnswer = ""; // ವಿದ್ಯಾರ್ಥಿ ಈ ಪ್ರಶ್ನೆಗೆ ಉತ್ತರಿಸಿಲ್ಲ (Unattempted)
+      }
+    } else {
+      // ವಿವರಣಾತ್ಮಕ ಟೆಕ್ಸ್ಟ್ ಬಾಕ್ಸ್ ಆಗಿದ್ದರೆ
+      var textInp = document.querySelector(`input[type="text"][name="student_ans_${qIdx}"]`);
+      if (textInp) {
+        studentAnswer = textInp.value.trim();
+      }
+    }
+
+    // ಸರಿಯಾದ ಉತ್ತರ ಗುರುತಿಸುವಿಕೆ
+    var correctKey = "";
+    var rawAns = String(q.ans || '').trim();
+    var m = rawAns.toUpperCase().match(/\(([A-D])\)/);
+    if (m) {
+      correctKey = m[1];
+    } else {
+      var m2 = rawAns.toUpperCase().match(/^([A-D])\b/);
+      if (m2) correctKey = m2[1];
+      else correctKey = rawAns.toLowerCase();
+    }
+
+    var isAttempted = (studentAnswer !== "");
+    var isCorrect = false;
+
+    // ಮಗು ನಿಜವಾಗಿ ಉತ್ತರಿಸಿದ್ದರೆ ಮಾತ್ರ ಹೋಲಿಕೆ ಮಾಡುವುದು
+    if (isAttempted) {
+      if (studentAnswer.toUpperCase() === correctKey.toUpperCase() || studentAnswer.toLowerCase() === correctKey.toLowerCase()) {
+        totalScore += (q.marks || 1);
+        correctCount++;
+        isCorrect = true;
+      } else {
+        wrongCount++;
+      }
+    } else {
+      skippedCount++;
+    }
+
+    // ರಿವ್ಯೂ ಲಿಸ್ಟ್‌ಗೆ ಸೇರ್ಪಡೆ
+    reviewData.push({
+      num: q.num,
+      q: q.q,
+      isAttempted: isAttempted,
+      studentAns: isAttempted ? studentAnswer : 'ಉತ್ತರಿಸಿಲ್ಲ (ಬಿಟ್ಟ ಪ್ರಶ್ನೆ)',
+      correctAns: q.ans || correctKey,
+      isCorrect: isCorrect,
+      marks: isCorrect ? (q.marks || 1) : 0
+    });
+  });
+
+  var percent = Math.round((totalScore / quiz.totalMarks) * 100);
+  var grade = percent >= 85 ? 'A+' : (percent >= 70 ? 'A' : (percent >= 50 ? 'B+' : (percent >= 35 ? 'B' : 'C')));
+
+  var submissionRecord = {
+    name: stName,
+    roll: stRoll,
+    score: totalScore,
+    totalMarks: quiz.totalMarks,
+    attempted: (correctCount + wrongCount),
+    correct: correctCount,
+    wrong: wrongCount,
+    skipped: skippedCount,
+    percent: percent,
+    grade: grade,
+    submittedAt: new Date().toLocaleTimeString('kn-IN', { hour: '2-digit', minute: '2-digit' }),
+    reviewData: reviewData
+  };
+
+  // ೧ ಬಾರಿ ಮಾತ್ರ ಸಬ್ಮಿಟ್ ಲಾಕ್
+  var submittedKey = 'wy_student_sub_' + quiz.id;
+  localStorage.setItem(submittedKey, JSON.stringify(submissionRecord));
+
+  // Firebase ಗೆ ಕ್ಲೌಡ್ ಸೇವ್
+  try {
+    var subId = Date.now() + '_' + Math.floor(Math.random() * 1000);
+    fetch(`${WY_FIREBASE_URL}/submissions/${quiz.id}/${subId}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(submissionRecord)
+    });
+  } catch (e) {}
+
+  window.renderStudentInstantResultAndLeaderboard(quiz, submissionRecord);
+};
+
+// ರಿಸಲ್ಟ್ ಕಾರ್ಡ್ ಮತ್ತು ಲೈವ್ ಶ್ರೇಯಾಂಕ ಪಟ್ಟಿ
+window.renderStudentInstantResultAndLeaderboard = function(quiz, myResult) {
+  var container = document.getElementById('student-quiz-container');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="space-y-6 animate-fade-in pb-16">
+      
+      <!-- ರಿಸಲ್ಟ್ ಹೆಡರ್ ಕಾರ್ಡ್ -->
+      <div class="bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-2xl text-center space-y-4">
+        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center font-black text-3xl mx-auto shadow-inner">
+          🎉
+        </div>
+        <div>
+          <h2 class="text-xl sm:text-2xl font-black">ಅಭಿನಂದನೆಗಳು, ${escapeHtml(myResult.name)}!</h2>
+          <p class="text-xs text-emerald-200 font-bold">ನಿಮ್ಮ ಆನ್‌ಲೈನ್ ಪರೀಕ್ಷೆ ಯಶಸ್ವಿಯಾಗಿ ಮುಕ್ತಾಯಗೊಂಡಿದೆ</p>
+        </div>
+
+        <!-- ಗಳಿಸಿದ ಅಂಕಗಳು -->
+        <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 max-w-sm mx-auto space-y-1">
+          <div class="text-xs text-slate-200 font-bold">ಗಳಿಸಿದ ಒಟ್ಟು ಅಂಕಗಳು</div>
+          <div class="text-4xl sm:text-5xl font-black text-amber-300">
+            ${myResult.score} <span class="text-xl text-white font-bold">/ ${myResult.totalMarks}</span>
+          </div>
+          <div class="text-xs font-black text-emerald-300 pt-1">ಶೇಕಡಾವಾರು: ${myResult.percent}% | ಗ್ರೇಡ್: ${myResult.grade}</div>
+        </div>
+
+        <!-- 🌟 ನಿಖರ ಅಂಕಗಳ ಅಂಕಿ-ಅಂಶ (Detailed Score Stats) -->
+        <div class="grid grid-cols-3 gap-2 max-w-sm mx-auto pt-2 text-xs font-black">
+          <div class="bg-emerald-500/20 p-2 rounded-xl border border-emerald-400/40">
+            <div class="text-emerald-300 text-lg">${myResult.correct}</div>
+            <div class="text-[10px] text-emerald-100">ಸರಿ ಉತ್ತರ (+${myResult.correct})</div>
+          </div>
+          <div class="bg-rose-500/20 p-2 rounded-xl border border-rose-400/40">
+            <div class="text-rose-300 text-lg">${myResult.wrong}</div>
+            <div class="text-[10px] text-rose-100">ತಪ್ಪು ಉತ್ತರ (0)</div>
+          </div>
+          <div class="bg-amber-500/20 p-2 rounded-xl border border-amber-400/40">
+            <div class="text-amber-300 text-lg">${myResult.skipped}</div>
+            <div class="text-[10px] text-amber-100">ಬಿಟ್ಟ ಪ್ರಶ್ನೆಗಳು (0)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ಸರಿ-ತಪ್ಪು ಉತ್ತರಗಳ ಪರಿಶೀಲನೆ (Answer Review) -->
+      ${renderAnswersReviewHtml(quiz, myResult.reviewData)}
+
+      <!-- ತರಗತಿಯ ಸಹಪಾಠಿಗಳ ಲೈವ್ ಶ್ರೇಯಾಂಕ ಪಟ್ಟಿ (Leaderboard) -->
+      <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-xl border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow">
+              <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div>
+              <h3 class="font-black text-sm text-slate-900">ತರಗತಿಯ ಸಹಪಾಠಿಗಳ ಶ್ರೇಯಾಂಕ ಪಟ್ಟಿ (Live Leaderboard)</h3>
+              <p class="text-[11px] text-slate-500 font-bold">ಎಲ್ಲಾ ಸಹಪಾಠಿಗಳ ರಿಸಲ್ಟ್ ಲೈವ್ ಆಗಿ ವೀಕ್ಷಿಸಿ</p>
+            </div>
+          </div>
+          <button type="button" onclick="window.refreshStudentLeaderboard('${quiz.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition">
+            🔄 Refresh
+          </button>
+        </div>
+        <div id="live-leaderboard-table-box" class="overflow-x-auto">
+          <div class="py-6 text-center text-xs font-bold text-slate-400">ಶ್ರೇಯಾಂಕ ಪಟ್ಟಿ ಲೋಡ್ ಆಗುತ್ತಿದೆ...</div>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  window.loadAndDisplayLeaderboardTable(quiz.id, myResult.name);
+};
+
+// ಸರಿ-ತಪ್ಪು ಉತ್ತರಗಳ ಪರಿಶೀಲನೆ ಕಾರ್ಡ್ HTML
+function renderAnswersReviewHtml(quiz, reviewData) {
+  if (!reviewData || reviewData.length === 0) return '';
+
+  return `
+    <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-xl border border-slate-200 space-y-4">
+      <div class="border-b pb-3">
+        <h3 class="font-black text-sm text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-emerald-600"></i>
+          <span>ನಿಮ್ಮ ಉತ್ತರಗಳ ಪರಿಶೀಲನೆ (Answer Key & Review)</span>
+        </h3>
+        <p class="text-[11px] text-slate-500 font-bold mt-0.5">ಯಾವ ಉತ್ತರ ಸರಿ ಹಾಗೂ ಯಾವುದು ತಪ್ಪು ಎಂದು ಕೆಳಗೆ ಪರಿಶೀಲಿಸಿ:</p>
+      </div>
+
+      <div class="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
+        ${reviewData.map(function(item) {
+          var badgeClass = item.isCorrect ? 'bg-emerald-600 text-white' : (item.isAttempted ? 'bg-rose-600 text-white' : 'bg-slate-400 text-white');
+          var badgeText = item.isCorrect ? '✓ ಸರಿ (+1)' : (item.isAttempted ? '✗ ತಪ್ಪು (0)' : '— ಬಿಟ್ಟಿರುವ ಪ್ರಶ್ನೆ (0)');
+          var boxBorder = item.isCorrect ? 'bg-emerald-50/60 border-emerald-300' : (item.isAttempted ? 'bg-rose-50/60 border-rose-300' : 'bg-slate-50 border-slate-200');
+
+          return `
+            <div class="p-3 rounded-2xl border ${boxBorder} space-y-1.5 text-xs">
+              <div class="flex items-start justify-between gap-2 font-black">
+                <span class="text-slate-900">${item.num}. ${formatQuestionTextForDisplay(item.q)}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] shrink-0 font-bold ${badgeClass}">
+                  ${badgeText}
+                </span>
+              </div>
+              <div class="flex flex-wrap items-center gap-3 font-bold text-[11px] pt-1 border-t border-slate-200/60">
+                <span class="${item.isCorrect ? 'text-emerald-800' : (item.isAttempted ? 'text-rose-800' : 'text-slate-500')}">
+                  ನಿಮ್ಮ ಉತ್ತರ: <b>${escapeHtml(item.studentAns)}</b>
+                </span>
+                ${!item.isCorrect ? `
+                  <span class="text-emerald-700 bg-white px-2 py-0.5 rounded border border-emerald-300">
+                    ಸರಿಯಾದ ಉತ್ತರ: <b>${escapeHtml(item.correctAns)}</b>
+                  </span>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+
     
        
 </script>

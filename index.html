@@ -20538,43 +20538,75 @@ window.reShareQuizFromHistory = function(quizId, title) {
 };
 
     
-    
-  // =========================================================================
-    // 🚫 5. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಬಟನ್ & ಟ್ಯಾಬ್ ಶಾಶ್ವತ ರಿಮೂವಲ್ (100% SAFE)
+// =========================================================================
+    // 🚫 "5. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್" ಸಂಪೂರ್ಣ ತೆಗೆದುಹಾಕಿ "1. ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ" ತೋರಿಸುವ ಫಿಕ್ಸ್
     // =========================================================================
-    try {
-      var removeQuizTimer = setInterval(function() {
-        var quizIds = [
-          'tab-btn-quiz',
-          'tab-content-quiz',
-          'btn-share-online-quiz',
-          'btn-nav-teacher-results',
-          'rendered-quiz-panel'
-        ];
-        for (var i = 0; i < quizIds.length; i++) {
-          var el = document.getElementById(quizIds[i]);
-          if (el) el.remove();
+    (function removeQuizTabAndRestorePaper() {
+      // ೧. CSS ಮೂಲಕ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಮತ್ತು ಶೇರ್ ಬಟನ್ ಕಣ್ಣಿಗೆ ಕಾಣದಂತೆ ಹೈಡ್ ಮಾಡುವುದು
+      var style = document.createElement('style');
+      style.innerHTML = '#tab-btn-quiz, #tab-content-quiz, #btn-share-online-quiz, #btn-nav-teacher-results, #rendered-quiz-panel { display: none !important; visibility: hidden !important; }';
+      document.head.appendChild(style);
+
+      // ೨. DOM ನಿಂದ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಎಲಿಮೆಂಟ್‌ಗಳನ್ನು ಸಂಪೂರ್ಣವಾಗಿ ಡಿಲೀಟ್ ಮಾಡುವುದು
+      function deleteQuizElements() {
+        var badIds = ['tab-btn-quiz', 'tab-content-quiz', 'btn-share-online-quiz', 'btn-nav-teacher-results', 'rendered-quiz-panel'];
+        for (var i = 0; i < badIds.length; i++) {
+          var el = document.getElementById(badIds[i]);
+          if (el && el.parentNode) {
+            el.parentNode.removeChild(el);
+          }
         }
-      }, 150);
+      }
+      deleteQuizElements();
+      setInterval(deleteQuizElements, 200);
 
-      // ಕೇವಲ ೪ ಮುಖ್ಯ ಟ್ಯಾಬ್‌ಗಳು ಮಾತ್ರ ಕಾರ್ಯನಿರ್ವಹಿಸಲು
+      // ೩. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಬಟನ್ ಮರು-ಸೃಷ್ಟಿಸುವ ಬ್ಯಾಕ್‌ಗ್ರೌಂಡ್ ಫಂಕ್ಷನ್ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸುವುದು
+      window.setupAllOutputTabsWithQuiz = function() {
+        var tabsContainer = document.querySelector('#output-section .flex.items-center.space-x-2');
+        if (tabsContainer && !document.getElementById('tab-btn-omr')) {
+          var omrBtn = document.createElement('button');
+          omrBtn.id = 'tab-btn-omr';
+          omrBtn.className = 'px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer';
+          omrBtn.onclick = function() { window.switchOutputTab('omr'); };
+          omrBtn.innerHTML = '<i class="fa-solid fa-circle-dot text-amber-600"></i> <span>4. OMR ಶೀಟ್</span>';
+          tabsContainer.appendChild(omrBtn);
+        }
+        deleteQuizElements();
+      };
+
+      // ೪. ಟ್ಯಾಬ್ ಸ್ವಿಚರ್ (ಯಾವುದೇ ಕಾರಣಕ್ಕೂ ಬ್ಲಾಂಕ್ ಆಗದಂತೆ ತಡೆದು ನೇರವಾಗಿ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗೆ ತರುವುದು)
       window.switchOutputTab = function(t) {
-        ['paper', 'key', 'blueprint', 'omr'].forEach(function(x) {
-          var content = document.getElementById('tab-content-' + x);
-          if (content) content.classList.toggle('hidden', x !== t);
-
-          var btn = document.getElementById('tab-btn-' + x);
-          if (btn) {
-            btn.className = (x === t)
+        if (!t || t === 'quiz') t = 'paper'; // Quiz ಬಂದರೂ ಬ್ಲಾಂಕ್ ಆಗದೆ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ತೆರೆಯುತ್ತದೆ!
+        var tabs = ['paper', 'key', 'blueprint', 'omr'];
+        for (var i = 0; i < tabs.length; i++) {
+          var x = tabs[i];
+          var contentEl = document.getElementById('tab-content-' + x);
+          if (contentEl) {
+            if (x === t) contentEl.classList.remove('hidden');
+            else contentEl.classList.add('hidden');
+          }
+          var btnEl = document.getElementById('tab-btn-' + x);
+          if (btnEl) {
+            btnEl.className = (x === t)
               ? 'px-4 py-2 rounded-xl text-xs font-extrabold bg-white text-slate-900 shadow-sm border border-slate-200 cursor-pointer'
               : 'px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer';
           }
-        });
+        }
+        if (t === 'omr' && typeof ensureOMRScannerLaunchBannerExists === 'function') {
+          setTimeout(ensureOMRScannerLaunchBannerExists, 50);
+        }
       };
-    } catch(err) {
-      console.warn("Quiz remove notice:", err);
-    }
-    ‌
+
+      // ೫. ತಕ್ಷಣವೇ ಬ್ಲಾಂಕ್ ಸ್ಕ್ರೀನ್ ತೆಗೆದು '1. ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ' ಪ್ರದರ್ಶಿಸುವುದು
+      setTimeout(function() {
+        window.switchOutputTab('paper');
+        var dash = document.getElementById('view-dashboard');
+        if (dash && (!dash.innerHTML || dash.innerHTML.trim() === '')) {
+          if (typeof renderUltraModernDashboard === 'function') renderUltraModernDashboard();
+          if (typeof navigateToSection === 'function') navigateToSection('dashboard');
+        }
+      }, 100);
+    })();
 
     
 </script>

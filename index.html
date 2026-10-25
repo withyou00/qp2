@@ -20538,100 +20538,325 @@ window.reShareQuizFromHistory = function(quizId, title) {
 };
 
     
-// =========================================================================
-    // 🌟 SHARE & RESULTS BUTTONS RESTORED (ONLY BLANK 5TH TAB REMOVED)
-    // =========================================================================
-    (function restoreShareAndResultsFeatures() {
-      // ೧. ಕೇವಲ ಬ್ಲಾಂಕ್ ಬರುತ್ತಿದ್ದ "5. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್" ಟ್ಯಾಬ್ ಬಟನ್ ಮಾತ್ರ ತೆಗೆಯುವುದು
-      function removeBlankQuizTabOnly() {
-        var tabBtn = document.getElementById('tab-btn-quiz');
-        if (tabBtn && tabBtn.parentNode) {
-          tabBtn.parentNode.removeChild(tabBtn);
-        }
-        var tabContent = document.getElementById('tab-content-quiz');
-        if (tabContent && tabContent.parentNode) {
-          tabContent.parentNode.removeChild(tabContent);
-        }
-      }
-      removeBlankQuizTabOnly();
-      setInterval(removeBlankQuizTabOnly, 250);
 
-      // ೨. ಮೇಲ್ಭಾಗದ ಹೆಡರ್‌ನಲ್ಲಿ "ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ" ಬಟನ್ ಮರಳಿ ತರುವುದು
-      function ensureTeacherResultsNavButton() {
+
+// =========================================================================
+    // 🏆 ULTIMATE FIX: 5TH QUIZ TAB + NO BLINK + NO UNDEFINED + CLEAN ORDER
+    // =========================================================================
+    (function initPerfectStableQuizAndTabs() {
+      // ೧. ಸ್ಕ್ರೀನ್ ಬ್ಲಿಂಕ್ (ಕುಣಿಯುವುದು) ತಡೆಯಲು ಹಳೆಯ ಅನಗತ್ಯ ಟೈಮರ್‌ಗಳ ಕ್ಲಿಯರ್
+      for (var t = 1; t < 9999; t++) {
+        if (t !== window.mySafeTimer) clearInterval(t);
+      }
+
+      // ೨. ವಿದ್ಯಾರ್ಥಿ ರಿಸಲ್ಟ್‌ನಲ್ಲಿ 'undefined' ಬರದಂತೆ ನಿಖರ ಅಂಕಿಅಂಶಗಳ ಫಿಕ್ಸ್
+      var origSubmitStudentAnswers = window.submitStudentExamAnswers;
+      window.submitStudentExamAnswers = async function() {
+        var quiz = window.currentStudentQuizData;
+        if (!quiz) return;
+
+        var stName = document.getElementById('st-name-input')?.value.trim();
+        var stRoll = document.getElementById('st-roll-input')?.value.trim() || '1';
+
+        if (!stName) {
+          alert("⚠️ ದಯವಿಟ್ಟು ನಿಮ್ಮ ಪೂರ್ಣ ಹೆಸರನ್ನು ನಮೂದಿಸಿ.");
+          document.getElementById('st-name-input')?.focus();
+          return;
+        }
+
+        if (!confirm("ನೀವು ಪರೀಕ್ಷೆಯನ್ನು Submit ಮಾಡಲು ಖಚಿತವೇ?")) return;
+        showToast("⚡ ಫಲಿತಾಂಶ ಲೆಕ್ಕಹಾಕಲಾಗುತ್ತಿದೆ...", "info");
+
+        var totalScore = 0;
+        var correctCount = 0;
+        var wrongCount = 0;
+        var skippedCount = 0;
+        var reviewData = [];
+
+        quiz.questions.forEach(function(q, qIdx) {
+          var studentAnswer = "";
+          var radioChecked = document.querySelector(`input[type="radio"][name="student_ans_${qIdx}"]:checked`);
+          if (radioChecked) {
+            studentAnswer = radioChecked.value.trim();
+          } else {
+            var textInp = document.querySelector(`input[type="text"][name="student_ans_${qIdx}"]`);
+            if (textInp) studentAnswer = textInp.value.trim();
+          }
+
+          var correctKey = "";
+          var rawAns = String(q.ans || '').trim();
+          var m = rawAns.toUpperCase().match(/\(([A-D])\)/);
+          if (m) correctKey = m[1];
+          else {
+            var m2 = rawAns.toUpperCase().match(/^([A-D])\b/);
+            if (m2) correctKey = m2[1];
+            else correctKey = rawAns.toLowerCase();
+          }
+
+          var isAttempted = (studentAnswer !== "");
+          var isCorrect = false;
+
+          if (isAttempted) {
+            if (studentAnswer.toUpperCase() === correctKey.toUpperCase() || studentAnswer.toLowerCase() === correctKey.toLowerCase()) {
+              totalScore += (q.marks || 1);
+              correctCount++;
+              isCorrect = true;
+            } else {
+              wrongCount++;
+            }
+          } else {
+            skippedCount++;
+          }
+
+          reviewData.push({
+            num: q.num,
+            q: q.q,
+            isAttempted: isAttempted,
+            studentAns: isAttempted ? studentAnswer : 'ಉತ್ತರಿಸಿಲ್ಲ',
+            correctAns: q.ans || correctKey,
+            isCorrect: isCorrect,
+            marks: isCorrect ? (q.marks || 1) : 0
+          });
+        });
+
+        var percent = Math.round((totalScore / quiz.totalMarks) * 100);
+        var grade = percent >= 85 ? 'A+' : (percent >= 70 ? 'A' : (percent >= 50 ? 'B+' : (percent >= 35 ? 'B' : 'C')));
+
+        var submissionRecord = {
+          name: stName,
+          roll: stRoll,
+          score: totalScore,
+          totalMarks: quiz.totalMarks,
+          correct: correctCount,
+          wrong: wrongCount,
+          skipped: skippedCount,
+          percent: percent,
+          grade: grade,
+          submittedAt: new Date().toLocaleTimeString('kn-IN', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: Date.now(),
+          reviewData: reviewData
+        };
+
+        var submittedKey = 'wy_student_sub_' + quiz.id;
+        localStorage.setItem(submittedKey, JSON.stringify(submissionRecord));
+
+        try {
+          var subId = 'SUB_' + Date.now();
+          fetch(`${WY_FIREBASE_URL}/submissions/${quiz.id}/${subId}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(submissionRecord)
+          });
+        } catch(e) {}
+
+        window.renderStudentInstantResultAndLeaderboard(quiz, submissionRecord);
+      };
+
+      // ೩. ರಿಸಲ್ಟ್ ಸ್ಕ್ರೀನ್‌ನಲ್ಲಿ 'undefined' ಬರದಂತೆ ತಡೆದು ನೈಜ ಸಂಖ್ಯೆ ತೋರಿಸುವುದು
+      var origRenderResultScreen = window.renderStudentInstantResultAndLeaderboard;
+      window.renderStudentInstantResultAndLeaderboard = function(quiz, myResult) {
+        var container = document.getElementById('student-quiz-container');
+        if (!container) return;
+
+        // undefined ನಿವಾರಣೆ
+        var totalQCount = myResult.totalMarks || (myResult.reviewData ? myResult.reviewData.length : 89);
+        var corCount = (myResult.correct !== undefined && !isNaN(myResult.correct))
+          ? myResult.correct
+          : (myResult.reviewData ? myResult.reviewData.filter(r => r.isCorrect).length : myResult.score);
+        var wrgCount = (myResult.wrong !== undefined && !isNaN(myResult.wrong))
+          ? myResult.wrong
+          : (myResult.reviewData ? myResult.reviewData.filter(r => r.isAttempted && !r.isCorrect).length : 0);
+        var skpCount = (myResult.skipped !== undefined && !isNaN(myResult.skipped))
+          ? myResult.skipped
+          : Math.max(0, totalQCount - (corCount + wrgCount));
+
+        container.innerHTML = `
+          <div class="space-y-6 animate-fade-in pb-16">
+            <div class="bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-2xl text-center space-y-4">
+              <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center font-black text-3xl mx-auto shadow-inner">
+                🎉
+              </div>
+              <div>
+                <h2 class="text-xl sm:text-2xl font-black">ಅಭಿನಂದನೆಗಳು, ${escapeHtml(myResult.name)}!</h2>
+                <p class="text-xs text-emerald-200 font-bold">ನಿಮ್ಮ ಆನ್‌ಲೈನ್ ಪರೀಕ್ಷೆ ಯಶಸ್ವಿಯಾಗಿ ಮುಕ್ತಾಯಗೊಂಡಿದೆ</p>
+              </div>
+
+              <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 max-w-sm mx-auto space-y-1">
+                <div class="text-xs text-slate-200 font-bold">ಗಳಿಸಿದ ಒಟ್ಟು ಅಂಕಗಳು</div>
+                <div class="text-4xl sm:text-5xl font-black text-amber-300">
+                  ${myResult.score} <span class="text-xl text-white font-bold">/ ${myResult.totalMarks}</span>
+                </div>
+                <div class="text-xs font-black text-emerald-300 pt-1">ಶೇಕಡಾವಾರು: ${myResult.percent}% | ಗ್ರೇಡ್: ${myResult.grade}</div>
+              </div>
+
+              <!-- 🌟 100% ನಿಖರ ಸಂಖ್ಯೆಗಳು (No Undefined) -->
+              <div class="grid grid-cols-3 gap-2 max-w-sm mx-auto pt-2 text-xs font-black">
+                <div class="bg-emerald-500/20 p-2.5 rounded-xl border border-emerald-400/40">
+                  <div class="text-emerald-300 text-xl font-black">${corCount}</div>
+                  <div class="text-[10px] text-emerald-100 font-bold mt-0.5">ಸರಿ ಉತ್ತರ (+${corCount})</div>
+                </div>
+                <div class="bg-rose-500/20 p-2.5 rounded-xl border border-rose-400/40">
+                  <div class="text-rose-300 text-xl font-black">${wrgCount}</div>
+                  <div class="text-[10px] text-rose-100 font-bold mt-0.5">ತಪ್ಪು ಉತ್ತರ (0)</div>
+                </div>
+                <div class="bg-amber-500/20 p-2.5 rounded-xl border border-amber-400/40">
+                  <div class="text-amber-300 text-xl font-black">${skpCount}</div>
+                  <div class="text-[10px] text-amber-100 font-bold mt-0.5">ಬಿಟ್ಟ ಪ್ರಶ್ನೆಗಳು (0)</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ಸರಿ-ತಪ್ಪು ರಿವ್ಯೂ -->
+            ${(typeof renderAnswersReviewHtml === 'function') ? renderAnswersReviewHtml(quiz, myResult.reviewData) : ''}
+
+            <!-- ಲೈವ್ ಲೀಡರ್‌ಬೋರ್ಡ್ -->
+            <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-xl border border-slate-200 space-y-4">
+              <div class="flex items-center justify-between border-b pb-3">
+                <div class="flex items-center space-x-2.5">
+                  <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow">
+                    <i class="fa-solid fa-trophy"></i>
+                  </div>
+                  <div>
+                    <h3 class="font-black text-sm text-slate-900">ತರಗತಿಯ ಸಹಪಾಠಿಗಳ ಶ್ರೇಯಾಂಕ ಪಟ್ಟಿ (Leaderboard)</h3>
+                    <p class="text-[11px] text-slate-500 font-bold">ಲೈವ್ ಆಗಿ ರ‍್ಯಾಂಕ್ ವೀಕ್ಷಿಸಿ</p>
+                  </div>
+                </div>
+                <button type="button" onclick="window.refreshStudentLeaderboard('${quiz.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition">
+                  🔄 Refresh
+                </button>
+              </div>
+              <div id="live-leaderboard-table-box" class="overflow-x-auto">
+                <div class="py-6 text-center text-xs font-bold text-slate-400">ಲೋಡ್ ಆಗುತ್ತಿದೆ...</div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        window.loadAndDisplayLeaderboardTable(quiz.id, myResult.name);
+      };
+
+      // ೪. ಹೆಡರ್‌ನಲ್ಲಿ "ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು" ಆದ ನಂತರ "ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ" ಜೋಡಣೆ
+      function alignTopNavButtonsOrder() {
         var topNav = document.getElementById('top-nav-actions-container');
-        if (topNav && !document.getElementById('btn-nav-teacher-results')) {
-          var resBtn = document.createElement('button');
+        if (!topNav) return;
+
+        var resBtn = document.getElementById('btn-nav-teacher-results');
+        if (!resBtn) {
+          resBtn = document.createElement('button');
           resBtn.id = 'btn-nav-teacher-results';
           resBtn.type = 'button';
-          resBtn.onclick = function() {
-            if (typeof window.openTeacherQuizzesDashboardModal === 'function') {
-              window.openTeacherQuizzesDashboardModal();
-            } else {
-              alert("⚠️ ಇನ್ನೂ ಯಾವುದೇ ಆನ್‌ಲೈನ್ ಪರೀಕ್ಷೆಗಳನ್ನು ಕಳುಹಿಸಿಲ್ಲ.");
-            }
-          };
+          resBtn.onclick = function() { window.openTeacherQuizzesDashboardModal(); };
           resBtn.className = 'px-3 py-1.5 rounded-xl font-black text-xs bg-purple-50 text-purple-900 border border-purple-300 hover:bg-purple-100 flex items-center gap-1.5 cursor-pointer transition shadow-sm';
           resBtn.innerHTML = '<i class="fa-solid fa-square-poll-vertical text-purple-600"></i> <span>ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ</span>';
+        }
+
+        var savedPapersBtn = document.getElementById('btn-saved-papers-history');
+        if (savedPapersBtn && savedPapersBtn.parentNode === topNav) {
+          savedPapersBtn.after(resBtn); // 🌟 ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳ ನಂತರವೇ ಕೂರಿಸುವುದು
+        } else {
           topNav.appendChild(resBtn);
         }
       }
-      ensureTeacherResultsNavButton();
-      setInterval(ensureTeacherResultsNavButton, 500);
 
-      // ೩. Print ಬಟನ್ ಪಕ್ಕದಲ್ಲಿ "ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ" ಶೇರ್ ಬಟನ್ ಮರಳಿ ತರುವುದು
-      function ensureShareOnlineTestButton() {
+      // ೫. ೫ ಟ್ಯಾಬ್‌ಗಳ ಕ್ರಮಬದ್ಧ ಜೋಡಣೆ (1.ಪತ್ರಿಕೆ, 2.ಉತ್ತರ, 3.ನೀಲನಕ್ಷೆ, 4.OMR, 5.ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್)
+      window.setupAllOutputTabsWithQuiz = function() {
+        var tabsContainer = document.querySelector('#output-section .flex.items-center.space-x-2');
+        if (!tabsContainer) return;
+
+        // ಹಳದಿ ಸೆಟ್ ಬಾರ್‌ನಿಂದ ತಪ್ಪಾಗಿ ಸೇರಿದ್ದ ಬಟನ್ ತೆಗೆಯುವುದು
+        var strayBtn = document.querySelector('#wy-exam-set-bar #tab-btn-quiz');
+        if (strayBtn) strayBtn.remove();
+
+        // ೪. OMR ಶೀಟ್
+        if (!document.getElementById('tab-btn-omr')) {
+          var omrBtn = document.createElement('button');
+          omrBtn.id = 'tab-btn-omr';
+          omrBtn.className = 'px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer';
+          omrBtn.onclick = function() { window.switchOutputTab('omr'); };
+          omrBtn.innerHTML = '<i class="fa-solid fa-circle-dot text-amber-600"></i> <span>4. OMR ಶೀಟ್</span>';
+          tabsContainer.appendChild(omrBtn);
+        }
+
+        // 🌟 ೫. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ (೫ನೇ ಟ್ಯಾಬ್ ಆಗಿ ಸೇರ್ಪಡೆ)
+        var quizBtn = document.getElementById('tab-btn-quiz');
+        if (!quizBtn) {
+          quizBtn = document.createElement('button');
+          quizBtn.id = 'tab-btn-quiz';
+          quizBtn.className = 'px-4 py-2 rounded-xl text-xs font-extrabold text-purple-700 hover:text-purple-900 cursor-pointer bg-purple-50 border border-purple-200';
+          quizBtn.onclick = function() { window.switchOutputTab('quiz'); };
+          quizBtn.innerHTML = '<i class="fa-solid fa-share-nodes text-purple-600"></i> <span>5. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್</span>';
+          tabsContainer.appendChild(quizBtn);
+        } else if (quizBtn.parentNode !== tabsContainer) {
+          tabsContainer.appendChild(quizBtn);
+        }
+
+        // ಬಲಭಾಗದ ಪ್ರಿಂಟ್ ಪಕ್ಕದಲ್ಲಿ "ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ" ಬಟನ್
         var actionContainer = document.querySelector('#output-section .no-print');
         if (actionContainer && !document.getElementById('btn-share-online-quiz')) {
           var shareBtn = document.createElement('button');
           shareBtn.id = 'btn-share-online-quiz';
           shareBtn.type = 'button';
-          shareBtn.onclick = function() {
-            if (typeof window.openCreateOnlineQuizModal === 'function') {
-              window.openCreateOnlineQuizModal();
-            }
-          };
-          shareBtn.className = 'px-4 py-2 rounded-xl text-xs font-black text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:shadow-lg transition flex items-center gap-1.5 cursor-pointer shadow-md border border-purple-400';
+          shareBtn.onclick = function() { window.openCreateOnlineQuizModal(); };
+          shareBtn.className = 'px-4 py-2 rounded-xl text-xs font-black text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:shadow-lg transition flex items-center gap-1.5 cursor-pointer shadow-md border border-purple-400 mr-2';
           shareBtn.innerHTML = '<i class="fa-solid fa-share-nodes text-amber-300"></i> <span>ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ</span>';
-          
-          var printBtn = actionContainer.querySelector('button[onclick*="exportCurrentTabToPDF"], button[onclick*="print"]');
-          if (printBtn && printBtn.parentNode) {
-            printBtn.parentNode.insertBefore(shareBtn, printBtn);
-          } else {
-            actionContainer.appendChild(shareBtn);
-          }
-        }
-      }
-      ensureShareOnlineTestButton();
-      setInterval(ensureShareOnlineTestButton, 500);
 
-      // ೪. ಟ್ಯಾಬ್ ಸ್ವಿಚರ್ (ಕೇವಲ ೪ ಮುಖ್ಯ ಟ್ಯಾಬ್‌ಗಳು: 1.ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ, 2.ಉತ್ತರ ಪತ್ರಿಕೆ, 3.ನೀಲನಕ್ಷೆ, 4.OMR)
+          var printBtn = actionContainer.querySelector('button[onclick*="exportCurrentTabToPDF"], button[onclick*="print"]');
+          if (printBtn) printBtn.before(shareBtn);
+          else actionContainer.appendChild(shareBtn);
+        }
+
+        // ೫ನೇ ಟ್ಯಾಬ್ ಕಂಟೆಂಟ್ ಡಿವ್
+        var printArea = document.getElementById('print-area');
+        if (printArea && !document.getElementById('tab-content-quiz')) {
+          var qDiv = document.createElement('div');
+          qDiv.id = 'tab-content-quiz';
+          qDiv.className = 'hidden';
+          qDiv.innerHTML = '<div id="rendered-quiz-panel"></div>';
+          printArea.appendChild(qDiv);
+        }
+      };
+
+      // ೬. ೫ ಟ್ಯಾಬ್‌ಗಳ ಸ್ವಿಚಿಂಗ್ (೫ನೇ ಟ್ಯಾಬ್ ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಬ್ಲಾಂಕ್ ಆಗುವುದಿಲ್ಲ)
       window.switchOutputTab = function(t) {
-        if (!t || t === 'quiz') t = 'paper';
-        var tabs = ['paper', 'key', 'blueprint', 'omr'];
-        for (var i = 0; i < tabs.length; i++) {
-          var x = tabs[i];
+        t = t || 'paper';
+        var tabs = ['paper', 'key', 'blueprint', 'omr', 'quiz'];
+
+        tabs.forEach(function(x) {
           var contentEl = document.getElementById('tab-content-' + x);
-          if (contentEl) {
-            if (x === t) contentEl.classList.remove('hidden');
-            else contentEl.classList.add('hidden');
-          }
+          if (contentEl) contentEl.classList.toggle('hidden', x !== t);
+
           var btnEl = document.getElementById('tab-btn-' + x);
           if (btnEl) {
             btnEl.className = (x === t)
               ? 'px-4 py-2 rounded-xl text-xs font-extrabold bg-white text-slate-900 shadow-sm border border-slate-200 cursor-pointer'
               : 'px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer';
           }
+        });
+
+        // ೫ನೇ ಟ್ಯಾಬ್ ಓಪನ್ ಆದಾಗ ತಕ್ಷಣ ಲಿಂಕ್ ಮತ್ತು ವಿವರಗಳು ಮೂಡುತ್ತವೆ
+        if (t === 'quiz') {
+          var allQ = appState.activeGeneratedQuestions || [];
+          var quizId = appState.activeQuizId || 'QZ-' + Math.floor(100000 + Math.random() * 900000);
+          appState.activeQuizId = quizId;
+          var school = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+          var subj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+          var grade = document.getElementById('cfg-class')?.value || '8';
+          var marks = allQ.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+          var link = `${window.location.origin}${window.location.pathname}?quiz=${quizId}`;
+
+          renderOnlineQuizTabPanel({ id: quizId, title: `${grade}ನೇ ತರಗತಿ ${subj}`, school: school, totalMarks: marks }, link);
         }
+
         if (t === 'omr' && typeof ensureOMRScannerLaunchBannerExists === 'function') {
           setTimeout(ensureOMRScannerLaunchBannerExists, 50);
         }
       };
 
-      // ೫. ಆರಂಭದಲ್ಲಿ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ತೆರೆದಿರುವುದು
-      setTimeout(function() {
-        window.switchOutputTab('paper');
-      }, 100);
+      // ಆಟೋ ರನ್ (ಸ್ಥಿರವಾಗಿ ಒಮ್ಮೆ ಮಾತ್ರ ರನ್ ಮಾಡುವುದು - No Blinking)
+      alignTopNavButtonsOrder();
+      window.setupAllOutputTabsWithQuiz();
     })();
+    
     
 </script>
 </body>

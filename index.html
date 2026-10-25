@@ -20542,18 +20542,17 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
 // =========================================================================
-    // 🌟 MASTER FIX: CLASS 1 CHAPTERS PERSISTENCE + STABLE TABS & LEADERBOARD
+    // 🌟 COMPLETE MASTER FIX: PART 1 / PART 2 SEPARATION + CLEAN TABS & RESULTS
     // =========================================================================
-    (function stabilizeEverythingAndFixClass1() {
-      // ೧. ಸ್ಕ್ರೀನ್ ಬ್ಲಿಂಕ್ (ಕುಣಿಯುವುದು) ತಡೆಯಲು ಹಳೆಯ ಟೈಮರ್‌ಗಳ ಸಂಪೂರ್ಣ ಕ್ಲಿಯರ್
+    (function fixPartSeparationAndTabs() {
+      // ೧. ಸ್ಕ್ರೀನ್ ಬ್ಲಿಂಕ್ ನಿಲ್ಲಿಸಲು ಹಳೆಯ ಟೈಮರ್‌ಗಳ ಕ್ಲಿಯರ್
       for (var t = 1; t < 9999; t++) {
         if (t !== window.mySafeTimer) clearInterval(t);
       }
 
-      // ೨. ರೇಸ್-ಕಂಡೀಷನ್ ತಡೆಗಟ್ಟಲು ಯುನಿಕ್ ರಿಕ್ವೆಸ್ಟ್ ಐಡಿ (Request ID Tracker)
       window.wy_active_fetch_id = 0;
 
-      // ೩. 1ನೇ ತರಗತಿ (ನಲಿಕಲಿ) ಸೇರಿದಂತೆ ಎಲ್ಲಾ ತರಗತಿಗಳ ಪಾಠಗಳು ಮಾಯವಾಗದಂತೆ ಮಾಸ್ಟರ್ ಲೋಡರ್
+      // ೨. ಭಾಗ ೧ ಮತ್ತು ಭಾಗ ೨ ಅನ್ನು ನಿಖರವಾಗಿ ಪ್ರತ್ಯೇಕಿಸಿ ಲೋಡ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಲೋಡರ್
       window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part) {
         window.wy_active_fetch_id = (window.wy_active_fetch_id || 0) + 1;
         var currentRequestId = window.wy_active_fetch_id;
@@ -20563,43 +20562,16 @@ window.reShareQuizFromHistory = function(quizId, title) {
         if (rawSubject.includes('SAT')) subjectKey = 'nmms_sat';
         if (rawSubject.includes('GMAT') || rawSubject.includes('MAT')) subjectKey = 'nmms_gmat';
 
-        var isNalikali = (gradeStr === '1' || gradeStr === '2' || gradeStr === '3');
         var isCompetitive = (subjectKey === 'nmms_sat' || subjectKey === 'nmms_gmat' || subjectKey === 'morarji_entrance' || subjectKey === 'adarsha_entrance');
+        var partLabel = part === 'part1' ? 'ಭಾಗ ೧' : (part === 'part2' ? 'ಭಾಗ ೨' : 'ಸಂಪೂರ್ಣ ಪಠ್ಯಕ್ರಮ');
 
-        showToast(`🌐 ${gradeStr}ನೇ ತರಗತಿ ${rawSubject} ಲೋಡ್ ಆಗುತ್ತಿದೆ...`, 'info');
+        showToast(`🌐 ${gradeStr}ನೇ ತರಗತಿ ${rawSubject} (${partLabel}) ಲೋಡ್ ಆಗುತ್ತಿದೆ...`, 'info');
 
         try {
           var loadedList = [];
 
-          // 🌟 ಎ) ನಲಿಕಲಿ (೧, ೨, ೩ನೇ ತರಗತಿ) - part1, part2 ಗೊಂದಲವಿಲ್ಲದೆ ನೇರವಾಗಿ kannada.json ಫೆಚ್ ಮಾಡುವುದು
-          if (isNalikali) {
-            var naliKaliFiles = [
-              `class_${gradeStr}/${subjectKey}.json`,
-              `kannada_medium/class_${gradeStr}/${subjectKey}.json`,
-              `kannada_medium/${subjectKey}.json`,
-              `${subjectKey}.json`,
-              `kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`,
-              `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`
-            ];
-
-            for (var i = 0; i < naliKaliFiles.length; i++) {
-              if (currentRequestId !== window.wy_active_fetch_id) return; // ಹಳೆಯ ರಿಕ್ವೆಸ್ಟ್ ಕ್ಯಾನ್ಸಲ್
-              var rawUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(naliKaliFiles[i])}?t=${Date.now()}`;
-              try {
-                var res = await fetch(rawUrl);
-                if (res.ok) {
-                  var text = await res.text();
-                  var data = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(text) : JSON.parse(text);
-                  if (Array.isArray(data) && data.length > 0) {
-                    loadedList = data;
-                    break;
-                  }
-                }
-              } catch(e) {}
-            }
-          }
-          // ಬಿ) ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು (NMMS)
-          else if (isCompetitive) {
+          // ಎ) ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು (NMMS)
+          if (isCompetitive) {
             var compFiles = ['nmms_sat.json', 'nmms_gmat.json', 'nmms_history.json', 'nmms_geography.json', 'nmms_science.json'];
             if (subjectKey === 'nmms_gmat') compFiles = ['nmms_gmat.json'];
 
@@ -20621,34 +20593,77 @@ window.reShareQuizFromHistory = function(quizId, title) {
               }
             }
           }
-          // ಸಿ) ಸಾಮಾನ್ಯ ಪ್ರೌಢಶಾಲಾ ವಿಷಯಗಳು (೪ ರಿಂದ ೧೦)
+          // 🌟 ಬಿ) ಎಲ್ಲಾ ತರಗತಿಗಳು (1ನೇ ತರಗತಿ ಸೇರಿದಂತೆ) ಭಾಗ ೧ & ಭಾಗ ೨ ನಿಖರ ಫೈಲ್ ಶೋಧನೆ
           else {
             var targetFiles = [];
-            if (part === 'part1') targetFiles = [`${subjectKey}_part1.json`, `${subjectKey}_part_1.json`, `${subjectKey}.json`];
-            else if (part === 'part2') targetFiles = [`${subjectKey}_part2.json`, `${subjectKey}_part_2.json`, `${subjectKey}.json`];
-            else targetFiles = [`${subjectKey}_part1.json`, `${subjectKey}_part2.json`, `${subjectKey}.json`];
+
+            if (part === 'part1') {
+              // ಕೇವಲ ಭಾಗ ೧ ರ ಫೈಲ್‌ಗಳು ಮಾತ್ರ
+              targetFiles = [
+                `class_${gradeStr}/${subjectKey}_part1.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`,
+                `class_${gradeStr}/${subjectKey}_part_1.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part_1.json`,
+                `kannada_medium/${subjectKey}_part1.json`,
+                `${subjectKey}_part1.json`
+              ];
+            } else if (part === 'part2') {
+              // 🌟 ಕೇವಲ ಭಾಗ ೨ ರ ಫೈಲ್‌ಗಳು ಮಾತ್ರ (ಭಾಗ ೧ ಬರುವುದಿಲ್ಲ!)
+              targetFiles = [
+                `class_${gradeStr}/${subjectKey}_part2.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`,
+                `class_${gradeStr}/${subjectKey}_part_2.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part_2.json`,
+                `kannada_medium/${subjectKey}_part2.json`,
+                `${subjectKey}_part2.json`
+              ];
+            } else {
+              // ಸಂಪೂರ್ಣ ಪಠ್ಯಕ್ರಮ (ಭಾಗ ೧ + ಭಾಗ ೨)
+              targetFiles = [
+                `class_${gradeStr}/${subjectKey}_part1.json`,
+                `class_${gradeStr}/${subjectKey}_part2.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`,
+                `class_${gradeStr}/${subjectKey}.json`,
+                `kannada_medium/class_${gradeStr}/${subjectKey}.json`,
+                `${subjectKey}.json`
+              ];
+            }
 
             for (var tf = 0; tf < targetFiles.length; tf++) {
+              if (currentRequestId !== window.wy_active_fetch_id) return;
               var tFile = targetFiles[tf];
-              var tPaths = [`kannada_medium/class_${gradeStr}/${tFile}`, `kannada_medium/${tFile}`, `class_${gradeStr}/${tFile}`, `${tFile}`];
-              for (var tp = 0; tp < tPaths.length; tp++) {
-                var tUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(tPaths[tp])}?t=${Date.now()}`;
-                try {
-                  var tRes = await fetch(tUrl);
-                  if (tRes.ok) {
-                    var tData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await tRes.text()) : [];
-                    if (Array.isArray(tData) && tData.length > 0) {
+              var tUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(tFile)}?t=${Date.now()}`;
+              try {
+                var tRes = await fetch(tUrl);
+                if (tRes.ok) {
+                  var tData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await tRes.text()) : [];
+                  if (Array.isArray(tData) && tData.length > 0) {
+                    if (part === 'all') {
+                      loadedList.push(...tData);
+                    } else {
                       loadedList = tData;
-                      break;
+                      break; // ನಿಖರ ಭಾಗ ಸಿಕ್ಕ ತಕ್ಷಣ ನಿಲ್ಲಿಸುವುದು
                     }
                   }
-                } catch(e) {}
+                }
+              } catch(e) {}
+            }
+
+            // ಒಂದು ವೇಳೆ ಒಂದೇ ಫೈಲ್‌ನಲ್ಲಿದ್ದು 'part' ಟ್ಯಾಗ್ ಹೊಂದಿದ್ದರೆ ಫಿಲ್ಟರ್ ಮಾಡುವುದು
+            if (loadedList.length > 0 && (part === 'part1' || part === 'part2')) {
+              var hasPartTags = loadedList.some(q => q.part || q.sem || q.semester);
+              if (hasPartTags) {
+                loadedList = loadedList.filter(function(q) {
+                  var p = String(q.part || q.sem || q.semester || '').toLowerCase().trim();
+                  if (part === 'part1') return p === 'part1' || p === '1' || p.includes('1');
+                  if (part === 'part2') return p === 'part2' || p === '2' || p.includes('2');
+                  return true;
+                });
               }
-              if (loadedList.length > 0 && part !== 'all') break;
             }
           }
 
-          // 🌟 ರಿಕ್ವೆಸ್ಟ್ ಲೇಟ್ ಆಗಿ ಬಂದರೆ ಅಥವಾ ಹಳೆಯದಾಗಿದ್ದರೆ ಡ್ರಾಪ್ ಮಾಡುವುದು (Zero Disappearance Guarantee)
           if (currentRequestId !== window.wy_active_fetch_id) return;
 
           if (loadedList.length > 0) {
@@ -20664,19 +20679,18 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
             window.renderChapterCheckboxes();
             if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats();
-            showToast(`⚡ ${gradeStr}ನೇ ತರಗತಿ ${appState.activeSubjectQuestions.length} ಪ್ರಶ್ನೆಗಳು ಸಿದ್ಧವಾಗಿವೆ!`, 'success');
+            showToast(`⚡ ${gradeStr}ನೇ ತರಗತಿ (${partLabel}) ${appState.activeSubjectQuestions.length} ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗಿವೆ!`, 'success');
           } else {
-            // ಹೊಸ ಪ್ರಶ್ನೆ ಸಿಗದಿದ್ದರೆ ಈಗಾಗಲೇ ಇರುವ ಪಾಠಗಳನ್ನು ಸುಮ್ಮನೆ ಡಿಲೀಟ್ ಮಾಡಬೇಡಿ
-            if (!appState.activeSubjectQuestions || appState.activeSubjectQuestions.length === 0) {
-              window.renderChapterCheckboxes();
-            }
+            appState.activeSubjectQuestions = [];
+            window.renderChapterCheckboxes();
+            showToast(`⚠️ ${gradeStr}ನೇ ತರಗತಿಯ '${partLabel}' ಫೈಲ್ GitHub ನಲ್ಲಿ ಕಂಡುಬಂದಿಲ್ಲ.`, 'error');
           }
         } catch (err) {
           console.error("Load error:", err);
         }
       };
 
-      // ೪. ಏಕೈಕ ಮತ್ತು ಸ್ವಚ್ಛ ವಿಷಯ/ಭಾಗ ಬದಲಾವಣೆ ನಿಯಂತ್ರಕ (NO Duplicate Triggering)
+      // ೩. ಭಾಗ ಅಥವಾ ವಿಷಯ ಬದಲಾದಾಗ ಕರೆದೊಯ್ಯುವ ಕಂಟ್ರೋಲರ್
       window.handleSubjectOrPartChange = function() {
         var gradeSelect = document.getElementById('cfg-class');
         var subjSelect = document.getElementById('cfg-subject');
@@ -20686,20 +20700,13 @@ window.reShareQuizFromHistory = function(quizId, title) {
         var grade = gradeSelect ? gradeSelect.value : '1';
         var subj = subjSelect ? subjSelect.value : 'ಕನ್ನಡ (Kannada)';
         var medium = mediumSelect ? mediumSelect.value : 'kannada_medium';
-        var part = partSelect ? partSelect.value : 'part2';
+        var part = partSelect ? partSelect.value : 'part1';
 
         if (!subj || subj.includes('🔒')) return;
-
-        // ನಲಿಕಲಿಗೆ ಭಾಗ ಲಾಕ್ ಮಾಡುವುದು
-        var cleanG = String(grade).replace(/\D/g, '');
-        if (cleanG === '1' || cleanG === '2' || cleanG === '3') {
-          part = 'all';
-        }
 
         window.loadQuestionsFromGitHub(medium, grade, subj, part);
       };
 
-      // ೫. ತರಗತಿ ಬದಲಾದಾಗ ಸರಿಯಾದ ವಿಷಯಗಳನ್ನು ತರುವುದು
       window.handleMediumOrClassChange = function() {
         if (typeof window.updateSubjectOptionsForClass === 'function') {
           window.updateSubjectOptionsForClass();
@@ -20707,12 +20714,11 @@ window.reShareQuizFromHistory = function(quizId, title) {
         window.handleSubjectOrPartChange();
       };
 
-      // ೬. ಟ್ಯಾಬ್‌ಗಳ ಸ್ವಚ್ಛ ಜೋಡಣೆ (1.ಪತ್ರಿಕೆ 2.ಉತ್ತರ 3.ನೀಲನಕ್ಷೆ 4.OMR + ಕೊನೆಯಲ್ಲಿ 'ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ')
+      // ೪. ಟ್ಯಾಬ್‌ಗಳ ಸ್ವಚ್ಛ ಜೋಡಣೆ (ಕೊನೆಯಲ್ಲಿ 'ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ')
       function alignTabsCleanly() {
         var tabsContainer = document.querySelector('#output-section .flex.items-center.space-x-2');
         if (!tabsContainer) return;
 
-        // ಹಳೆಯ ಬೇಡವಾದ ಟ್ಯಾಬ್‌ಗಳನ್ನು ತೆಗೆಯುವುದು
         var badTabs = document.querySelectorAll('#tab-btn-quiz, #wy-exam-set-bar #tab-btn-quiz, #wy-exam-set-bar #btn-share-online-quiz');
         badTabs.forEach(function(el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
 
@@ -20743,10 +20749,10 @@ window.reShareQuizFromHistory = function(quizId, title) {
         if (btnKey) tabsContainer.appendChild(btnKey);
         if (btnBlueprint) tabsContainer.appendChild(btnBlueprint);
         if (btnOmr) tabsContainer.appendChild(btnOmr);
-        tabsContainer.appendChild(shareBtn); // ಕೊನೆಯಲ್ಲಿ ಕ್ಲೀನ್ ಆಗಿ ಕೂರುತ್ತದೆ
+        tabsContainer.appendChild(shareBtn);
       }
 
-      // ೭. ಹೆಡರ್‌ನಲ್ಲಿ "ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು" ನಂತರವೇ "ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ" ಬಟನ್ ಇಡುವುದು
+      // ೫. ಹೆಡರ್‌ನಲ್ಲಿ "ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು" ನಂತರವೇ "ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ" ಬಟನ್ ಇಡುವುದು
       function alignHeaderResultsButton() {
         var topNav = document.getElementById('top-nav-actions-container');
         if (!topNav) return;
@@ -20769,80 +20775,8 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
       }
 
-      // ೮. ವಿದ್ಯಾರ್ಥಿ ರಿಸಲ್ಟ್‌ನಲ್ಲಿ 'undefined' ಬರದಂತೆ ನೈಜ ಸಂಖ್ಯೆಗಳ ಲೆಕ್ಕಾಚಾರ
-      window.renderStudentInstantResultAndLeaderboard = function(quiz, myResult) {
-        var container = document.getElementById('student-quiz-container');
-        if (!container) return;
-
-        var totalQCount = myResult.totalMarks || (myResult.reviewData ? myResult.reviewData.length : 89);
-        var corCount = (myResult.correct !== undefined && !isNaN(myResult.correct))
-          ? myResult.correct
-          : (myResult.reviewData ? myResult.reviewData.filter(r => r.isCorrect).length : (myResult.score || 0));
-        var wrgCount = (myResult.wrong !== undefined && !isNaN(myResult.wrong))
-          ? myResult.wrong
-          : (myResult.reviewData ? myResult.reviewData.filter(r => r.isAttempted && !r.isCorrect).length : 0);
-        var skpCount = (myResult.skipped !== undefined && !isNaN(myResult.skipped))
-          ? myResult.skipped
-          : Math.max(0, totalQCount - (corCount + wrgCount));
-
-        container.innerHTML = `
-          <div class="space-y-6 animate-fade-in pb-16">
-            <div class="bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-2xl text-center space-y-4">
-              <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center font-black text-3xl mx-auto shadow-inner">🎉</div>
-              <div>
-                <h2 class="text-xl sm:text-2xl font-black">ಅಭಿನಂದನೆಗಳು, ${escapeHtml(myResult.name)}!</h2>
-                <p class="text-xs text-emerald-200 font-bold">ನಿಮ್ಮ ಆನ್‌ಲೈನ್ ಪರೀಕ್ಷೆ ಯಶಸ್ವಿಯಾಗಿ ಮುಕ್ತಾಯಗೊಂಡಿದೆ</p>
-              </div>
-              <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 max-w-sm mx-auto space-y-1">
-                <div class="text-xs text-slate-200 font-bold">ಗಳಿಸಿದ ಒಟ್ಟು ಅಂಕಗಳು</div>
-                <div class="text-4xl sm:text-5xl font-black text-amber-300">
-                  ${myResult.score} <span class="text-xl text-white font-bold">/ ${myResult.totalMarks}</span>
-                </div>
-                <div class="text-xs font-black text-emerald-300 pt-1">ಶೇಕಡಾವಾರು: ${myResult.percent}% | ಗ್ರೇಡ್: ${myResult.grade}</div>
-              </div>
-              <div class="grid grid-cols-3 gap-2 max-w-sm mx-auto pt-2 text-xs font-black">
-                <div class="bg-emerald-500/20 p-2.5 rounded-xl border border-emerald-400/40">
-                  <div class="text-emerald-300 text-xl font-black">${corCount}</div>
-                  <div class="text-[10px] text-emerald-100 font-bold mt-0.5">ಸರಿ ಉತ್ತರ (+${corCount})</div>
-                </div>
-                <div class="bg-rose-500/20 p-2.5 rounded-xl border border-rose-400/40">
-                  <div class="text-rose-300 text-xl font-black">${wrgCount}</div>
-                  <div class="text-[10px] text-rose-100 font-bold mt-0.5">ತಪ್ಪು ಉತ್ತರ (0)</div>
-                </div>
-                <div class="bg-amber-500/20 p-2.5 rounded-xl border border-amber-400/40">
-                  <div class="text-amber-300 text-xl font-black">${skpCount}</div>
-                  <div class="text-[10px] text-amber-100 font-bold mt-0.5">ಬಿಟ್ಟ ಪ್ರಶ್ನೆಗಳು (0)</div>
-                </div>
-              </div>
-            </div>
-            ${(typeof renderAnswersReviewHtml === 'function') ? renderAnswersReviewHtml(quiz, myResult.reviewData) : ''}
-            <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-xl border border-slate-200 space-y-4">
-              <div class="flex items-center justify-between border-b pb-3">
-                <div class="flex items-center space-x-2.5">
-                  <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow"><i class="fa-solid fa-trophy"></i></div>
-                  <div>
-                    <h3 class="font-black text-sm text-slate-900">ತರಗತಿಯ ಸಹಪಾಠಿಗಳ ಶ್ರೇಯಾಂಕ ಪಟ್ಟಿ (Leaderboard)</h3>
-                    <p class="text-[11px] text-slate-500 font-bold">ಲೈವ್ ಆಗಿ ರ‍್ಯಾಂಕ್ ವೀಕ್ಷಿಸಿ</p>
-                  </div>
-                </div>
-                <button type="button" onclick="window.refreshStudentLeaderboard('${quiz.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition">🔄 Refresh</button>
-              </div>
-              <div id="live-leaderboard-table-box" class="overflow-x-auto"><div class="py-6 text-center text-xs font-bold text-slate-400">ಶ್ರೇಯಾಂಕ ಪಟ್ಟಿ ಲೋಡ್ ಆಗುತ್ತಿದೆ...</div></div>
-            </div>
-          </div>
-        `;
-        window.loadAndDisplayLeaderboardTable(quiz.id, myResult.name);
-      };
-
-      // ತಕ್ಷಣವೇ ಅನ್ವಯಿಸುವುದು
       alignTabsCleanly();
       alignHeaderResultsButton();
-
-      // ಒಂದು ವೇಳೆ 1ನೇ ತರಗತಿ ಈಗಾಗಲೇ ಸೆಲೆಕ್ಟ್ ಆಗಿದ್ದರೆ ಪಾಠಗಳನ್ನು ತಕ್ಷಣ ಸ್ಥಿರವಾಗಿ ತರುವುದು
-      var curCls = document.getElementById('cfg-class')?.value;
-      if (curCls === '1') {
-        window.handleSubjectOrPartChange();
-      }
     })();
     
     

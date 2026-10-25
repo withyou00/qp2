@@ -20998,11 +20998,11 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
 
-
+// =========================================================================
+    // 🌟 COMPLETE LIFETIME MASTER SUITE: AUTO-REPLACE SAVED PAPERS (10/10 FIFO)
+    // + MAP DRAWING BOX + LBA CHAPTER NAME + STRICT PART 1/2 + ALL TABS
     // =========================================================================
-    // 🌟 COMPLETE MASTER SUITE: MAP/DIAGRAM DRAWING BOX + LBA + NALI-KALI + TABS
-    // =========================================================================
-    (function installCompleteFinalMasterFix() {
+    (function installCompleteLifetimeMasterSuite() {
       // ೧. ಸ್ಕ್ರೀನ್ ಬ್ಲಿಂಕ್ ತಡೆಯಲು ಹಳೆಯ ಟೈಮರ್‌ಗಳ ಕ್ಲಿಯರ್
       for (var t = 1; t < 9999; t++) {
         if (t !== window.mySafeTimer) clearInterval(t);
@@ -21010,7 +21010,86 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
       window.wy_active_fetch_id = 0;
 
-      // ೨. ನಕ್ಷೆ ಮತ್ತು ಚಿತ್ರ ಬಿಡಿಸಲು ಖಾಲಿ ಬಾಕ್ಸ್ ಟಾಗಲ್ ಫಂಕ್ಷನ್‌ಗಳು
+      // =======================================================================
+      // ೨. ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳ ಆಟೋ-ರೀಪ್ಲೇಸ್ ಇಂಜಿನ್ (ಹಳೆಯದು ಡಿಲೀಟ್ ಆಗಿ ಹೊಸದು ಸೇವ್ ಆಗಲು)
+      // =======================================================================
+      window.autoSaveGeneratedPaperToLocalStorage = function(generatedQuestions, headerHtml) {
+        if (!generatedQuestions || generatedQuestions.length === 0) return;
+
+        try {
+          var session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+          var userKey = session ? (cleanAuthPhone(session.mobile || session.dise) || 'user') : 'local_teacher';
+          var storageKey = 'wy_local_saved_papers_' + userKey;
+
+          var history = [];
+          try {
+            history = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            if (!Array.isArray(history)) history = [];
+          } catch (e) { history = []; }
+
+          var rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+          var grade = document.getElementById('cfg-class')?.value || '8';
+          var examType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+          var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+          var totalMarks = generatedQuestions.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
+
+          var now = new Date();
+          var dateFormatted = now.toLocaleDateString('kn-IN', { day: 'numeric', month: 'short' });
+          var timeFormatted = now.toLocaleTimeString('kn-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+          // ಮೆಮೊರಿ ಓವರ್‌ಫ್ಲೋ ಆಗದಂತೆ ಲೈಟ್‌ವೈಟ್ ಸ್ನ್ಯಾಪ್‌ಶಾಟ್
+          var newPaperRecord = {
+            id: Date.now(),
+            savedAt: `${dateFormatted}, ${timeFormatted}`,
+            title: `${grade}ನೇ ತರಗತಿ ${rawSubj}`,
+            subject: rawSubj,
+            grade: grade,
+            examType: examType,
+            examDate: examDate,
+            totalMarks: totalMarks,
+            questionsCount: generatedQuestions.length,
+            headerHtml: headerHtml,
+            questionsSnapshot: generatedQuestions.map(function(q) {
+              return {
+                id: q.id, q: q.q, a: q.a, b: q.b, c: q.c, d: q.d, ans: q.ans,
+                marks: q.marks, type: q.type, chapter: q.chapter, obj: q.obj,
+                image: q.image || q.img || null,
+                img_a: q.img_a || null, img_b: q.img_b || null, img_c: q.img_c || null, img_d: q.img_d || null,
+                customLinesCount: q.customLinesCount, isDrawingBox: q.isDrawingBox, drawingBoxHeight: q.drawingBoxHeight
+              };
+            })
+          };
+
+          // 🌟 ಹೊಸ ಪತ್ರಿಕೆಯನ್ನು #1 ಸ್ಥಾನದಲ್ಲಿ ಸೇರಿಸುವುದು
+          history.unshift(newPaperRecord);
+
+          // 🌟 10 ಪತ್ರಿಕೆಗಳ ಮಿತಿ: 10ಕ್ಕಿಂತ ಹೆಚ್ಚಾದರೆ ಅತಿ ಹಳೆಯ ಪತ್ರಿಕೆಯನ್ನು ತಾನಾಗಿಯೇ ತೆಗೆದುಹಾಕುವುದು (Auto-Replace FIFO)
+          if (history.length > 10) {
+            history = history.slice(0, 10);
+          }
+
+          // 🌟 ಬ್ರೌಸರ್ ಮೆಮೊರಿ ಸುರಕ್ಷಿತ ಸೇವ್ (ಕೋಟಾ ಫುಲ್ ಆಗದಂತೆ ಹಳೆಯದನ್ನು ಡಿಲೀಟ್ ಮಾಡಿ ಹೊಸದನ್ನು ಸೇವ್ ಮಾಡುವುದು)
+          var saved = false;
+          while (history.length > 0 && !saved) {
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(history));
+              saved = true;
+            } catch (quotaErr) {
+              history.pop(); // ಮೆಮೊರಿ ಸಾಲದಿದ್ದರೆ ಕೊನೆಯ ಹಳೆಯ ಪತ್ರಿಕೆಯನ್ನು ತೆಗೆದು ಮರುಪ್ರಯತ್ನ
+            }
+          }
+
+          if (typeof updateSavedHistoryButtonBadge === 'function') {
+            updateSavedHistoryButtonBadge();
+          }
+        } catch (err) {
+          console.warn("Auto save error:", err);
+        }
+      };
+
+      // =======================================================================
+      // ೩. ನಕ್ಷೆ/ಚಿತ್ರಗಳಿಗೆ ಖಾಲಿ ಬಾಕ್ಸ್ (DRAWING BOX) ಕಂಟ್ರೋಲರ್‌ಗಳು
+      // =======================================================================
       window.toggleDrawingBoxMode = function(qIndex) {
         var q = (appState.activeGeneratedQuestions || [])[qIndex];
         if (!q) return;
@@ -21053,7 +21132,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         showToast(`📏 ಬಾಕ್ಸ್ ಎತ್ತರ: ${q.drawingBoxHeight}px`, 'info');
       };
 
-      // ೩. 20 ಅಂಕದ ಪತ್ರಿಕೆಗೆ ಪೂರ್ಣ ಪುಟ ತುಂಬುವ ಸುಂದರ CSS
+      // ೪. 20 ಅಂಕದ ಪತ್ರಿಕೆಗೆ ಪೂರ್ಣ ಪುಟ ತುಂಬುವ CSS
       var oldStyle20m = document.getElementById('wy-20m-spread-styles');
       if (oldStyle20m) oldStyle20m.remove();
 
@@ -21072,7 +21151,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
       `;
       document.head.appendChild(newStyle20m);
 
-      // ೪. LBA ಪರೀಕ್ಷೆಗೆ ಮಾತ್ರ ಪಾಠದ ಹೆಸರು ಬರುವ ಹೆಡರ್
+      // ೫. LBA ಪರೀಕ್ಷೆಗೆ ಮಾತ್ರ ಪಾಠದ ಹೆಸರು ಬರುವ ಹೆಡರ್
       window.generateOfficialBoardHeader = function(schoolName, subject, grade, examType, marks, examDate) {
         var activeSet = appState.currentExamSet || 'A';
         var isLBA = String(examType).includes('LBA') || String(examType).includes('ಘಟಕ');
@@ -21122,7 +21201,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         `;
       };
 
-      // ೫. ಪ್ರೌಢಶಾಲೆ ಪತ್ರಿಕೆ ರೆಂಡರರ್ (ನಕ್ಷೆ/ಚಿತ್ರಗಳಿಗೆ ಖಾಲಿ ಬಾಕ್ಸ್ ಸೌಲಭ್ಯ ಸಮೇತ)
+      // ೬. ಪ್ರೌಢಶಾಲೆ ಪತ್ರಿಕೆ ರೆಂಡರರ್ (Drawing Box + Spacing)
       window.renderRegularBoardPaperAndKeySynchronized = function(allQuestions, actualMarks, rawSubj, grade, curSet, finalHeaderHtml) {
         var isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
         var isEnglish = rawSubj.toLowerCase().includes('english') || (document.getElementById('cfg-medium')?.value === 'english_medium');
@@ -21268,7 +21347,6 @@ window.reShareQuizFromHistory = function(quizId, title) {
               var mainImg = extractUniversalImage(item);
               var modelAnswerText = item.ans || 'ಮಾದರಿ ವಿವರಣೆ / ಸೂಕ್ತ ಅಂಶಗಳಿಗೆ ಅಂಕ ನೀಡುವುದು.';
 
-              // 🌟 ನಕ್ಷೆ ಅಥವಾ ಚಿತ್ರ ಬಿಡಿಸುವ ಪ್ರಶ್ನೆಗಳನ್ನು ಆಟೋಮ್ಯಾಟಿಕ್ ಪತ್ತೆಹಚ್ಚುವುದು
               var isAutoDiagram = /ನಕ್ಷೆ|ಚಿತ್ರ ಬಿಡಿಸಿ|ಚಿತ್ರ ಬರೆ|ರೇಖಾಚಿತ್ರ|diagram|draw\s+map|draw\s+the/i.test(item.q || '');
               var showDrawingBox = (item.isDrawingBox !== undefined) ? item.isDrawingBox : (isAutoDiagram && m >= 3);
 
@@ -21284,7 +21362,6 @@ window.reShareQuizFromHistory = function(quizId, title) {
                 </div>
               `);
 
-              // 🌟 ನಕ್ಷೆ/ಚಿತ್ರಕ್ಕೆ ಖಾಲಿ ಬಾಕ್ಸ್ ಅಥವಾ ಬರೆಯಲು ಗೆರೆಗಳು
               var spaceLinesHtml = '';
               if (isBookletMode && !isTF) {
                 if (showDrawingBox) {
@@ -21371,7 +21448,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
       };
 
-      // ೬. ಟ್ಯಾಬ್‌ಗಳನ್ನು ೧ ರಿಂದ ೫ ರವರೆಗೆ ಕಾಯಂ ಆಗಿ ನಿಲ್ಲಿಸುವುದು
+      // ೭. ಟ್ಯಾಬ್‌ಗಳನ್ನು ೧ ರಿಂದ ೫ ರವರೆಗೆ ಕಾಯಂ ಆಗಿ ನಿಲ್ಲಿಸುವುದು
       window.renderAllOutputTabsSolidly = function() {
         var actionRow = document.querySelector('#output-section .border-b.border-slate-200.bg-slate-50');
         if (!actionRow) return;
@@ -21401,7 +21478,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         `;
       };
 
-      // ೭. ಹೆಡರ್‌ನಲ್ಲಿ "ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು" ನಂತರವೇ "ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ" ಬಟನ್
+      // ೮. ಹೆಡರ್‌ನಲ್ಲಿ "ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು" ನಂತರವೇ "ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ" ಬಟನ್
       window.ensureTopNavResultsButton = function() {
         var topNav = document.getElementById('top-nav-actions-container');
         if (!topNav) return;
@@ -21428,7 +21505,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
       };
 
-      // ೮. ಮಾಸ್ಟರ್ ರೂಟರ್ (ಪತ್ರಿಕೆ ಪ್ರದರ್ಶನ)
+      // ೯. ಮಾಸ್ಟರ್ ರೂಟರ್ (ಪತ್ರಿಕೆ ಪ್ರದರ್ಶನ)
       window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
         var grade = document.getElementById('cfg-class')?.value || '8';
         var cleanGrade = String(grade).replace(/\D/g, '');
@@ -21464,23 +21541,30 @@ window.reShareQuizFromHistory = function(quizId, title) {
         window.ensureTopNavResultsButton();
       };
 
-      // ತಕ್ಷಣವೇ ಕಾರ್ಯಗತಗೊಳಿಸುವುದು
+      // 🌟 ೧೦. ಪತ್ರಿಕೆ ಜನರೇಟ್ ಆದ ತಕ್ಷಣ ಆಟೋ-ಸೇವ್ ಕಾಲ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಹುಕ್ (10 ಪತ್ರಿಕೆಗಳ FIFO ಆಟೋ-ರೀಪ್ಲೇಸ್)
+      var origMasterGenerateAction = window.generateExamPackageFromBank;
+      window.generateExamPackageFromBank = function() {
+        if (origMasterGenerateAction) {
+          origMasterGenerateAction();
+        }
+
+        // ಪತ್ರಿಕೆ ಯಶಸ್ವಿಯಾಗಿ ರಚನೆಯಾದಾಗ ಹೊಸದನ್ನು ಸೇವ್ ಮಾಡಿ ಹಳೆಯದನ್ನು ಡಿಲೀಟ್ ಮಾಡುವುದು
+        if (appState.activeGeneratedQuestions && appState.activeGeneratedQuestions.length > 0) {
+          var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+          var grade = document.getElementById('cfg-class')?.value || '8';
+          var rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+          var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+          var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+          var actualMarks = appState.activeGeneratedQuestions.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
+          var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+
+          window.autoSaveGeneratedPaperToLocalStorage(appState.activeGeneratedQuestions, headerHtml);
+        }
+      };
+
+      // ತಕ್ಷಣವೇ ಸಕ್ರಿಯಗೊಳಿಸುವುದು
       window.renderAllOutputTabsSolidly();
       window.ensureTopNavResultsButton();
-
-      // ಪ್ರಸ್ತುತ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಪತ್ರಿಕೆ ಇದ್ದರೆ ತಕ್ಷಣ ಹೊಸ ನಕ್ಷೆ ಬಾಕ್ಸ್ & ಹೆಡರ್‌ನೊಂದಿಗೆ ರಿಫ್ರೆಶ್
-      var allQ = appState.activeGeneratedQuestions || [];
-      if (allQ.length > 0) {
-        var rawSubj = document.getElementById('cfg-subject')?.value || '';
-        var grade = document.getElementById('cfg-class')?.value || '8';
-        var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
-        var rawExamType = document.getElementById('cfg-exam-type')?.value || 'LBA (ಘಟಕ ಪರೀಕ್ಷೆ)';
-        var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
-        var actualMarks = allQ.reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
-
-        var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
-        window.renderFullExamPaperWithCustomHeader(headerHtml);
-      }
     })();
     
     

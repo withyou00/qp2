@@ -21000,8 +21000,9 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
 // =========================================================================
-    // 🌟 COMPLETE MASTER SUITE: NMMS SAT 7TH SUBJECT (MATHEMATICS) FULL RESTORE
-    // + NO MAT IN SAT + FIFO AUTO-REPLACE + MAP DRAWING BOX + LBA CHAPTER NAME
+    // 🌟 COMPLETE LIFETIME MASTER SUITE:
+    // EXACT 7 NMMS SAT FILES (PHYSICS, CHEM, BIO, HIST, GEO, CIVICS, MATHS)
+    // + GMAT SEPARATE + MAP DRAWING BOX + LBA CHAPTER + NALI-KALI NO BLANK
     // =========================================================================
     (function installCompleteLifetimeMasterSuite() {
       // ೧. ಸ್ಕ್ರೀನ್ ಬ್ಲಿಂಕ್ ತಡೆಯಲು ಹಳೆಯ ಟೈಮರ್‌ಗಳ ಕ್ಲಿಯರ್
@@ -21032,7 +21033,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         return (typeof safeCleanMatch === 'function') ? safeCleanMatch(subjectStr) : s;
       };
 
-      // ೩. NMMS SAT ನ ೭ ವಿಷಯಗಳು (ಗಣಿತ ಸೇರಿ) ಪ್ಯಾರಲಲ್ ಲೋಡರ್
+      // ೩. ನಿಮ್ಮ GitHub ನಲ್ಲಿರುವ ನಿಖರ ೭ ಫೈಲ್‌ಗಳನ್ನು ಮಾತ್ರ ಲೋಡ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಲೋಡರ್
       window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part) {
         window.wy_active_fetch_id = (window.wy_active_fetch_id || 0) + 1;
         var currentRequestId = window.wy_active_fetch_id;
@@ -21051,12 +21052,12 @@ window.reShareQuizFromHistory = function(quizId, title) {
         try {
           var loadedList = [];
 
-          // 🌟 ಎ) NMMS GMAT (ಪತ್ರಿಕೆ ೧ - ಕೇವಲ ಮಾನಸಿಕ ಸಾಮರ್ಥ್ಯ / MAT)
+          // 🌟 ಎ) NMMS GMAT (ಪತ್ರಿಕೆ ೧) - ಕೇವಲ nmms_gmat.json ಮಾತ್ರ!
           if (isGMAT) {
-            var gmatFiles = ['nmms_gmat.json', 'gmat.json', 'nmms_mat.json', 'mat.json'];
+            var gmatFiles = ['nmms_gmat.json'];
             for (var gf = 0; gf < gmatFiles.length; gf++) {
               var gFile = gmatFiles[gf];
-              var gPaths = [`kannada_medium/${gFile}`, `kannada_medium/class_${gradeStr}/${gFile}`, `class_${gradeStr}/${gFile}`, `${gFile}`];
+              var gPaths = [`${gFile}`, `class_${gradeStr}/${gFile}`, `kannada_medium/${gFile}`, `kannada_medium/class_${gradeStr}/${gFile}`];
               for (var gp = 0; gp < gPaths.length; gp++) {
                 var gUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(gPaths[gp])}?t=${Date.now()}`;
                 try {
@@ -21075,39 +21076,28 @@ window.reShareQuizFromHistory = function(quizId, title) {
               if (!q.chapter || q.chapter.includes('ಸಾಮಾನ್ಯ')) q.chapter = 'ಮಾನಸಿಕ ಸಾಮರ್ಥ್ಯ ಪರೀಕ್ಷೆ (GMAT / MAT)';
             });
           }
-          // 🌟 ಬಿ) NMMS SAT (ಪತ್ರಿಕೆ ೨ - ಸಂಪೂರ್ಣ ೭ ವಿಷಯಗಳು: ಗಣಿತ ಸೇರಿದಂತೆ!)
+          // 🌟 ಬಿ) NMMS SAT (ಪತ್ರಿಕೆ ೨) - ನಿಮ್ಮ GitHub ನ ನಿಖರ ೭ ಫೈಲ್‌ಗಳು ಮಾತ್ರ (No MAT, No Textbook Mix)!
           else if (isSAT) {
-            var satFiles = [
-              // ೧. ಗಣಿತಶಾಸ್ತ್ರ (Mathematics - 20 Marks)
-              'nmms_maths.json', 'nmms_math.json', 'nmms_mathematics.json',
-              'maths.json', 'mathematics.json', 'math.json',
-              'class_8/mathematics_part1.json', 'class_8/mathematics_part2.json', 'class_8/mathematics.json',
-              'kannada_medium/class_8/mathematics_part1.json', 'kannada_medium/class_8/mathematics_part2.json',
-
-              // ೨. ವಿಜ್ಞಾನ (Physics, Chemistry, Biology - 35 Marks)
-              'nmms_physics.json', 'physics.json', 'nmms_phy.json',
-              'nmms_chemistry.json', 'chemistry.json', 'nmms_chem.json',
-              'nmms_biology.json', 'biology.json', 'nmms_bio.json',
-              'nmms_science.json', 'science.json',
-
-              // ೩. ಸಮಾಜ ವಿಜ್ಞಾನ (History, Geography, Civics, Economics - 35 Marks)
-              'nmms_history.json', 'history.json',
-              'nmms_geography.json', 'geography.json',
-              'nmms_civics.json', 'civics.json', 'nmms_political.json', 'political.json', 'nmms_rajyashastra.json',
-              'nmms_economics.json', 'economics.json', 'nmms_arthashastra.json',
-              'nmms_social.json', 'social_science.json',
-
-              // ೪. ಮುಖ್ಯ SAT ಬ್ಯಾಂಕ್
-              'nmms_sat.json'
+            var exact7SatFiles = [
+              { file: 'nmms_physics.json', defaultTitle: '೧. ಭೌತಶಾಸ್ತ್ರ (Physics)' },
+              { file: 'nmms_chemistry.json', defaultTitle: '೨. ರಸಾಯನಶಾಸ್ತ್ರ (Chemistry)' },
+              { file: 'nmms_biology.json', defaultTitle: '೩. ಜೀವಶಾಸ್ತ್ರ (Biology)' },
+              { file: 'nmms_history.json', defaultTitle: '೪. ಇತಿಹಾಸ (History)' },
+              { file: 'nmms_geography.json', defaultTitle: '೫. ಭೂಗೋಳಶಾಸ್ತ್ರ (Geography)' },
+              { file: 'nmms_civics.json', defaultTitle: '೬. ರಾಜ್ಯಶಾಸ್ತ್ರ / ಪೌರನೀತಿ (Civics)' },
+              { file: 'nmms_maths.json', defaultTitle: '೭. ಗಣಿತಶಾಸ್ತ್ರ (Mathematics)' }
             ];
 
-            var satFetchPromises = satFiles.map(async function(sFile) {
+            // ೭ ಫೈಲ್‌ಗಳನ್ನು ಏಕಕಾಲದಲ್ಲಿ ಪ್ಯಾರಲಲ್ ಆಗಿ ತರುವುದು
+            var satFetchPromises = exact7SatFiles.map(async function(itemObj) {
+              var sFile = itemObj.file;
               var sPaths = [
-                `kannada_medium/${sFile}`,
-                `kannada_medium/class_${gradeStr}/${sFile}`,
+                `${sFile}`,
                 `class_${gradeStr}/${sFile}`,
-                `${sFile}`
+                `kannada_medium/${sFile}`,
+                `kannada_medium/class_${gradeStr}/${sFile}`
               ];
+
               for (var sp = 0; sp < sPaths.length; sp++) {
                 var sUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(sPaths[sp])}?t=${Date.now()}`;
                 try {
@@ -21115,14 +21105,16 @@ window.reShareQuizFromHistory = function(quizId, title) {
                   if (sRes.ok) {
                     var sData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await sRes.text()) : [];
                     if (Array.isArray(sData) && sData.length > 0) {
-                      // ಗಣಿತದ ಪ್ರಶ್ನೆಗಳಿಗೆ ಚಾಪ್ಟರ್ ಹೆಸರು ಸ್ವಚ್ಛಗೊಳಿಸುವುದು
-                      if (sFile.includes('math')) {
-                        sData.forEach(function(item) {
-                          if (!item.chapter || !item.chapter.includes('ಗಣಿತ')) {
-                            item.chapter = '೭. ಗಣಿತಶಾಸ್ತ್ರ (Mathematics)';
+                      sData.forEach(function(q) {
+                        // 🌟 ಚಾಪ್ಟರ್ ಹೆಸರು 'ಬೀಜಗಣಿತ ಆಟ' ಬದಲಿಗೆ ಸ್ಪಷ್ಟವಾಗಿ 'ಗಣಿತ' ಎಂದು ಬರುವಂತೆ ಖಚಿತಪಡಿಸುವುದು
+                        if (sFile === 'nmms_maths.json') {
+                          if (!q.chapter || q.chapter.includes('ಬೀಜಗಣಿತ') || q.chapter.includes('ಆಟ') || q.chapter.includes('ಸಾಮಾನ್ಯ')) {
+                            q.chapter = '೭. ಗಣಿತ (Mathematics)';
                           }
-                        });
-                      }
+                        } else if (!q.chapter || q.chapter === 'ಸಾಮಾನ್ಯ ವಿಭಾಗ') {
+                          q.chapter = itemObj.defaultTitle;
+                        }
+                      });
                       return sData;
                     }
                   }
@@ -21138,7 +21130,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
               }
             });
 
-            // 🌟 MAT ಅನ್ನು SAT ನಿಂದ ಕಟ್ಟುನಿಟ್ಟಾಗಿ ಹೊರಗಿಡುವುದು
+            // 🌟 SAT ನಲ್ಲಿ MAT ಯಾವುದೇ ಕಾರಣಕ್ಕೂ ಇರದಂತೆ ಕಟ್ಟುನಿಟ್ಟಾದ ಫಿಲ್ಟರ್
             loadedList = loadedList.filter(function(q) {
               if (!q) return false;
               var ch = String(q.chapter || '').toLowerCase();
@@ -21146,7 +21138,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
               return !ch.includes('ಮಾನಸಿಕ') && !ch.includes('mat') && !ch.includes('gmat') && !qText.includes('ಮಾನಸಿಕ ಸಾಮರ್ಥ್ಯ');
             });
           }
-          // ಸಿ) ಮೊರಾರ್ಜಿ ಮತ್ತು ಆದರ್ಶ ವಿದ್ಯಾಲಯ
+          // ಸಿ) ಮೊರಾರ್ಜಿ ಮತ್ತು ಆದರ್ಶ
           else if (isMorarji || isAdarsha) {
             var compFiles = isMorarji 
               ? ['morarji_entrance.json', 'morarji_kannada.json', 'morarji_maths.json', 'morarji_science.json', 'morarji_social.json', 'morarji_english.json', 'morarji_gk.json']
@@ -21154,7 +21146,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
             for (var mf = 0; mf < compFiles.length; mf++) {
               var mFile = compFiles[mf];
-              var mPaths = [`class_${gradeStr}/${mFile}`, `kannada_medium/class_${gradeStr}/${mFile}`, `kannada_medium/${mFile}`, `${mFile}`];
+              var mPaths = [`${mFile}`, `class_${gradeStr}/${mFile}`, `kannada_medium/${mFile}`, `kannada_medium/class_${gradeStr}/${mFile}`];
               for (var mp = 0; mp < mPaths.length; mp++) {
                 var mUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(mPaths[mp])}?t=${Date.now()}`;
                 try {
@@ -21170,15 +21162,15 @@ window.reShareQuizFromHistory = function(quizId, title) {
               }
             }
           }
-          // ಡಿ) ೧ ರಿಂದ ೧೦ನೇ ತರಗತಿಯ ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳು
+          // ಡಿ) ಶಾಲಾ ಸಾಮಾನ್ಯ ವಿಷಯಗಳು (ಭಾಗ ೧ / ಭಾಗ ೨)
           else {
             var targetFiles = [];
             if (part === 'part2') {
-              targetFiles = [`class_${gradeStr}/${subjectKey}_part2.json`, `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`, `class_${gradeStr}/${subjectKey}_part_2.json`, `kannada_medium/${subjectKey}_part2.json`, `${subjectKey}_part2.json`];
+              targetFiles = [`class_${gradeStr}/${subjectKey}_part2.json`, `kannada_medium/class_${gradeStr}/${subjectKey}_part2.json`, `class_${gradeStr}/${subjectKey}_part_2.json`, `${subjectKey}_part2.json`];
             } else if (part === 'part1') {
-              targetFiles = [`class_${gradeStr}/${subjectKey}_part1.json`, `kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`, `class_${gradeStr}/${subjectKey}_part_1.json`, `kannada_medium/${subjectKey}_part1.json`, `${subjectKey}_part1.json`];
+              targetFiles = [`class_${gradeStr}/${subjectKey}_part1.json`, `kannada_medium/class_${gradeStr}/${subjectKey}_part1.json`, `class_${gradeStr}/${subjectKey}_part_1.json`, `${subjectKey}_part1.json`];
             } else {
-              targetFiles = [`class_${gradeStr}/${subjectKey}_part1.json`, `class_${gradeStr}/${subjectKey}_part2.json`, `class_${gradeStr}/${subjectKey}.json`, `kannada_medium/class_${gradeStr}/${subjectKey}.json`, `${subjectKey}.json`];
+              targetFiles = [`class_${gradeStr}/${subjectKey}_part1.json`, `class_${gradeStr}/${subjectKey}_part2.json`, `class_${gradeStr}/${subjectKey}.json`, `${subjectKey}.json`];
             }
 
             for (var tf = 0; tf < targetFiles.length; tf++) {
@@ -21236,7 +21228,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
       };
 
-      // ೪. NMMS GMAT / SAT ನಿಯಂತ್ರಕ (90 ಅಂಕಗಳು & ಆಟೋ-ಲಾಕ್)
+      // ೪. ವಿಷಯ/ಪರೀಕ್ಷಾ ವಿಧಾನ ನಿಯಂತ್ರಕ (NMMS ಗೆ 90 ಅಂಕಗಳು & ಆಟೋ-ಲಾಕ್)
       window.handleSubjectOrPartChange = function() {
         var gradeSelect = document.getElementById('cfg-class');
         var subjSelect = document.getElementById('cfg-subject');
@@ -21301,64 +21293,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         window.loadQuestionsFromGitHub(medium, grade, subj, part);
       };
 
-      // ೫. ಟ್ಯಾಬ್‌ಗಳನ್ನು ೧ ರಿಂದ ೫ ರವರೆಗೆ ಕಾಯಂ ಆಗಿ ನಿಲ್ಲಿಸುವುದು
-      window.renderAllOutputTabsSolidly = function() {
-        var actionRow = document.querySelector('#output-section .border-b.border-slate-200.bg-slate-50');
-        if (!actionRow) return;
-
-        var badStray = document.querySelectorAll('#wy-exam-set-bar #tab-btn-quiz, #wy-exam-set-bar #btn-share-online-quiz');
-        badStray.forEach(function(el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
-
-        var tabsBar = actionRow.querySelector('div.flex.items-center.space-x-2') || actionRow.firstElementChild;
-        if (!tabsBar) return;
-
-        tabsBar.innerHTML = `
-          <button id="tab-btn-paper" type="button" onclick="switchOutputTab('paper')" class="px-4 py-2 rounded-xl text-xs font-extrabold bg-white text-slate-900 shadow-sm border border-slate-200 cursor-pointer">
-            <i class="fa-solid fa-file-lines text-emerald-600"></i> <span>1. ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ</span>
-          </button>
-          <button id="tab-btn-key" type="button" onclick="switchOutputTab('key')" class="px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer">
-            <i class="fa-solid fa-check-double text-teal-600"></i> <span>2. ಉತ್ತರ ಪತ್ರಿಕೆ</span>
-          </button>
-          <button id="tab-btn-blueprint" type="button" onclick="switchOutputTab('blueprint')" class="px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer">
-            <i class="fa-solid fa-table-cells text-indigo-600"></i> <span>3. DSERT ನೀಲನಕ್ಷೆ (5 ಹಂತಗಳು)</span>
-          </button>
-          <button id="tab-btn-omr" type="button" onclick="switchOutputTab('omr')" class="px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer">
-            <i class="fa-solid fa-circle-dot text-amber-600"></i> <span>4. OMR ಶೀಟ್ (OMR Sheet)</span>
-          </button>
-          <button id="btn-share-online-quiz" type="button" onclick="openCreateOnlineQuizModal()" class="px-4 py-2 rounded-xl text-xs font-extrabold text-slate-700 hover:text-slate-900 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer transition">
-            <i class="fa-solid fa-share-nodes text-indigo-600"></i> <span>ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ</span>
-          </button>
-        `;
-      };
-
-      // ೬. ಹೆಡರ್‌ನಲ್ಲಿ "ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು" ನಂತರವೇ "ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ" ಬಟನ್
-      window.ensureTopNavResultsButton = function() {
-        var topNav = document.getElementById('top-nav-actions-container');
-        if (!topNav) return;
-
-        var resBtn = document.getElementById('btn-nav-teacher-results');
-        if (!resBtn) {
-          resBtn = document.createElement('button');
-          resBtn.id = 'btn-nav-teacher-results';
-          resBtn.type = 'button';
-          resBtn.onclick = function() {
-            if (typeof window.openTeacherQuizzesDashboardModal === 'function') {
-              window.openTeacherQuizzesDashboardModal();
-            }
-          };
-          resBtn.className = 'px-3 py-1.5 rounded-xl font-black text-xs bg-purple-50 text-purple-900 border border-purple-300 hover:bg-purple-100 flex items-center gap-1.5 cursor-pointer transition shadow-sm';
-          resBtn.innerHTML = '<i class="fa-solid fa-square-poll-vertical text-purple-600"></i> <span>ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ</span>';
-        }
-
-        var savedBtn = document.getElementById('btn-saved-papers-history');
-        if (savedBtn && savedBtn.parentNode === topNav) {
-          savedBtn.after(resBtn);
-        } else if (resBtn.parentNode !== topNav) {
-          topNav.appendChild(resBtn);
-        }
-      };
-
-      // ೭. ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳ 10 FIFO ಆಟೋ-ರೀಪ್ಲೇಸ್
+      // ೫. ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳ 10 FIFO ಆಟೋ-ರೀಪ್ಲೇಸ್
       window.autoSaveGeneratedPaperToLocalStorage = function(generatedQuestions, headerHtml) {
         if (!generatedQuestions || generatedQuestions.length === 0) return;
         try {
@@ -21420,11 +21355,178 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
       };
 
+      // ೬. ನಕ್ಷೆ ಮತ್ತು ಚಿತ್ರ ಬಿಡಿಸಲು ಖಾಲಿ ಬಾಕ್ಸ್ ಟಾಗಲ್
+      window.toggleDrawingBoxMode = function(qIndex) {
+        var q = (appState.activeGeneratedQuestions || [])[qIndex];
+        if (!q) return;
+
+        var isAutoDiagram = /ನಕ್ಷೆ|ಚಿತ್ರ ಬಿಡಿಸಿ|ಚಿತ್ರ ಬರೆ|ರೇಖಾಚಿತ್ರ|diagram|draw\s+map|draw\s+the/i.test(q.q || '');
+        var currentIsBox = (q.isDrawingBox !== undefined) ? q.isDrawingBox : isAutoDiagram;
+        q.isDrawingBox = !currentIsBox;
+
+        var scrollY = window.scrollY;
+        var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+        var grade = document.getElementById('cfg-class')?.value || '8';
+        var rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+        var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+        var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+        var actualMarks = appState.activeGeneratedQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+        var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+
+        window.renderFullExamPaperWithCustomHeader(headerHtml);
+        window.scrollTo({ top: scrollY });
+        showToast(q.isDrawingBox ? '🖼️ ಚಿತ್ರ/ನಕ್ಷೆ ಬಿಡಿಸಲು ಖಾಲಿ ಬಾಕ್ಸ್ ನೀಡಲಾಗಿದೆ!' : '📝 ಬರೆಯಲು ಗೆರೆಗಳಿಗೆ ಬದಲಾಯಿಸಲಾಗಿದೆ!', 'info');
+      };
+
+      window.adjustDrawingHeight = function(qIndex, delta) {
+        var q = (appState.activeGeneratedQuestions || [])[qIndex];
+        if (!q) return;
+
+        q.drawingBoxHeight = Math.max(90, Math.min(500, (q.drawingBoxHeight || 190) + delta));
+        var scrollY = window.scrollY;
+        var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+        var grade = document.getElementById('cfg-class')?.value || '8';
+        var rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+        var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+        var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+        var actualMarks = appState.activeGeneratedQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+        var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+
+        window.renderFullExamPaperWithCustomHeader(headerHtml);
+        window.scrollTo({ top: scrollY });
+        showToast(`📏 ಬಾಕ್ಸ್ ಎತ್ತರ: ${q.drawingBoxHeight}px`, 'info');
+      };
+
+      // ೭. LBA ಪರೀಕ್ಷೆಗೆ ಮಾತ್ರ ಪಾಠದ ಹೆಸರು ಬರುವ ಹೆಡರ್
+      window.generateOfficialBoardHeader = function(schoolName, subject, grade, examType, marks, examDate) {
+        var activeSet = appState.currentExamSet || 'A';
+        var isLBA = String(examType).includes('LBA') || String(examType).includes('ಘಟಕ');
+
+        var chapterNames = "";
+        if (isLBA) {
+          if (appState.activeSelectedChapters && appState.activeSelectedChapters.length > 0) {
+            chapterNames = appState.activeSelectedChapters.join(', ');
+          } else {
+            var checkedBoxes = document.querySelectorAll('input[name="selected_chapter"]:checked');
+            chapterNames = Array.from(checkedBoxes).map(b => b.value).join(', ');
+          }
+          if (!chapterNames && appState.activeGeneratedQuestions && appState.activeGeneratedQuestions.length > 0) {
+            var chSet = new Set(appState.activeGeneratedQuestions.map(q => q.chapter).filter(Boolean));
+            chapterNames = Array.from(chSet).join(', ');
+          }
+        }
+
+        return `
+          <div style="width: 100%; border-bottom: 2px solid #000; padding-bottom: 3px; margin-bottom: 5px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div style="width: 80px;"></div>
+              <div style="text-align: center; flex: 1;">
+                <h1 style="font-size: 13.5pt; font-weight: 900; margin: 0; line-height: 1.2;">${escapeHtml(schoolName)}</h1>
+                <div style="font-size: 11pt; font-weight: 900; margin-top: 1px;">${escapeHtml(examType)}</div>
+              </div>
+              <div style="width: 80px; text-align: right;">
+                <span style="font-size: 11pt; font-weight: 900; border: 2px solid #000; padding: 1px 8px; background: #f1f5f9; border-radius: 4px; letter-spacing: 1px;">
+                  SET - ${activeSet}
+                </span>
+              </div>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 3px;">
+              <tr>
+                <td style="width: 33%; text-align: left; font-weight: 800; font-size: 10pt;">ವಿಷಯ : <b>${escapeHtml(subject)}</b></td>
+                <td style="width: 23%; text-align: center; font-weight: 800; font-size: 10pt;">ತರಗತಿ : <b>${grade}ನೇ ತರಗತಿ</b></td>
+                <td style="width: 24%; text-align: center; font-weight: 800; font-size: 10pt;">ದಿನಾಂಕ : <b>${escapeHtml(examDate)}</b></td>
+                <td style="width: 20%; text-align: right; font-weight: 800; font-size: 10pt;">ಗರಿಷ್ಠ ಅಂಕಗಳು : <b>${marks}</b></td>
+              </tr>
+            </table>
+            ${isLBA && chapterNames ? `
+              <div style="text-align: center; font-size: 10pt; font-weight: 800; border-top: 1.2px dashed #000; margin-top: 3px; padding-top: 2px; color: #000;">
+                ಘಟಕದ ಹೆಸರು : <b>${escapeHtml(chapterNames)}</b>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      };
+
+      // ೮. ಟ್ಯಾಬ್‌ಗಳನ್ನು ೧ ರಿಂದ ೫ ರವರೆಗೆ ಕಾಯಂ ಆಗಿ ನಿಲ್ಲಿಸುವುದು
+      window.renderAllOutputTabsSolidly = function() {
+        var actionRow = document.querySelector('#output-section .border-b.border-slate-200.bg-slate-50');
+        if (!actionRow) return;
+
+        var badStray = document.querySelectorAll('#wy-exam-set-bar #tab-btn-quiz, #wy-exam-set-bar #btn-share-online-quiz');
+        badStray.forEach(function(el) { if (el && el.parentNode) el.parentNode.removeChild(el); });
+
+        var tabsBar = actionRow.querySelector('div.flex.items-center.space-x-2') || actionRow.firstElementChild;
+        if (!tabsBar) return;
+
+        tabsBar.innerHTML = `
+          <button id="tab-btn-paper" type="button" onclick="switchOutputTab('paper')" class="px-4 py-2 rounded-xl text-xs font-extrabold bg-white text-slate-900 shadow-sm border border-slate-200 cursor-pointer">
+            <i class="fa-solid fa-file-lines text-emerald-600"></i> <span>1. ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ</span>
+          </button>
+          <button id="tab-btn-key" type="button" onclick="switchOutputTab('key')" class="px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer">
+            <i class="fa-solid fa-check-double text-teal-600"></i> <span>2. ಉತ್ತರ ಪತ್ರಿಕೆ</span>
+          </button>
+          <button id="tab-btn-blueprint" type="button" onclick="switchOutputTab('blueprint')" class="px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer">
+            <i class="fa-solid fa-table-cells text-indigo-600"></i> <span>3. DSERT ನೀಲನಕ್ಷೆ (5 ಹಂತಗಳು)</span>
+          </button>
+          <button id="tab-btn-omr" type="button" onclick="switchOutputTab('omr')" class="px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer">
+            <i class="fa-solid fa-circle-dot text-amber-600"></i> <span>4. OMR ಶೀಟ್ (OMR Sheet)</span>
+          </button>
+          <button id="btn-share-online-quiz" type="button" onclick="openCreateOnlineQuizModal()" class="px-4 py-2 rounded-xl text-xs font-extrabold text-slate-700 hover:text-slate-900 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer transition">
+            <i class="fa-solid fa-share-nodes text-indigo-600"></i> <span>ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ</span>
+          </button>
+        `;
+      };
+
+      // ೯. ಹೆಡರ್‌ನಲ್ಲಿ "ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು" ನಂತರವೇ "ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ" ಬಟನ್
+      window.ensureTopNavResultsButton = function() {
+        var topNav = document.getElementById('top-nav-actions-container');
+        if (!topNav) return;
+
+        var resBtn = document.getElementById('btn-nav-teacher-results');
+        if (!resBtn) {
+          resBtn = document.createElement('button');
+          resBtn.id = 'btn-nav-teacher-results';
+          resBtn.type = 'button';
+          resBtn.onclick = function() {
+            if (typeof window.openTeacherQuizzesDashboardModal === 'function') {
+              window.openTeacherQuizzesDashboardModal();
+            }
+          };
+          resBtn.className = 'px-3 py-1.5 rounded-xl font-black text-xs bg-purple-50 text-purple-900 border border-purple-300 hover:bg-purple-100 flex items-center gap-1.5 cursor-pointer transition shadow-sm';
+          resBtn.innerHTML = '<i class="fa-solid fa-square-poll-vertical text-purple-600"></i> <span>ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ</span>';
+        }
+
+        var savedBtn = document.getElementById('btn-saved-papers-history');
+        if (savedBtn && savedBtn.parentNode === topNav) {
+          savedBtn.after(resBtn);
+        } else if (resBtn.parentNode !== topNav) {
+          topNav.appendChild(resBtn);
+        }
+      };
+
+      // ೧೦. ಪತ್ರಿಕೆ ಜನರೇಟ್ ಆದ ತಕ್ಷಣ ಆಟೋ-ಸೇವ್ ಕಾಲ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಹುಕ್
+      var origMasterGenerateAction = window.generateExamPackageFromBank;
+      window.generateExamPackageFromBank = function() {
+        if (origMasterGenerateAction) origMasterGenerateAction();
+
+        if (appState.activeGeneratedQuestions && appState.activeGeneratedQuestions.length > 0) {
+          var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+          var grade = document.getElementById('cfg-class')?.value || '8';
+          var rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+          var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+          var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+          var actualMarks = appState.activeGeneratedQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+          var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+
+          window.autoSaveGeneratedPaperToLocalStorage(appState.activeGeneratedQuestions, headerHtml);
+        }
+      };
+
       // ತಕ್ಷಣವೇ ಕಾರ್ಯಗತಗೊಳಿಸುವುದು
       window.renderAllOutputTabsSolidly();
       window.ensureTopNavResultsButton();
 
-      // ಪ್ರಸ್ತುತ SAT ಆಯ್ಕೆಯಾಗಿದ್ದರೆ ಗಣಿತ ಸೇರಿದಂತೆ ತಕ್ಷಣ ರೀಫ್ರೆಶ್
+      // ಪ್ರಸ್ತುತ ಸ್ಕ್ರೀನ್ ಮೇಲೆ SAT ಆಯ್ಕೆಯಾಗಿದ್ದರೆ ತಕ್ಷಣ ರೀಫ್ರೆಶ್
       var curSubj = document.getElementById('cfg-subject')?.value || '';
       if (curSubj.includes('SAT') || curSubj.includes('GMAT')) {
         window.handleSubjectOrPartChange();

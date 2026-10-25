@@ -21001,8 +21001,8 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 // =========================================================================
     // 🌟 COMPLETE LIFETIME MASTER SUITE:
-    // EXACT 7 NMMS SAT FILES (PHYSICS, CHEM, BIO, HIST, GEO, CIVICS, MATHS)
-    // + GMAT SEPARATE + MAP DRAWING BOX + LBA CHAPTER + NALI-KALI NO BLANK
+    // NMMS SAT 7 SUBJECTS FULL RESTORE (MATHEMATICS FIX - NO 'MAT' ACCIDENTAL FILTER)
+    // + GMAT SEPARATE + MAP DRAWING BOX + LBA CHAPTER + NALI-KALI + FIFO 10
     // =========================================================================
     (function installCompleteLifetimeMasterSuite() {
       // ೧. ಸ್ಕ್ರೀನ್ ಬ್ಲಿಂಕ್ ತಡೆಯಲು ಹಳೆಯ ಟೈಮರ್‌ಗಳ ಕ್ಲಿಯರ್
@@ -21033,7 +21033,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         return (typeof safeCleanMatch === 'function') ? safeCleanMatch(subjectStr) : s;
       };
 
-      // ೩. ನಿಮ್ಮ GitHub ನಲ್ಲಿರುವ ನಿಖರ ೭ ಫೈಲ್‌ಗಳನ್ನು ಮಾತ್ರ ಲೋಡ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಲೋಡರ್
+      // ೩. NMMS SAT ನ ಸಂಪೂರ್ಣ ೭ ವಿಷಯಗಳ ಪ್ಯಾರಲಲ್ ಲೋಡರ್
       window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part) {
         window.wy_active_fetch_id = (window.wy_active_fetch_id || 0) + 1;
         var currentRequestId = window.wy_active_fetch_id;
@@ -21052,7 +21052,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         try {
           var loadedList = [];
 
-          // 🌟 ಎ) NMMS GMAT (ಪತ್ರಿಕೆ ೧) - ಕೇವಲ nmms_gmat.json ಮಾತ್ರ!
+          // 🌟 ಎ) NMMS GMAT (ಪತ್ರಿಕೆ ೧) - nmms_gmat.json
           if (isGMAT) {
             var gmatFiles = ['nmms_gmat.json'];
             for (var gf = 0; gf < gmatFiles.length; gf++) {
@@ -21076,7 +21076,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
               if (!q.chapter || q.chapter.includes('ಸಾಮಾನ್ಯ')) q.chapter = 'ಮಾನಸಿಕ ಸಾಮರ್ಥ್ಯ ಪರೀಕ್ಷೆ (GMAT / MAT)';
             });
           }
-          // 🌟 ಬಿ) NMMS SAT (ಪತ್ರಿಕೆ ೨) - ನಿಮ್ಮ GitHub ನ ನಿಖರ ೭ ಫೈಲ್‌ಗಳು ಮಾತ್ರ (No MAT, No Textbook Mix)!
+          // 🌟 ಬಿ) NMMS SAT (ಪತ್ರಿಕೆ ೨) - ನಿಮ್ಮ GitHub ನ ನಿಖರ ೭ ಫೈಲ್‌ಗಳು (ಭೌತ, ರಸಾಯನ, ಜೀವ, ಇತಿಹಾಸ, ಭೂಗೋಳ, ಪೌರನೀತಿ, ಗಣಿತ)
           else if (isSAT) {
             var exact7SatFiles = [
               { file: 'nmms_physics.json', defaultTitle: '೧. ಭೌತಶಾಸ್ತ್ರ (Physics)' },
@@ -21085,7 +21085,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
               { file: 'nmms_history.json', defaultTitle: '೪. ಇತಿಹಾಸ (History)' },
               { file: 'nmms_geography.json', defaultTitle: '೫. ಭೂಗೋಳಶಾಸ್ತ್ರ (Geography)' },
               { file: 'nmms_civics.json', defaultTitle: '೬. ರಾಜ್ಯಶಾಸ್ತ್ರ / ಪೌರನೀತಿ (Civics)' },
-              { file: 'nmms_maths.json', defaultTitle: '೭. ಗಣಿತಶಾಸ್ತ್ರ (Mathematics)' }
+              { file: 'nmms_maths.json', defaultTitle: '೭. ಗಣಿತ (Mathematics)' }
             ];
 
             // ೭ ಫೈಲ್‌ಗಳನ್ನು ಏಕಕಾಲದಲ್ಲಿ ಪ್ಯಾರಲಲ್ ಆಗಿ ತರುವುದು
@@ -21106,11 +21106,8 @@ window.reShareQuizFromHistory = function(quizId, title) {
                     var sData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await sRes.text()) : [];
                     if (Array.isArray(sData) && sData.length > 0) {
                       sData.forEach(function(q) {
-                        // 🌟 ಚಾಪ್ಟರ್ ಹೆಸರು 'ಬೀಜಗಣಿತ ಆಟ' ಬದಲಿಗೆ ಸ್ಪಷ್ಟವಾಗಿ 'ಗಣಿತ' ಎಂದು ಬರುವಂತೆ ಖಚಿತಪಡಿಸುವುದು
                         if (sFile === 'nmms_maths.json') {
-                          if (!q.chapter || q.chapter.includes('ಬೀಜಗಣಿತ') || q.chapter.includes('ಆಟ') || q.chapter.includes('ಸಾಮಾನ್ಯ')) {
-                            q.chapter = '೭. ಗಣಿತ (Mathematics)';
-                          }
+                          q.chapter = '೭. ಗಣಿತ (Mathematics)';
                         } else if (!q.chapter || q.chapter === 'ಸಾಮಾನ್ಯ ವಿಭಾಗ') {
                           q.chapter = itemObj.defaultTitle;
                         }
@@ -21130,12 +21127,18 @@ window.reShareQuizFromHistory = function(quizId, title) {
               }
             });
 
-            // 🌟 SAT ನಲ್ಲಿ MAT ಯಾವುದೇ ಕಾರಣಕ್ಕೂ ಇರದಂತೆ ಕಟ್ಟುನಿಟ್ಟಾದ ಫಿಲ್ಟರ್
+            // 🌟 ಗಣಿತವನ್ನು (Mathematics) ಉಳಿಸಿಕೊಂಡು ಕೇವಲ ಮಾನಸಿಕ ಸಾಮರ್ಥ್ಯ (MAT) ಮಾತ್ರ ಹೊರಗಿಡುವ ನಿಖರ ಫಿಲ್ಟರ್
             loadedList = loadedList.filter(function(q) {
               if (!q) return false;
               var ch = String(q.chapter || '').toLowerCase();
               var qText = String(q.q || '').toLowerCase();
-              return !ch.includes('ಮಾನಸಿಕ') && !ch.includes('mat') && !ch.includes('gmat') && !qText.includes('ಮಾನಸಿಕ ಸಾಮರ್ಥ್ಯ');
+
+              // ಗಣಿತವನ್ನು ಎಂದಿಗೂ ಡಿಲೀಟ್ ಮಾಡಬೇಡಿ
+              if (ch.includes('ಗಣಿತ') || ch.includes('math')) return true;
+
+              // ಕೇವಲ ಮಾನಸಿಕ ಸಾಮರ್ಥ್ಯ (GMAT / MAT) ಮಾತ್ರ ಹೊರಹಾಕುವುದು
+              var isMentalAbility = ch.includes('ಮಾನಸಿಕ') || ch.includes('gmat') || /\bmat\b/i.test(ch) || qText.includes('ಮಾನಸಿಕ ಸಾಮರ್ಥ್ಯ');
+              return !isMentalAbility;
             });
           }
           // ಸಿ) ಮೊರಾರ್ಜಿ ಮತ್ತು ಆದರ್ಶ
@@ -21228,7 +21231,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
       };
 
-      // ೪. ವಿಷಯ/ಪರೀಕ್ಷಾ ವಿಧಾನ ನಿಯಂತ್ರಕ (NMMS ಗೆ 90 ಅಂಕಗಳು & ಆಟೋ-ಲಾಕ್)
+      // ೪. NMMS GMAT / SAT ನಿಯಂತ್ರಕ (90 ಅಂಕಗಳು & ಆಟೋ-ಲಾಕ್)
       window.handleSubjectOrPartChange = function() {
         var gradeSelect = document.getElementById('cfg-class');
         var subjSelect = document.getElementById('cfg-subject');
@@ -21315,7 +21318,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
           var now = new Date();
           var dateFormatted = now.toLocaleDateString('kn-IN', { day: 'numeric', month: 'short' });
-          var timeFormatted = now.toLocaleTimeString('kn-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+          var timeFormatted = now.toLocaleTimeString('kn-IN', { hour: '2-digit', minute: '2-digit' });
 
           var newPaperRecord = {
             id: Date.now(),

@@ -20539,62 +20539,41 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
     
     
+  // =========================================================================
+    // 🚫 5. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಬಟನ್ & ಟ್ಯಾಬ್ ಶಾಶ್ವತ ರಿಮೂವಲ್ (100% SAFE)
     // =========================================================================
-    // 🚫 COMPLETE REMOVAL OF ONLINE TEST TAB & SHARE BUTTONS
-    // =========================================================================
-    (function permanentlyRemoveOnlineQuizTab() {
-      // ೧. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಗೆ ಸಂಬಂಧಿಸಿದ ಎಲ್ಲಾ ಬಟನ್ & ಟ್ಯಾಬ್‌ಗಳನ್ನು ತೆಗೆಯುವುದು
-      function purgeQuizElements() {
-        var removeIds = [
-          'tab-btn-quiz',              // 5. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಟ್ಯಾಬ್ ಬಟನ್
-          'tab-content-quiz',          // ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಂಟೆಂಟ್
-          'btn-share-online-quiz',      // ನೇರಳೆ ಬಣ್ಣದ ಶೇರ್ ಬಟನ್
-          'btn-nav-teacher-results',    // ಟಾಪ್ ನಾವಿಗೇಶನ್ ರಿಸಲ್ಟ್ ಬಟನ್
-          'rendered-quiz-panel'        // ರಿಸಲ್ಟ್ ಪ್ಯಾನೆಲ್
+    try {
+      var removeQuizTimer = setInterval(function() {
+        var quizIds = [
+          'tab-btn-quiz',
+          'tab-content-quiz',
+          'btn-share-online-quiz',
+          'btn-nav-teacher-results',
+          'rendered-quiz-panel'
         ];
-        removeIds.forEach(function(id) {
-          var el = document.getElementById(id);
+        for (var i = 0; i < quizIds.length; i++) {
+          var el = document.getElementById(quizIds[i]);
           if (el) el.remove();
-        });
-      }
-
-      // ತಕ್ಷಣ ಹಾಗೂ ಹಿನ್ನೆಲೆಯಲ್ಲೂ ಮರು-ಸೃಷ್ಟಿಯಾಗದಂತೆ ತಡೆ
-      purgeQuizElements();
-      setInterval(purgeQuizElements, 250);
-
-      // ೨. ಔಟ್‌ಪುಟ್ ಟ್ಯಾಬ್‌ಗಳನ್ನು ಕೇವಲ ೪ ಅಧಿಕೃತ ಟ್ಯಾಬ್‌ಗಳಿಗೆ ಮಿತಿಗೊಳಿಸುವುದು (Paper, Key, Blueprint, OMR)
-      window.setupAllOutputTabsWithQuiz = function() {
-        var tabsContainer = document.querySelector('#output-section .flex.items-center.space-x-2');
-        if (tabsContainer && !document.getElementById('tab-btn-omr')) {
-          var omrBtn = document.createElement('button');
-          omrBtn.id = 'tab-btn-omr';
-          omrBtn.className = 'px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer';
-          omrBtn.onclick = function() { window.switchOutputTab('omr'); };
-          omrBtn.innerHTML = '<i class="fa-solid fa-circle-dot text-amber-600"></i> <span>4. OMR ಶೀಟ್</span>';
-          tabsContainer.appendChild(omrBtn);
         }
-        purgeQuizElements();
-      };
+      }, 150);
 
-      // ೩. ಟ್ಯಾಬ್ ಸ್ವಿಚರ್ ನವೀಕರಣ (ಕೇವಲ ೪ ಟ್ಯಾಬ್‌ಗಳು ಮಾತ್ರ ಸಕ್ರಿಯ)
+      // ಕೇವಲ ೪ ಮುಖ್ಯ ಟ್ಯಾಬ್‌ಗಳು ಮಾತ್ರ ಕಾರ್ಯನಿರ್ವಹಿಸಲು
       window.switchOutputTab = function(t) {
         ['paper', 'key', 'blueprint', 'omr'].forEach(function(x) {
-          var contentEl = document.getElementById('tab-content-' + x);
-          if (contentEl) contentEl.classList.toggle('hidden', x !== t);
+          var content = document.getElementById('tab-content-' + x);
+          if (content) content.classList.toggle('hidden', x !== t);
 
-          var btnEl = document.getElementById('tab-btn-' + x);
-          if (btnEl) {
-            btnEl.className = (x === t)
+          var btn = document.getElementById('tab-btn-' + x);
+          if (btn) {
+            btn.className = (x === t)
               ? 'px-4 py-2 rounded-xl text-xs font-extrabold bg-white text-slate-900 shadow-sm border border-slate-200 cursor-pointer'
               : 'px-4 py-2 rounded-xl text-xs font-extrabold text-slate-600 hover:text-slate-900 cursor-pointer';
           }
         });
-
-        if (t === 'omr' && typeof ensureOMRScannerLaunchBannerExists === 'function') {
-          setTimeout(ensureOMRScannerLaunchBannerExists, 50);
-        }
       };
-    })();
+    } catch(err) {
+      console.warn("Quiz remove notice:", err);
+    }
     ‌
 
     

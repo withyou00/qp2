@@ -20097,6 +20097,446 @@ window.exportQuizResultsToExcel = async function(quizId) {
 };
     
     
+
+
+
+    // =========================================================================
+// 🏆 100% LIVE SYNCED TEACHER & STUDENT ONLINE QUIZ LEADERBOARD SYSTEM
+// =========================================================================
+
+var WY_FIREBASE_URL = "https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app";
+appState.activeQuizId = null; // ಪರೀಕ್ಷೆಗೆ ಒಂದೇ ಸ್ಥಿರ Quiz ID
+
+// ೧. ಶೇರ್ ಬಟನ್ & ಶಿಕ್ಷಕರ ರಿಸಲ್ಟ್ ಬಟನ್ ಇಂಜೆಕ್ಟರ್
+(function setupCleanShareButtonUI() {
+  function injectShareBtn() {
+    var tabsContainer = document.querySelector('#output-section .no-print .flex.items-center.space-x-2');
+    if (tabsContainer && !document.getElementById('btn-share-online-quiz')) {
+      var shareBtn = document.createElement('button');
+      shareBtn.id = 'btn-share-online-quiz';
+      shareBtn.type = 'button';
+      shareBtn.onclick = function() { window.openCreateOnlineQuizModal(); };
+      shareBtn.className = 'px-3.5 py-2 rounded-xl text-xs font-black text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:shadow-lg transition flex items-center gap-1.5 cursor-pointer shadow-md border border-purple-400 ml-1';
+      shareBtn.innerHTML = '<i class="fa-solid fa-share-nodes text-amber-300"></i> <span>ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ</span>';
+      tabsContainer.appendChild(shareBtn);
+    }
+  }
+  setInterval(injectShareBtn, 600);
+})();
+
+// ೨. ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಸೃಷ್ಟಿ (ಸ್ಥಿರ Quiz ID ನೊಂದಿಗೆ - ಗೊಂದಲವಿಲ್ಲ)
+window.openCreateOnlineQuizModal = async function() {
+  var allQ = appState.activeGeneratedQuestions || [];
+  if (allQ.length === 0) return alert("⚠️ ದಯವಿಟ್ಟು ಮೊದಲು 'ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಿ' ಬಟನ್ ಒತ್ತಿ ಪತ್ರಿಕೆ ಸಿದ್ಧಪಡಿಸಿ.");
+
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  var rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+  var grade = document.getElementById('cfg-class')?.value || '8';
+  var examType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+  var totalMarks = allQ.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+
+  // 🌟 ಪತ್ರಿಕೆ ಬದಲಾಗದಿದ್ದರೆ ಅದೇ Quiz ID ಯನ್ನು ಮರುಬಳಕೆ ಮಾಡುವುದು (No Duplicate/Random IDs)
+  if (!appState.activeQuizId) {
+    appState.activeQuizId = 'QZ-' + Math.floor(100000 + Math.random() * 900000);
+  }
+  var quizId = appState.activeQuizId;
+
+  var quizPayload = {
+    id: quizId,
+    title: `${grade}ನೇ ತರಗತಿ ${rawSubj} - ${examType}`,
+    school: schoolName,
+    subject: rawSubj,
+    grade: grade,
+    examType: examType,
+    totalMarks: totalMarks,
+    timestamp: Date.now(),
+    createdAt: new Date().toLocaleString('kn-IN'),
+    questions: allQ.map(function(q, idx) {
+      return {
+        num: idx + 1,
+        q: q.q || '',
+        image: extractUniversalImage(q) || null,
+        a: q.a || null,
+        b: q.b || null,
+        c: q.c || null,
+        d: q.d || null,
+        img_a: getOptionImageSrc(q, 'a') || null,
+        img_b: getOptionImageSrc(q, 'b') || null,
+        img_c: getOptionImageSrc(q, 'c') || null,
+        img_d: getOptionImageSrc(q, 'd') || null,
+        ans: String(q.ans || '').trim(),
+        marks: getExactQuestionMarks(q)
+      };
+    })
+  };
+
+  showToast("⚡ ಪರೀಕ್ಷಾ ಲಿಂಕ್ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...", "info");
+
+  // Firebase ಗೆ ಕ್ಲೌಡ್ ಸೇವ್
+  try {
+    await fetch(`${WY_FIREBASE_URL}/quizzes/${quizId}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(quizPayload)
+    });
+  } catch(e) {}
+
+  localStorage.setItem('wy_quiz_' + quizId, JSON.stringify(quizPayload));
+
+  // ಶಿಕ್ಷಕರ ಇತಿಹಾಸದಲ್ಲಿ ಸೇವ್ ಮಾಡುವುದು
+  var myQuizzes = JSON.parse(localStorage.getItem('wy_my_online_quizzes') || '[]');
+  myQuizzes = myQuizzes.filter(q => q.id !== quizId);
+  myQuizzes.unshift({ id: quizId, title: quizPayload.title, date: quizPayload.createdAt, totalMarks: totalMarks, questionsCount: allQ.length });
+  localStorage.setItem('wy_my_online_quizzes', JSON.stringify(myQuizzes.slice(0, 25)));
+
+  var currentUrl = window.location.origin + window.location.pathname;
+  var studentExamLink = `${currentUrl}?quiz=${quizId}`;
+
+  window.currentActiveSharedQuiz = {
+    id: quizId,
+    title: quizPayload.title,
+    link: studentExamLink
+  };
+
+  var wrapper = document.getElementById('auth-modal-wrapper');
+  if (!wrapper) return;
+
+  wrapper.className = 'fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto';
+  wrapper.style.display = 'flex';
+
+  wrapper.innerHTML = `
+    <div class="bg-white rounded-3xl p-6 sm:p-7 space-y-4 max-w-lg w-full shadow-2xl border border-slate-200" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-black text-lg shadow">
+            <i class="fa-solid fa-share-nodes"></i>
+          </div>
+          <div>
+            <h3 class="font-black text-base text-slate-900 leading-tight">ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಲಿಂಕ್</h3>
+            <p class="text-xs text-emerald-700 font-extrabold">ಯಾವುದೇ Login ಇಲ್ಲದೆ ಮೊಬೈಲ್‌ನಲ್ಲಿ ನೇರವಾಗಿ ತೆರೆಯುತ್ತದೆ!</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAuthModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">✕</button>
+      </div>
+
+      <div class="p-3 bg-purple-50 rounded-2xl border border-purple-200 space-y-1.5 text-xs font-bold text-purple-950">
+        <div>📝 <b>ಪರೀಕ್ಷೆ:</b> ${escapeHtml(quizPayload.title)}</div>
+        <div class="flex justify-between">
+          <span>🎯 <b>ಅಂಕಗಳು:</b> ${totalMarks}</span>
+          <span>🔢 <b>ಪ್ರಶ್ನೆಗಳು:</b> ${allQ.length}</span>
+          <span>🔑 <b>ಟೆಸ್ಟ್ ID:</b> <b class="font-mono text-purple-700">${quizId}</b></span>
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-xs font-bold text-slate-700">ವಿದ್ಯಾರ್ಥಿಗಳಿಗೆ ಕಳುಹಿಸುವ ನೇರ ಲಿಂಕ್:</label>
+        <div class="flex items-center gap-1.5">
+          <input type="text" id="share-exam-url-input" value="${studentExamLink}" readonly class="w-full px-3 py-2 bg-slate-100 border rounded-xl text-xs font-bold font-mono text-slate-800 outline-none" />
+          <button type="button" onclick="window.copyStudentExamLink()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer transition">Copy</button>
+        </div>
+      </div>
+
+      <div class="pt-2 flex flex-col gap-2">
+        <button type="button" onclick="window.handleShareWhatsAppClick()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+          <i class="fa-brands fa-whatsapp text-lg text-emerald-200"></i>
+          <span>WhatsApp ನಲ್ಲಿ ಮಕ್ಕಳಿಗೆ ಕಳುಹಿಸಿ (Share on WhatsApp)</span>
+        </button>
+
+        <button type="button" onclick="window.viewLiveClassLeaderboard('${quizId}')" class="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-black text-xs rounded-xl cursor-pointer transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-trophy text-amber-500"></i>
+          <span>ಮಕ್ಕಳ ಫಲಿತಾಂಶ & Leaderboard ವೀಕ್ಷಿಸಿ</span>
+        </button>
+      </div>
+    </div>
+  `;
+};
+
+// ೩. ವಿದ್ಯಾರ್ಥಿ ಉತ್ತರ ಸಬ್ಮಿಷನ್ (ಅಲ್ಟ್ರಾ-ಫಾಸ್ಟ್ ಕ್ಲೌಡ್ ಸಿಂಕ್)
+window.submitStudentExamAnswers = async function() {
+  var quiz = window.currentStudentQuizData;
+  if (!quiz) return;
+
+  var stName = document.getElementById('st-name-input')?.value.trim();
+  var stRoll = document.getElementById('st-roll-input')?.value.trim() || '1';
+
+  if (!stName) {
+    alert("⚠️ ದಯವಿಟ್ಟು ನಿಮ್ಮ ಪೂರ್ಣ ಹೆಸರನ್ನು ನಮೂದಿಸಿ.");
+    document.getElementById('st-name-input')?.focus();
+    return;
+  }
+
+  if (!confirm("ನೀವು ಪರೀಕ್ಷೆಯನ್ನು ಅಂತಿಮವಾಗಿ Submit ಮಾಡಲು ಖಚಿತವೇ?\n(ಗಮನಿಸಿ: ಒಮ್ಮೆ Submit ಮಾಡಿದ ನಂತರ ಬದಲಾಯಿಸಲು ಬರುವುದಿಲ್ಲ).")) return;
+
+  showToast("⚡ ಫಲಿತಾಂಶ ಕ್ಲೌಡ್‌ಗೆ ಸಲ್ಲಿಸಲಾಗುತ್ತಿದೆ...", "info");
+
+  var totalScore = 0;
+  var correctCount = 0;
+  var wrongCount = 0;
+  var skippedCount = 0;
+  var reviewData = [];
+
+  quiz.questions.forEach(function(q, qIdx) {
+    var studentAnswer = "";
+
+    var radioGroup = document.querySelectorAll(`input[type="radio"][name="student_ans_${qIdx}"]`);
+    if (radioGroup && radioGroup.length > 0) {
+      var radioChecked = document.querySelector(`input[type="radio"][name="student_ans_${qIdx}"]:checked`);
+      if (radioChecked) {
+        studentAnswer = radioChecked.value.trim();
+      } else {
+        studentAnswer = "";
+      }
+    } else {
+      var textInp = document.querySelector(`input[type="text"][name="student_ans_${qIdx}"]`);
+      if (textInp) studentAnswer = textInp.value.trim();
+    }
+
+    var correctKey = "";
+    var rawAns = String(q.ans || '').trim();
+    var m = rawAns.toUpperCase().match(/\(([A-D])\)/);
+    if (m) correctKey = m[1];
+    else {
+      var m2 = rawAns.toUpperCase().match(/^([A-D])\b/);
+      if (m2) correctKey = m2[1];
+      else correctKey = rawAns.toLowerCase();
+    }
+
+    var isAttempted = (studentAnswer !== "");
+    var isCorrect = false;
+
+    if (isAttempted) {
+      if (studentAnswer.toUpperCase() === correctKey.toUpperCase() || studentAnswer.toLowerCase() === correctKey.toLowerCase()) {
+        totalScore += (q.marks || 1);
+        correctCount++;
+        isCorrect = true;
+      } else {
+        wrongCount++;
+      }
+    } else {
+      skippedCount++;
+    }
+
+    reviewData.push({
+      num: q.num,
+      q: q.q,
+      isAttempted: isAttempted,
+      studentAns: isAttempted ? studentAnswer : 'ಉತ್ತರಿಸಿಲ್ಲ (ಬಿಟ್ಟ ಪ್ರಶ್ನೆ)',
+      correctAns: q.ans || correctKey,
+      isCorrect: isCorrect,
+      marks: isCorrect ? (q.marks || 1) : 0
+    });
+  });
+
+  var percent = Math.round((totalScore / quiz.totalMarks) * 100);
+  var grade = percent >= 85 ? 'A+' : (percent >= 70 ? 'A' : (percent >= 50 ? 'B+' : (percent >= 35 ? 'B' : 'C')));
+
+  // 🌟 ಕ್ಲೌಡ್‌ಗೆ ಕೇವಲ ಅಂಕ ಮತ್ತು ಹೆಸರು ಮಾತ್ರ (Ultra-Lightweight 0.2 KB - ೧೦೦% Fast Save)
+  var cleanCloudRecord = {
+    name: stName,
+    roll: stRoll,
+    score: totalScore,
+    totalMarks: quiz.totalMarks,
+    percent: percent,
+    grade: grade,
+    submittedAt: new Date().toLocaleTimeString('kn-IN', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: Date.now()
+  };
+
+  // ಮೊಬೈಲ್‌ನಲ್ಲಿ ಸಂಪೂರ್ಣ ರಿವ್ಯೂ ಸಮೇತ ಲಾಕ್
+  var submissionRecord = { ...cleanCloudRecord, reviewData: reviewData };
+  var submittedKey = 'wy_student_sub_' + quiz.id;
+  localStorage.setItem(submittedKey, JSON.stringify(submissionRecord));
+
+  // 🌟 Firebase ಕ್ಲೌಡ್‌ಗೆ ಕಡ್ಡಾಯ ಸೇವ್ (ಶಿಕ್ಷಕರು ಮತ್ತು ಸಹಪಾಠಿಗಳಿಗೆ ತಕ್ಷಣವೇ ಲೈವ್ ಕಾಣಲು)
+  var subId = 'SUB_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+  try {
+    await fetch(`${WY_FIREBASE_URL}/submissions/${quiz.id}/${subId}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cleanCloudRecord)
+    });
+  } catch (e) {
+    console.warn("Cloud save network notice:", e);
+  }
+
+  window.renderStudentInstantResultAndLeaderboard(quiz, submissionRecord);
+};
+
+// ೪. ಲೈವ್ ಶ್ರೇಯಾಂಕ ಪಟ್ಟಿ (ವಿದ್ಯಾರ್ಥಿ ಮತ್ತು ಶಿಕ್ಷಕರಿಬ್ಬರಿಗೂ ತಕ್ಷಣವೇ ಲೈವ್ ಅಪ್ಡೇಟ್)
+window.loadAndDisplayLeaderboardTable = async function(quizId, myName) {
+  var box = document.getElementById('live-leaderboard-table-box');
+  if (!box) return;
+
+  var allSubmissions = [];
+
+  // Firebase ನಿಂದ ಲೈವ್ ಡೇಟಾ ತರುವುದು (Cache-Bust)
+  try {
+    var res = await fetch(`${WY_FIREBASE_URL}/submissions/${quizId}.json?t=${Date.now()}`);
+    if (res.ok) {
+      var data = await res.json();
+      if (data) {
+        allSubmissions = Object.values(data);
+      }
+    }
+  } catch (e) {}
+
+  // ಈ ಮೊಬೈಲ್‌ನ ಸಬ್ಮಿಷನ್ ಇದ್ದು ಕ್ಲೌಡ್ ನೆಟ್‌ವರ್ಕ್‌ನಲ್ಲಿ ತಡವಾಗಿದ್ದರೆ ಸ್ಥಳೀಯವಾಗಿ ಸೇರಿಸುವುದು
+  var localSubStr = localStorage.getItem('wy_student_sub_' + quizId);
+  if (localSubStr) {
+    try {
+      var localSub = JSON.parse(localSubStr);
+      var exists = allSubmissions.some(s => s.name === localSub.name && s.roll === localSub.roll);
+      if (!exists) allSubmissions.push(localSub);
+    } catch(e) {}
+  }
+
+  if (allSubmissions.length === 0) {
+    box.innerHTML = `
+      <div class="py-8 text-center text-xs font-bold text-slate-500 space-y-2">
+        <div class="text-2xl">⏳</div>
+        <p>ಈ ಟೆಸ್ಟ್ ID ಗೆ ಇನ್ನೂ ಯಾವುದೇ ಮಕ್ಕಳು Submit ಮಾಡಿಲ್ಲ.</p>
+        <p class="text-[10px] text-slate-400">ಮಕ್ಕಳು ಪರೀಕ್ಷೆ ಬರೆದ ನಂತರ ಮೇಲೆ ಇರುವ <b>"Refresh"</b> ಬಟನ್ ಒತ್ತಿ.</p>
+      </div>
+    `;
+    return;
+  }
+
+  allSubmissions.sort((a, b) => b.score - a.score || b.percent - a.percent);
+
+  box.innerHTML = `
+    <table class="w-full text-left text-xs border-collapse">
+      <thead class="bg-slate-100 text-slate-700 font-black">
+        <tr>
+          <th class="p-2.5 border-b text-center" style="width: 15%;">ರ‍್ಯಾಂಕ್</th>
+          <th class="p-2.5 border-b" style="width: 35%;">ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು</th>
+          <th class="p-2.5 border-b text-center" style="width: 15%;">ರೋಲ್ ನಂ</th>
+          <th class="p-2.5 border-b text-center" style="width: 15%;">ಗಳಿಸಿದ ಅಂಕ</th>
+          <th class="p-2.5 border-b text-center" style="width: 10%;">ಶೇಕಡಾ</th>
+          <th class="p-2.5 border-b text-center" style="width: 10%;">ಗ್ರೇಡ್</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 font-bold text-slate-800">
+        ${allSubmissions.map(function(st, idx) {
+          var isMe = (st.name === myName);
+          var rankIcon = idx === 0 ? '🥇 1' : (idx === 1 ? '🥈 2' : (idx === 2 ? '🥉 3' : `${idx + 1}`));
+          return `
+            <tr class="${isMe ? 'bg-emerald-50 font-black text-emerald-950 border-l-4 border-emerald-600' : 'hover:bg-slate-50'}">
+              <td class="p-2.5 text-center font-black">${rankIcon}</td>
+              <td class="p-2.5 font-bold">${escapeHtml(st.name)} ${isMe ? '<span class="text-[10px] bg-emerald-600 text-white px-1.5 py-0.2 rounded ml-1 font-black">ನೀವು</span>' : ''}</td>
+              <td class="p-2.5 text-center text-slate-600 font-mono">${escapeHtml(st.roll || '-')}</td>
+              <td class="p-2.5 text-center font-black text-emerald-700">${st.score} / ${st.totalMarks}</td>
+              <td class="p-2.5 text-center text-indigo-700 font-mono">${st.percent}%</td>
+              <td class="p-2.5 text-center font-black">${st.grade}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+  `;
+};
+
+// ೫. ಶಿಕ್ಷಕರು ನಂತರ ಬಂದು ಎಲ್ಲಾ ಪರೀಕ್ಷೆಗಳ ಮಕ್ಕಳ RESULT ನೋಡುವ ಮಾಸ್ಟರ್ ಲೈಬ್ರರಿ
+(function injectTeacherResultsNavButton() {
+  function addNavBtn() {
+    var topNav = document.getElementById('top-nav-actions-container');
+    if (topNav && !document.getElementById('btn-nav-teacher-results')) {
+      var resBtn = document.createElement('button');
+      resBtn.id = 'btn-nav-teacher-results';
+      resBtn.type = 'button';
+      resBtn.onclick = function() { window.openTeacherQuizzesDashboardModal(); };
+      resBtn.className = 'px-3 py-1.5 rounded-xl font-black text-xs bg-purple-50 text-purple-900 border border-purple-300 hover:bg-purple-100 flex items-center gap-1.5 cursor-pointer transition shadow-sm';
+      resBtn.innerHTML = '<i class="fa-solid fa-square-poll-vertical text-purple-600"></i> <span>ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ವೀಕ್ಷಣೆ</span>';
+      topNav.appendChild(resBtn);
+    }
+  }
+  setInterval(addNavBtn, 700);
+})();
+
+window.openTeacherQuizzesDashboardModal = async function() {
+  var wrapper = document.getElementById('auth-modal-wrapper');
+  if (!wrapper) return;
+
+  wrapper.className = 'fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto';
+  wrapper.style.display = 'flex';
+
+  var savedQuizzes = JSON.parse(localStorage.getItem('wy_my_online_quizzes') || '[]');
+
+  wrapper.innerHTML = `
+    <div class="bg-white rounded-3xl p-6 sm:p-7 space-y-4 max-w-3xl w-full shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-black text-lg shadow">
+            <i class="fa-solid fa-square-poll-vertical"></i>
+          </div>
+          <div>
+            <h3 class="font-black text-base text-slate-900 leading-tight">ಆನ್‌ಲೈನ್ ಪರೀಕ್ಷೆಗಳು & ಮಕ್ಕಳ ರಿಸಲ್ಟ್ ಲೈಬ್ರರಿ</h3>
+            <p class="text-xs text-slate-500 font-bold">ನೀವು ರಚಿಸಿದ ಪರೀಕ್ಷೆಗಳ ಮಕ್ಕಳ ಅಂಕಪಟ್ಟಿ ವೀಕ್ಷಿಸಿ</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAuthModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">✕</button>
+      </div>
+
+      <!-- Quick Quiz Search by ID -->
+      <div class="p-3 bg-purple-50 rounded-2xl border border-purple-200 flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
+        <span>🔍 ಪರೀಕ್ಷೆಯ ನೇರ Quiz ID ಹುಡುಕಿ:</span>
+        <div class="flex items-center gap-1.5">
+          <input type="text" id="manual-quiz-id-search" placeholder="ಉದಾ: QZ-111272" class="px-3 py-1.5 bg-white border border-purple-300 rounded-xl text-xs font-mono font-bold text-slate-900 outline-none w-36" />
+          <button type="button" onclick="searchQuizByIdManually()" class="px-3 py-1.5 bg-purple-600 text-white rounded-xl font-black cursor-pointer hover:bg-purple-700 transition">ನೋಡಿ</button>
+        </div>
+      </div>
+
+      <!-- Saved Quizzes List -->
+      <div class="space-y-3">
+        ${savedQuizzes.length === 0 ? `
+          <div class="p-10 text-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 font-bold text-xs space-y-2">
+            <div class="text-3xl">📭</div>
+            <p>ನೀವಿನ್ನೂ ಯಾವುದೇ ಆನ್‌ಲೈನ್ ಪರೀಕ್ಷೆಗಳನ್ನು ಕಳುಹಿಸಿಲ್ಲ.</p>
+            <p class="text-[11px] text-slate-400">ಜನರೇಟರ್‌ನಲ್ಲಿ ಪತ್ರಿಕೆ ರಚಿಸಿ 'ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಕಳುಹಿಸಿ' ಕ್ಲಿಕ್ ಮಾಡಿದಾಗ ಪರೀಕ್ಷೆಗಳು ಇಲ್ಲಿ ಸೇವ್ ಆಗುತ್ತವೆ.</p>
+          </div>
+        ` : savedQuizzes.map(function(qz, idx) {
+          return `
+            <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 hover:border-purple-300 hover:bg-white transition shadow-sm">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                <div class="flex items-center space-x-2">
+                  <span class="w-6 h-6 rounded-lg bg-purple-600 text-white font-black text-xs flex items-center justify-center">${idx + 1}</span>
+                  <h4 class="font-black text-sm text-slate-900">${escapeHtml(qz.title)}</h4>
+                </div>
+                <span class="text-[10px] bg-purple-100 text-purple-900 font-mono font-black px-2 py-0.5 rounded-full">${qz.id}</span>
+              </div>
+
+              <div class="flex items-center justify-between text-xs font-bold text-slate-600">
+                <span>🎯 ಅಂಕಗಳು: <b>${qz.totalMarks}</b> | 🔢 ಪ್ರಶ್ನೆಗಳು: <b>${qz.questionsCount}</b></span>
+                <span class="text-[11px] text-slate-400">🕒 ${qz.date || '-'}</span>
+              </div>
+
+              <div class="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                <button type="button" onclick="window.viewLiveClassLeaderboard('${qz.id}')" class="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xs rounded-xl shadow cursor-pointer transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-trophy text-amber-300"></i> <span>ಮಕ್ಕಳ ಅಂಕಪಟ್ಟಿ ನೋಡಿ (Results)</span>
+                </button>
+                <button type="button" onclick="reShareQuizFromHistory('${qz.id}', '${escapeHtml(qz.title)}')" class="px-3 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold text-xs rounded-xl hover:bg-emerald-100 cursor-pointer transition flex items-center gap-1">
+                  <i class="fa-brands fa-whatsapp"></i> <span>ಮತ್ತೆ ಕಳುಹಿಸಿ</span>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+};
+
+window.searchQuizByIdManually = function() {
+  var id = document.getElementById('manual-quiz-id-search')?.value.trim();
+  if (!id) return alert("ದಯವಿಟ್ಟು Quiz ID ನಮೂದಿಸಿ.");
+  window.viewLiveClassLeaderboard(id);
+};
+
+window.reShareQuizFromHistory = function(quizId, title) {
+  var currentUrl = window.location.origin + window.location.pathname;
+  var link = `${currentUrl}?quiz=${quizId}`;
+  window.shareExamLinkOnWhatsApp(quizId, title, link);
+};
+
     
        
 </script>

@@ -22473,11 +22473,11 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
 
+   // =========================================================================
+    // 🏛️ 100% PERFECT INSET DOUBLE BORDER (AMPLE MARGIN FROM PAPER EDGES)
     // =========================================================================
-    // 🏛️ 100% GUARANTEED FULL-PAGE DOUBLE BORDER ON EVERY PRINTED PAGE
-    // =========================================================================
-    (function installPermanentFullPageDoubleBorderSystem() {
-      // ೧. ಗೊಂದಲ ಸೃಷ್ಟಿಸುತ್ತಿದ್ದ ಹಿಂದಿನ ಎಲ್ಲಾ ಹಳೆಯ ಪ್ರಿಂಟ್/ಬಾರ್ಡರ್ ಕೋಡ್‌ಗಳ ಸಂಪೂರ್ಣ ಕ್ಲಿಯರ್
+    (function installProperInsetDoubleBorderSystem() {
+      // ೧. ಹಿಂದಿನ ಎಲ್ಲಾ ಹಳೆಯ ಬಾರ್ಡರ್ ಸ್ಟೈಲ್‌ಗಳ ಸಂಪೂರ್ಣ ಕ್ಲಿಯರ್
       [
         'wy-all-pages-print-border-style',
         'wy-print-full-page-border-fix',
@@ -22485,7 +22485,8 @@ window.reShareQuizFromHistory = function(quizId, title) {
         'wy-20m-spread-styles',
         'wy-official-double-border-style',
         'wy-model-a4-double-frame',
-        'wy-permanent-full-page-border'
+        'wy-permanent-full-page-border',
+        'wy-inset-model-double-frame'
       ].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.remove();
@@ -22494,11 +22495,11 @@ window.reShareQuizFromHistory = function(quizId, title) {
       var oldFrames = document.querySelectorAll('#official-board-border-frame, .print-page-frame-box, #print-page-border-frame');
       oldFrames.forEach(function(f) { if (f && f.parentNode) f.parentNode.removeChild(f); });
 
-      // ೨. ಪ್ರತಿಯೊಂದು ಪುಟದಲ್ಲೂ ಪೂರ್ಣ ಪುಟದ ಡಬಲ್ ಬಾರ್ಡರ್ ನೀಡುವ ಮಾಸ್ಟರ್ CSS
+      // ೨. ಕಾಗದದ ಅಂಚಿನಿಂದ ಜಾಗ ಬಿಟ್ಟು ಒಳಗೆ ಕೂರುವ ಡಬಲ್ ಬಾರ್ಡರ್ CSS
       var styleEl = document.createElement('style');
-      styleEl.id = 'wy-permanent-full-page-border';
+      styleEl.id = 'wy-inset-model-double-frame';
       styleEl.innerHTML = `
-        /* ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಪೂರ್ಣ A4 ಹಾಳೆ & ಡಬಲ್ ಲೈನ್ */
+        /* ಸ್ಕ್ರೀನ್ ಪ್ರಿವ್ಯೂನಲ್ಲಿ ಪೂರ್ಣ ಪುಟ & ಡಬಲ್ ಲೈನ್ */
         .a4-board-sheet {
           box-sizing: border-box !important;
           border: 1.5px solid #000000 !important;
@@ -22516,7 +22517,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         .a4-inner-frame {
           box-sizing: border-box !important;
           border: 1.5px solid #000000 !important;
-          padding: 6mm 8mm 12mm 8mm !important;
+          padding: 5mm 7mm 12mm 7mm !important;
           width: 100% !important;
           flex: 1 !important;
           display: flex !important;
@@ -22527,16 +22528,16 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
 
         /* -------------------------------------------------------------
-           🖨️ ಪ್ರಿಂಟ್ ಪ್ರಿವ್ಯೂ & PDF ನಿಯಮಗಳು (PAGE 1 & PAGE 2 BOTH FULL BORDER)
+           🖨️ ಪ್ರಿಂಟ್ ಪ್ರಿವ್ಯೂ & PDF ನಿಯಮಗಳು (AMPLE WHITE MARGIN ALL AROUND)
            ------------------------------------------------------------- */
         @media print {
           @page {
             size: A4 portrait !important;
-            /* 🌟 ಕಾಗದದ Edge ಗೆ ಹೋಗದಂತೆ 12mm ನಷ್ಟು ಸುಂದರವಾದ ಅಧಿಕೃತ ಮಾರ್ಜಿನ್ */
-            margin: 11mm 12mm 12mm 12mm !important;
+            /* 🌟 ಕಾಗದದ ಅಂಚಿನಿಂದ (Edge) ಒಳಗೆ ತರಲು 14mm ಸ್ಪಷ್ಟ ವೈಟ್ ಸ್ಪೇಸ್ */
+            margin: 12mm 14mm 14mm 14mm !important;
           }
 
-          /* ಪ್ರಿಂಟ್‌ನಲ್ಲಿ ಮೊದಲ ಪೇಜ್ ಖಾಲಿ ಬರುವುದನ್ನು ತಡೆಯಲು ಅನಗತ್ಯ ಎಲ್ಲಾ ಟ್ಯಾಗ್ ರದ್ದು */
+          /* ಪ್ರಿಂಟ್‌ನಲ್ಲಿ ಅನಗತ್ಯ ಅಂಶಗಳನ್ನು ಸಂಪೂರ್ಣ ಅಳಿಸುವುದು */
           header, nav, #top-nav-actions-container, #view-dashboard, #auth-modal-wrapper,
           #toast-container, .no-print, button, #view-generator > .grid, .btn-live-q-edit {
             display: none !important;
@@ -22581,27 +22582,28 @@ window.reShareQuizFromHistory = function(quizId, title) {
             visibility: visible !important;
           }
 
-          /* 🌟 ಪುಟ ೧ ಹಾಗೂ ಪುಟ ೨ ಎರಡರಲ್ಲೂ ಕಾಗದದ ಕೊನೆಯವರೆಗೂ ವಿಸ್ತರಿಸುವ ಪೂರ್ಣ ಡಬಲ್ ಬಾರ್ಡರ್ */
+          /* 🌟 ಕಾಗದದ ಅಂಚಿಗೆ ಅಂಟಿಕೊಳ್ಳದೆ ಒಳಗೆ ಕೂರುವ ಹೊರ ಬಾರ್ಡರ್ */
           .a4-board-sheet {
             width: 100% !important;
             max-width: 100% !important;
-            min-height: 270mm !important;          /* ಪೂರ್ಣ A4 ಎತ್ತರ */
-            border: 1.5px solid #000000 !important; /* ಹೊರ ಗೆರೆ */
-            padding: 3.5px !important;              /* 3.5px ವೈಟ್ ಗ್ಯಾಪ್ */
+            min-height: 260mm !important;          /* 14mm ಮಾರ್ಜಿನ್‌ಗೆ ತಕ್ಕಂತೆ ನಿಖರ ಎತ್ತರ */
+            border: 1.5px solid #000000 !important; /* ೧. ಹೊರ ಗೆರೆ */
+            padding: 3.5px !important;              /* ೨. 3.5px ಗ್ಯಾಪ್ */
             margin: 0 auto !important;
             box-sizing: border-box !important;
             display: flex !important;
             flex-direction: column !important;
             -webkit-box-decoration-break: clone !important;
-            box-decoration-break: clone !important; /* ಪುಟ ಮುರಿದಾಗಲೂ ಬಾರ್ಡರ್ ಮುಂದುವರಿಯಲು */
+            box-decoration-break: clone !important; /* ೨ನೇ ಪುಟದಲ್ಲೂ ಕೆಳಗೆ ಲೈನ್ ಕ್ಲೋಸ್ ಆಗಲು */
           }
 
+          /* 🌟 ಒಳ ಬಾರ್ಡರ್ (ಪ್ರಶ್ನೆಗಳು ಮುಗಿದ ನಂತರ ಕೆಳಗೆ ಆರಾಮದಾಯಕ ವೈಟ್ ಸ್ಪೇಸ್) */
           .a4-inner-frame {
             width: 100% !important;
-            min-height: 268mm !important;          /* ೨ನೇ ಪುಟದಲ್ಲೂ ಕೆಳ ಅಂಚಿನವರೆಗೂ ಬಾರ್ಡರ್ ಸೀಲ್ ಆಗಿರಲು */
+            min-height: 254mm !important;          /* ಕೆಳ ಅಂಚಿನವರೆಗೂ ಲೈನ್ ಸರಿಯಾಗಿ ಕ್ಲೋಸ್ ಆಗಲು */
             flex: 1 !important;
-            border: 1.5px solid #000000 !important; /* ಒಳ ಗೆರೆ */
-            padding: 5mm 7mm 12mm 7mm !important;   /* ಕೆಳಗೆ 12mm ವೈಟ್ ಗ್ಯಾಪ್ */
+            border: 1.5px solid #000000 !important; /* ೩. ಒಳ ಗೆರೆ */
+            padding: 4mm 6mm 10mm 6mm !important;   /* ಒಳಗಡೆ 10mm ವೈಟ್ ಗ್ಯಾಪ್ */
             box-sizing: border-box !important;
             display: flex !important;
             flex-direction: column !important;
@@ -22609,13 +22611,13 @@ window.reShareQuizFromHistory = function(quizId, title) {
             box-decoration-break: clone !important;
           }
 
-          /* ಪ್ರಶ್ನೆಗಳು ಸುಂದರವಾಗಿ ಕುಳಿತುಕೊಳ್ಳಲು ಸಮತೋಲಿತ ಅಂತರ */
+          /* ಪ್ರಶ್ನೆಗಳು ಸುಂದರವಾಗಿ ಫಿಟ್ ಆಗಲು ನಿಖರ ಅಂತರ */
           .main-roman-section-block {
-            margin-bottom: 4px !important;
+            margin-bottom: 3.5px !important;
           }
           .board-heading-row-table {
             margin-top: 3px !important;
-            margin-bottom: 2px !important;
+            margin-bottom: 1.5px !important;
             page-break-after: avoid !important;
             break-after: avoid !important;
           }
@@ -22625,7 +22627,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
             break-inside: avoid !important;
           }
           .board-q-text-cell, .board-q-num-cell {
-            line-height: 1.30 !important;
+            line-height: 1.28 !important;
             font-size: 9.6pt !important;
           }
         }

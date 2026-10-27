@@ -22471,7 +22471,97 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
    
-    
+    // =========================================================================
+    // 🖨️ 100% BULLETPROOF ALL-PAGE PRINT BORDER FIX (TOP, BOTTOM, LEFT, RIGHT)
+    // =========================================================================
+    (function installAllPagesPrintBorderEngine() {
+      // ೧. ಪ್ರಿಂಟ್ ಆದಾಗ ಪ್ರತಿಯೊಂದು ಪುಟಕ್ಕೂ ೪ ಬದಿಯ ಬಾರ್ಡರ್ ನೀಡುವ ಪ್ರಿಂಟ್ CSS ಇಂಜೆಕ್ಷನ್
+      var oldPrintStyle = document.getElementById('wy-all-pages-print-border-style');
+      if (oldPrintStyle) oldPrintStyle.remove();
+
+      var styleEl = document.createElement('style');
+      styleEl.id = 'wy-all-pages-print-border-style';
+      styleEl.innerHTML = `
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 5mm 6mm !important;
+          }
+
+          /* ಮುರಿದು ಹೋಗುವ ಹಳೆಯ ಸ್ಲೈಸ್ಡ್ ಬಾರ್ಡರ್‌ಗಳನ್ನು ಪ್ರಿಂಟ್‌ನಲ್ಲಿ ರದ್ದುಪಡಿಸುವುದು */
+          .a4-board-sheet,
+          .nk-board-sheet,
+          .nk-page-sheet,
+          .omr-sheet-container {
+            border: none !important;
+            box-shadow: none !important;
+            margin: 0 auto !important;
+          }
+
+          /* 🌟 ಪ್ರತಿಯೊಂದು ಪುಟದಲ್ಲೂ (Page 1, Page 2, Page 3...) 
+             ಮೇಲ್ಭಾಗ (Top), ಕೆಳಭಾಗ (Bottom), ಎಡ ಮತ್ತು ಬಲ ನಾಲ್ಕೂ ಬದಿ ಬಾರ್ಡರ್ ಮೂಡಿಸುವ ಫಿಕ್ಸ್ಡ್ ಫ್ರೇಮ್ */
+          #print-page-border-frame {
+            display: block !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            border: 2px solid #000000 !important;
+            box-sizing: border-box !important;
+            pointer-events: none !important;
+            z-index: 999999 !important;
+            visibility: visible !important;
+          }
+
+          #print-area, #print-area * {
+            visibility: visible !important;
+          }
+        }
+
+        /* ಕಂಪ್ಯೂಟರ್/ಮೊಬೈಲ್ ಸ್ಕ್ರೀನ್‌ನಲ್ಲಿ ಈ ಪ್ರಿಂಟ್ ಫ್ರೇಮ್ ಕಾಣಿಸುವುದಿಲ್ಲ */
+        #print-page-border-frame {
+          display: none;
+        }
+      `;
+      document.head.appendChild(styleEl);
+
+      // ೨. ಪ್ರಿಂಟ್ ಏರಿಯಾದ ಒಳಗೆ ಈ ಬಾರ್ಡರ್ ಫ್ರೇಮ್ ಕಡ್ಡಾಯವಾಗಿ ಇರುವಂತೆ ನೋಡಿಕೊಳ್ಳುವುದು
+      window.ensurePrintPageBorderFrameExists = function() {
+        var printArea = document.getElementById('print-area');
+        if (printArea && !document.getElementById('print-page-border-frame')) {
+          var frame = document.createElement('div');
+          frame.id = 'print-page-border-frame';
+          printArea.insertBefore(frame, printArea.firstChild);
+        }
+      };
+
+      // ೩. ಪ್ರಿಂಟ್ ಕೊಡುವ ಮುನ್ನ ಹಾಗೂ ಪತ್ರಿಕೆ ಜನರೇಟ್ ಆದಾಗ ಆಟೋ-ಅಟ್ಯಾಚ್
+      window.addEventListener('beforeprint', window.ensurePrintPageBorderFrameExists);
+
+      var origExportPDF = window.exportCurrentTabToPDF;
+      window.exportCurrentTabToPDF = function() {
+        window.ensurePrintPageBorderFrameExists();
+        if (typeof origExportPDF === 'function') {
+          origExportPDF();
+        } else {
+          window.print();
+        }
+      };
+
+      var origHeaderRenderHook = window.renderFullExamPaperWithCustomHeader;
+      window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+        if (typeof origHeaderRenderHook === 'function') {
+          origHeaderRenderHook(headerHtml);
+        }
+        window.ensurePrintPageBorderFrameExists();
+      };
+
+      // ತಕ್ಷಣವೇ ಸಕ್ರಿಯಗೊಳಿಸುವುದು
+      window.ensurePrintPageBorderFrameExists();
+    })();
     
 </script>
 </body>

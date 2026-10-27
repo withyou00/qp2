@@ -22473,37 +22473,41 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
 
-// =========================================================================
-    // 🏛️ 100% PERFECT MODEL MATCH: DOUBLE BORDER WITH ELEGANT BOTTOM WHITE GAP
     // =========================================================================
-    (function installModelDoubleBorderWithProperGaps() {
-      // ೧. ಹಿಂದಿನ ಎಲ್ಲಾ ಹಳೆಯ ಬಾರ್ಡರ್ ಸ್ಟೈಲ್‌ಗಳ ಸಂಪೂರ್ಣ ತೆರವು
+    // 🏛️ 100% GUARANTEED FULL-PAGE DOUBLE BORDER ON EVERY PRINTED PAGE
+    // =========================================================================
+    (function installPermanentFullPageDoubleBorderSystem() {
+      // ೧. ಗೊಂದಲ ಸೃಷ್ಟಿಸುತ್ತಿದ್ದ ಹಿಂದಿನ ಎಲ್ಲಾ ಹಳೆಯ ಪ್ರಿಂಟ್/ಬಾರ್ಡರ್ ಕೋಡ್‌ಗಳ ಸಂಪೂರ್ಣ ಕ್ಲಿಯರ್
       [
         'wy-all-pages-print-border-style',
         'wy-print-full-page-border-fix',
         'wy-master-print-border-fix',
         'wy-20m-spread-styles',
         'wy-official-double-border-style',
-        'wy-model-a4-double-frame'
+        'wy-model-a4-double-frame',
+        'wy-permanent-full-page-border'
       ].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.remove();
       });
 
-      // ೨. ಪರಿಪೂರ್ಣ ಡಬಲ್ ಬಾರ್ಡರ್ + ಕೆಳಭಾಗದಲ್ಲಿ ಸ್ಪಷ್ಟ ವೈಟ್ ಗ್ಯಾಪ್ ನೀಡುವ CSS
+      var oldFrames = document.querySelectorAll('#official-board-border-frame, .print-page-frame-box, #print-page-border-frame');
+      oldFrames.forEach(function(f) { if (f && f.parentNode) f.parentNode.removeChild(f); });
+
+      // ೨. ಪ್ರತಿಯೊಂದು ಪುಟದಲ್ಲೂ ಪೂರ್ಣ ಪುಟದ ಡಬಲ್ ಬಾರ್ಡರ್ ನೀಡುವ ಮಾಸ್ಟರ್ CSS
       var styleEl = document.createElement('style');
-      styleEl.id = 'wy-model-a4-double-frame';
+      styleEl.id = 'wy-permanent-full-page-border';
       styleEl.innerHTML = `
-        /* 🌟 ಸ್ಕ್ರೀನ್ ಪ್ರಿವ್ಯೂನಲ್ಲಿ ಪೂರ್ಣ ಪುಟ + ಡಬಲ್ ಬಾರ್ಡರ್ */
+        /* ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಪೂರ್ಣ A4 ಹಾಳೆ & ಡಬಲ್ ಲೈನ್ */
         .a4-board-sheet {
           box-sizing: border-box !important;
-          border: 1.5px solid #000000 !important; /* ೧. ಹೊರ ಗೆರೆ */
-          padding: 3.5px !important;              /* ೨. ನಡುವಿನ 3.5px ವೈಟ್ ಗ್ಯಾಪ್ */
+          border: 1.5px solid #000000 !important;
+          padding: 3.5px !important;
           background: #ffffff !important;
-          margin: 0 auto 20px auto !important;
+          margin: 0 auto 24px auto !important;
           max-width: 820px !important;
           width: 100% !important;
-          min-height: 1040px !important;
+          min-height: 1050px !important;
           display: flex !important;
           flex-direction: column !important;
           border-radius: 0 !important;
@@ -22511,8 +22515,8 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
         .a4-inner-frame {
           box-sizing: border-box !important;
-          border: 1.5px solid #000000 !important; /* ೩. ಒಳ ಗೆರೆ */
-          padding: 5mm 7mm 14mm 7mm !important;   /* 🌟 ಕೆಳಗೆ 14mm ನಷ್ಟು ಸ್ಪಷ್ಟ ವೈಟ್ ಸ್ಪೇಸ್ */
+          border: 1.5px solid #000000 !important;
+          padding: 6mm 8mm 12mm 8mm !important;
           width: 100% !important;
           flex: 1 !important;
           display: flex !important;
@@ -22523,16 +22527,16 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
 
         /* -------------------------------------------------------------
-           🖨️ ಪ್ರಿಂಟ್ ಪ್ರಿವ್ಯೂ & PDF ಸೆಟ್ಟಿಂಗ್ಸ್ (ಮಾದರಿಯಂತೆಯೇ ಕರಾರುವಾಕ್)
+           🖨️ ಪ್ರಿಂಟ್ ಪ್ರಿವ್ಯೂ & PDF ನಿಯಮಗಳು (PAGE 1 & PAGE 2 BOTH FULL BORDER)
            ------------------------------------------------------------- */
         @media print {
           @page {
             size: A4 portrait !important;
-            /* 🌟 ಕಾಗದದ ಕೆಳ ಅಂಚಿನಿಂದ ಬಾರ್ಡರ್‌ಗೆ 12mm ಸ್ಪಷ್ಟ ವೈಟ್ ಮಾರ್ಜಿನ್ */
-            margin: 8mm 9mm 12mm 9mm !important;
+            /* 🌟 ಕಾಗದದ Edge ಗೆ ಹೋಗದಂತೆ 12mm ನಷ್ಟು ಸುಂದರವಾದ ಅಧಿಕೃತ ಮಾರ್ಜಿನ್ */
+            margin: 11mm 12mm 12mm 12mm !important;
           }
 
-          /* ಅನಗತ್ಯ ಅಂಶಗಳನ್ನು ಪ್ರಿಂಟ್‌ನಿಂದ ಸಂಪೂರ್ಣ ರದ್ದುಪಡಿಸುವುದು */
+          /* ಪ್ರಿಂಟ್‌ನಲ್ಲಿ ಮೊದಲ ಪೇಜ್ ಖಾಲಿ ಬರುವುದನ್ನು ತಡೆಯಲು ಅನಗತ್ಯ ಎಲ್ಲಾ ಟ್ಯಾಗ್ ರದ್ದು */
           header, nav, #top-nav-actions-container, #view-dashboard, #auth-modal-wrapper,
           #toast-container, .no-print, button, #view-generator > .grid, .btn-live-q-edit {
             display: none !important;
@@ -22577,55 +22581,58 @@ window.reShareQuizFromHistory = function(quizId, title) {
             visibility: visible !important;
           }
 
-          /* 🌟 ಹೊರಗಿನ ಬಾರ್ಡರ್: ಕಾಗದದ ಕೆಳಗೆ 12mm ಗ್ಯಾಪ್ ಉಳಿಯುವ ಎತ್ತರ */
+          /* 🌟 ಪುಟ ೧ ಹಾಗೂ ಪುಟ ೨ ಎರಡರಲ್ಲೂ ಕಾಗದದ ಕೊನೆಯವರೆಗೂ ವಿಸ್ತರಿಸುವ ಪೂರ್ಣ ಡಬಲ್ ಬಾರ್ಡರ್ */
           .a4-board-sheet {
             width: 100% !important;
             max-width: 100% !important;
-            min-height: 265mm !important;          /* ಕಾಗದದ ಕೆಳಗೆ ಸ್ಪಷ್ಟ ವೈಟ್ ಸ್ಪೇಸ್ */
-            border: 1.5px solid #000000 !important; /* ಹೊರ ಲೈನ್ */
-            padding: 3.5px !important;              /* ಗ್ಯಾಪ್ */
+            min-height: 270mm !important;          /* ಪೂರ್ಣ A4 ಎತ್ತರ */
+            border: 1.5px solid #000000 !important; /* ಹೊರ ಗೆರೆ */
+            padding: 3.5px !important;              /* 3.5px ವೈಟ್ ಗ್ಯಾಪ್ */
             margin: 0 auto !important;
             box-sizing: border-box !important;
             display: flex !important;
             flex-direction: column !important;
+            -webkit-box-decoration-break: clone !important;
+            box-decoration-break: clone !important; /* ಪುಟ ಮುರಿದಾಗಲೂ ಬಾರ್ಡರ್ ಮುಂದುವರಿಯಲು */
           }
 
-          /* 🌟 ಒಳಗಿನ ಬಾರ್ಡರ್: ಕೊನೆಯ ಪ್ರಶ್ನೆಯ ನಂತರ 14mm ನಷ್ಟು ವೈಟ್ ಗ್ಯಾಪ್ */
           .a4-inner-frame {
             width: 100% !important;
-            height: 100% !important;
+            min-height: 268mm !important;          /* ೨ನೇ ಪುಟದಲ್ಲೂ ಕೆಳ ಅಂಚಿನವರೆಗೂ ಬಾರ್ಡರ್ ಸೀಲ್ ಆಗಿರಲು */
             flex: 1 !important;
-            border: 1.5px solid #000000 !important; /* ಒಳ ಲೈನ್ */
-            padding: 4mm 6mm 14mm 6mm !important;   /* 🌟 ಕೆಳಗೆ 14mm ವೈಟ್ ಗ್ಯಾಪ್! */
+            border: 1.5px solid #000000 !important; /* ಒಳ ಗೆರೆ */
+            padding: 5mm 7mm 12mm 7mm !important;   /* ಕೆಳಗೆ 12mm ವೈಟ್ ಗ್ಯಾಪ್ */
             box-sizing: border-box !important;
             display: flex !important;
             flex-direction: column !important;
+            -webkit-box-decoration-break: clone !important;
+            box-decoration-break: clone !important;
           }
 
-          /* ಪ್ರಶ್ನೆಗಳು ಸುಂದರವಾಗಿ ಕುಳಿತುಕೊಳ್ಳಲು ನಿಖರ ಅಂತರ */
+          /* ಪ್ರಶ್ನೆಗಳು ಸುಂದರವಾಗಿ ಕುಳಿತುಕೊಳ್ಳಲು ಸಮತೋಲಿತ ಅಂತರ */
           .main-roman-section-block {
-            margin-bottom: 3.5px !important;
+            margin-bottom: 4px !important;
           }
           .board-heading-row-table {
             margin-top: 3px !important;
-            margin-bottom: 1.5px !important;
+            margin-bottom: 2px !important;
             page-break-after: avoid !important;
             break-after: avoid !important;
           }
           .q-indivisible-block {
-            margin-bottom: 1.6px !important;
+            margin-bottom: 1.8px !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
           .board-q-text-cell, .board-q-num-cell {
-            line-height: 1.28 !important;
+            line-height: 1.30 !important;
             font-size: 9.6pt !important;
           }
         }
       `;
       document.head.appendChild(styleEl);
 
-      // ೩. ಪ್ರತಿಯೊಂದು ಪತ್ರಿಕೆಯನ್ನೂ ಈ ಚೌಕಟ್ಟಿನ ಒಳಗೆ ಅಳವಡಿಸುವುದು
+      // ೩. ಪ್ರತಿಯೊಂದು ಶೀಟ್‌ಗೂ ಒಳಗೆ ಮತ್ತು ಹೊರಗೆ ಡಬಲ್ ಫ್ರೇಮ್ ಅಳವಡಿಕೆ
       window.wrapSheetWithModelFrame = function() {
         var sheets = document.querySelectorAll('.a4-board-sheet');
         sheets.forEach(function(sheet) {
@@ -22640,7 +22647,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         });
       };
 
-      // ೪. ಮಾಸ್ಟರ್ ರೆಂಡರರ್ ಹುಕ್ಸ್
+      // ೪. ರೆಂಡರರ್ ಹುಕ್ಸ್
       var origMasterPaperRenderer = window.renderRegularBoardPaperAndKeySynchronized;
       window.renderRegularBoardPaperAndKeySynchronized = function(allQuestions, actualMarks, rawSubj, grade, curSet, finalHeaderHtml) {
         if (typeof origMasterPaperRenderer === 'function') {
@@ -22667,12 +22674,12 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
       };
 
-      // ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ರಿಫ್ರೆಶ್ ಮಾಡುವುದು
+      // ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಅನ್ವಯಿಸಿ ರಿಫ್ರೆಶ್ ಮಾಡುವುದು
       window.wrapSheetWithModelFrame();
       if (appState.activeGeneratedQuestions && appState.activeGeneratedQuestions.length > 0) {
         var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
         var grade = document.getElementById('cfg-class')?.value || '8';
-        var rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಜ್ಞಾನ (Science)';
+        var rawSubj = document.getElementById('cfg-subject')?.value || 'ಕನ್ನಡ (Kannada)';
         var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
         var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
         var actualMarks = appState.activeGeneratedQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
@@ -22680,6 +22687,8 @@ window.reShareQuizFromHistory = function(quizId, title) {
         window.renderFullExamPaperWithCustomHeader(headerHtml);
       }
     })();
+
+    
     
 </script>
 </body>

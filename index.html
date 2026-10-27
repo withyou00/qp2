@@ -22474,47 +22474,68 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
 
-
-
 // =========================================================================
-    // 🖨️ 100% GUARANTEED OFFICIAL DOUBLE-LINE BORDER + ZERO BLANK PAGE ENGINE
+    // 🏛️ 100% OFFICIAL MODEL MATCH: DUAL-LINE FULL-PAGE A4 BORDER SYSTEM
     // =========================================================================
-    (function installOfficialDoubleBorderSystem() {
-      // ೧. ಗೊಂದಲ ಉಂಟುಮಾಡುತ್ತಿದ್ದ ಹಿಂದಿನ ಎಲ್ಲಾ ಹಳೆಯ ಬಾರ್ಡರ್ ಸ್ಟೈಲ್‌ಗಳ ಸಂಪೂರ್ಣ ತೆರವು
+    (function installOfficialModelDoubleFrameSystem() {
+      // ೧. ಹಿಂದಿನ ಎಲ್ಲಾ ಗೊಂದಲಕಾರಿ ಹಳೆಯ ಸ್ಟೈಲ್‌ಗಳು ಮತ್ತು ಓವರ್‌ಲೇಗಳ ಸಂಪೂರ್ಣ ತೆರವು
       [
         'wy-all-pages-print-border-style',
         'wy-print-full-page-border-fix',
         'wy-master-print-border-fix',
         'wy-20m-spread-styles',
-        'wy-official-double-border-style'
+        'wy-official-double-border-style',
+        'wy-model-a4-double-frame'
       ].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.remove();
       });
 
-      // ಹಳೆಯ ಅನಗತ್ಯ ಓವರ್‌ಲೇ ಫ್ರೇಮ್ ಬಾಕ್ಸ್‌ಗಳನ್ನು ತೆಗೆದುಹಾಕುವುದು
       var oldFrames = document.querySelectorAll('#official-board-border-frame, .print-page-frame-box, #print-page-border-frame');
       oldFrames.forEach(function(f) { if (f && f.parentNode) f.parentNode.removeChild(f); });
 
-      // ೨. ಪ್ರೊಫೆಷನಲ್ ಡಬಲ್ ಲೈನ್ ಬಾರ್ಡರ್ CSS ಇಂಜೆಕ್ಷನ್ (ಸ್ಕ್ರೀನ್ + ಪ್ರಿಂಟ್ ಎರಡಕ್ಕೂ)
+      // ೨. ಮಾಡಲ್ (Image 1) ನಂತೆ ಹೊರ ಗೆರೆ + ಗ್ಯಾಪ್ + ಒಳ ಗೆರೆ & ಪೂರ್ಣ ಪುಟದ CSS
       var styleEl = document.createElement('style');
-      styleEl.id = 'wy-official-double-border-style';
+      styleEl.id = 'wy-model-a4-double-frame';
       styleEl.innerHTML = `
-        /* 🌟 ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಸುಂದರ ಡಬಲ್ ಲೈನ್ ಬಾರ್ಡರ್ */
-        .a4-board-sheet,
-        .nk-board-sheet,
-        .nk-page-sheet {
-          border: 4px double #000000 !important;
+        /* 🌟 ಸ್ಕ್ರೀನ್ ಹಾಗೂ ಪ್ರಿಂಟ್ ಎರಡರಲ್ಲೂ ಪೂರ್ಣ A4 ಪುಟದ ಡಬಲ್ ಫ್ರೇಮ್ */
+        .a4-board-sheet {
           box-sizing: border-box !important;
+          border: 1.5px solid #000000 !important; /* ೧. ಹೊರಗಿನ ಕಪ್ಪು ಗೆರೆ (Outer Line) */
+          padding: 3.5px !important;              /* ೨. ನಡುವಿನ ಬಿಳಿ ಗ್ಯಾಪ್ (Gap) */
+          background: #ffffff !important;
+          margin: 0 auto 16px auto !important;
+          max-width: 820px !important;
+          width: 100% !important;
+          min-height: 1080px !important;          /* ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಪೂರ್ಣ A4 ಎತ್ತರ */
+          display: flex !important;
+          flex-direction: column !important;
+          border-radius: 0 !important;
         }
 
+        .a4-inner-frame {
+          box-sizing: border-box !important;
+          border: 1.5px solid #000000 !important; /* ೩. ಒಳಗಿನ ಕಪ್ಪು ಗೆರೆ (Inner Line) */
+          padding: 5mm 7mm !important;
+          width: 100% !important;
+          flex: 1 !important;                     /* ಬಾರ್ಡರ್ ಕೆಳಗಿನವರೆಗೂ ಪೂರ್ಣ ಚಾಚಿಕೊಳ್ಳಲು */
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: flex-start !important;
+          background: #ffffff !important;
+          border-radius: 0 !important;
+        }
+
+        /* -------------------------------------------------------------
+           🖨️ ಪ್ರಿಂಟ್ ಪ್ರಿವ್ಯೂ & PDF ಸೆಟ್ಟಿಂಗ್ಸ್ (No Cutoff, No Blank Page)
+           ------------------------------------------------------------- */
         @media print {
           @page {
             size: A4 portrait !important;
-            margin: 5mm 6mm !important; /* ಕರಾರುವಾಕ್ ಪ್ರಿಂಟ್ ಮಾರ್ಜಿನ್ */
+            margin: 7mm 8mm !important; /* ಮಾಡಲ್‌ನ ನೈಜ ಪ್ರಿಂಟ್ ಮಾರ್ಜಿನ್ */
           }
 
-          /* ಮೊದಲ ಪುಟ ಖಾಲಿ ಬರುವುದನ್ನು ತಡೆಯಲು ಮೇಲಿನ ಎಲ್ಲಾ ಅನಗತ್ಯ ವಿಭಾಗಗಳ ಸಂಪೂರ್ಣ ನಿರ್ಮೂಲನೆ */
+          /* ಮೊದಲ ಪುಟ ಖಾಲಿ ಬರುವುದನ್ನು ತಡೆಯಲು ಅನಗತ್ಯ ವಿಭಾಗಗಳು ಸಂಪೂರ್ಣ ರದ್ದು */
           header, nav, #top-nav-actions-container, #view-dashboard, #auth-modal-wrapper,
           #toast-container, .no-print, button, #view-generator > .grid, .btn-live-q-edit {
             display: none !important;
@@ -22541,7 +22562,6 @@ window.reShareQuizFromHistory = function(quizId, title) {
             display: block !important;
           }
 
-          /* ಪತ್ರಿಕೆ ಮೊದಲ ಪುಟದ ಆರಂಭದಿಂದಲೇ ಶುರುವಾಗಲು */
           #print-area {
             position: absolute !important;
             left: 0 !important;
@@ -22560,59 +22580,109 @@ window.reShareQuizFromHistory = function(quizId, title) {
             visibility: visible !important;
           }
 
-          /* 🌟 ಪ್ರಿಂಟ್‌ನಲ್ಲಿ ೪ ಬದಿಗಳಲ್ಲೂ ಬರುವ ಅಧಿಕೃತ ಡಬಲ್ ಲೈನ್ ಬಾರ್ಡರ್ (Top, Bottom, Left, Right) */
-          .a4-board-sheet,
-          .nk-board-sheet,
-          .nk-page-sheet {
+          /* 🌟 ಪ್ರಿಂಟ್‌ನಲ್ಲಿ ಪೂರ್ಣ A4 ಹಾಳೆಯನ್ನು ಆವರಿಸುವ ಮಾಡಲ್ ಡಬಲ್ ಫ್ರೇಮ್ (Image 1 Match) */
+          .a4-board-sheet {
             width: 100% !important;
             max-width: 100% !important;
-            border: 4px double #000000 !important;
-            border-top: 4px double #000000 !important;
-            border-bottom: 4px double #000000 !important;
-            border-left: 4px double #000000 !important;
-            border-right: 4px double #000000 !important;
-            padding: 4.5mm 6.5mm !important;
+            min-height: 280mm !important;          /* ಕಾಗದದ ಕೆಳ ಅಂಚಿನವರೆಗೂ ಪೂರ್ಣ ಎತ್ತರ */
+            border: 1.5px solid #000000 !important; /* ಹೊರ ಲೈನ್ */
+            padding: 3.5px !important;              /* ಗ್ಯಾಪ್ */
             margin: 0 auto !important;
             box-sizing: border-box !important;
-            background: #ffffff !important;
-            color: #000000 !important;
-            -webkit-box-decoration-break: clone !important;
-            box-decoration-break: clone !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+            display: flex !important;
+            flex-direction: column !important;
+            page-break-after: auto !important;
+            break-after: auto !important;
           }
 
-          /* ಪುಟದ ಕೊನೆಯಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು ಅರ್ಧಕ್ಕೆ ಕಟ್ ಆಗದಂತೆ ತಡೆ */
+          .a4-inner-frame {
+            width: 100% !important;
+            height: 100% !important;
+            flex: 1 !important;
+            border: 1.5px solid #000000 !important; /* ಒಳ ಲೈನ್ */
+            padding: 4mm 6mm !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+            flex-direction: column !important;
+          }
+
+          /* ೨೪ ಪ್ರಶ್ನೆಗಳು ಒಂದೇ ಪುಟದಲ್ಲಿ ಸುಂದರವಾಗಿ ಕೂರಲು ನಿಖರ ಅಂತರ */
+          .main-roman-section-block {
+            margin-bottom: 5px !important;
+          }
+          .board-heading-row-table {
+            margin-top: 4px !important;
+            margin-bottom: 2px !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
           .q-indivisible-block {
+            margin-bottom: 2.2px !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
-          .board-heading-row-table {
-            page-break-after: avoid !important;
-            break-after: avoid !important;
+          .board-q-text-cell, .board-q-num-cell {
+            line-height: 1.32 !important;
+            font-size: 9.8pt !important;
           }
         }
       `;
       document.head.appendChild(styleEl);
 
-      // ೩. ಪ್ರಿಂಟ್ ಮಾಡುವ ಮುನ್ನ ಬಾರ್ಡರ್ ಖಚಿತತೆ
-      var origExportPDF = window.exportCurrentTabToPDF;
-      window.exportCurrentTabToPDF = function() {
-        var sheet = document.querySelector('.a4-board-sheet, .nk-board-sheet, .nk-page-sheet');
-        if (sheet) {
-          sheet.style.border = '4px double #000000';
+      // ೩. ಪ್ರತಿಯೊಂದು ಪತ್ರಿಕೆಯನ್ನೂ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಈ ಡಬಲ್ ಫ್ರೇಮ್ ಒಳಗೆ ಲಾಕ್ ಮಾಡುವ ಫಂಕ್ಷನ್
+      window.wrapSheetWithModelFrame = function() {
+        var sheets = document.querySelectorAll('.a4-board-sheet');
+        sheets.forEach(function(sheet) {
+          if (!sheet.querySelector('.a4-inner-frame')) {
+            var inner = document.createElement('div');
+            inner.className = 'a4-inner-frame';
+            while (sheet.firstChild) {
+              inner.appendChild(sheet.firstChild);
+            }
+            sheet.appendChild(inner);
+          }
+        });
+      };
+
+      // ೪. ಮಾಸ್ಟರ್ ರೆಂಡರರ್ ಹುಕ್ (ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ, ಕೀ ಉತ್ತರ ಎಲ್ಲಕ್ಕೂ ಅನ್ವಯ)
+      var origMasterPaperRenderer = window.renderRegularBoardPaperAndKeySynchronized;
+      window.renderRegularBoardPaperAndKeySynchronized = function(allQuestions, actualMarks, rawSubj, grade, curSet, finalHeaderHtml) {
+        if (typeof origMasterPaperRenderer === 'function') {
+          origMasterPaperRenderer(allQuestions, actualMarks, rawSubj, grade, curSet, finalHeaderHtml);
         }
-        if (typeof origExportPDF === 'function') {
-          origExportPDF();
+        window.wrapSheetWithModelFrame();
+      };
+
+      var origCustomHeaderRenderer = window.renderFullExamPaperWithCustomHeader;
+      window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+        if (typeof origCustomHeaderRenderer === 'function') {
+          origCustomHeaderRenderer(headerHtml);
+        }
+        window.wrapSheetWithModelFrame();
+      };
+
+      // ೫. ಪ್ರಿಂಟ್ ಬಟನ್ ಕ್ಲಿಕ್ ಆದಾಗ ಖಚಿತತೆ
+      var origExport = window.exportCurrentTabToPDF;
+      window.exportCurrentTabToPDF = function() {
+        window.wrapSheetWithModelFrame();
+        if (typeof origExport === 'function') {
+          origExport();
         } else {
           window.print();
         }
       };
 
-      // ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಡಬಲ್ ಬಾರ್ಡರ್ ಅಪ್ಲೈ ಮಾಡುವುದು
-      var curSheet = document.querySelector('.a4-board-sheet, .nk-board-sheet, .nk-page-sheet');
-      if (curSheet) {
-        curSheet.style.border = '4px double #000000';
+      // ತಕ್ಷಣವೇ ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಅನ್ವಯಿಸಿ ರಿಫ್ರೆಶ್ ಮಾಡುವುದು
+      window.wrapSheetWithModelFrame();
+      if (appState.activeGeneratedQuestions && appState.activeGeneratedQuestions.length > 0) {
+        var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+        var grade = document.getElementById('cfg-class')?.value || '8';
+        var rawSubj = document.getElementById('cfg-subject')?.value || 'ಕನ್ನಡ (Kannada)';
+        var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+        var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+        var actualMarks = appState.activeGeneratedQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
+        var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
+        window.renderFullExamPaperWithCustomHeader(headerHtml);
       }
     })();
     

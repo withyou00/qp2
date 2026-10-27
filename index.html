@@ -22472,11 +22472,10 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
 
-
-   // =========================================================================
-    // 🏛️ 100% PERFECT INSET DOUBLE BORDER (AMPLE MARGIN FROM PAPER EDGES)
+// =========================================================================
+    // 🏛️ 100% ACCURATE INSET DOUBLE BORDER (GENEROUS 16mm WHITE MARGIN FROM EDGE)
     // =========================================================================
-    (function installProperInsetDoubleBorderSystem() {
+    (function installDeepInsetDoubleBorderSystem() {
       // ೧. ಹಿಂದಿನ ಎಲ್ಲಾ ಹಳೆಯ ಬಾರ್ಡರ್ ಸ್ಟೈಲ್‌ಗಳ ಸಂಪೂರ್ಣ ಕ್ಲಿಯರ್
       [
         'wy-all-pages-print-border-style',
@@ -22486,7 +22485,8 @@ window.reShareQuizFromHistory = function(quizId, title) {
         'wy-official-double-border-style',
         'wy-model-a4-double-frame',
         'wy-permanent-full-page-border',
-        'wy-inset-model-double-frame'
+        'wy-inset-model-double-frame',
+        'wy-final-inset-double-frame'
       ].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.remove();
@@ -22495,18 +22495,25 @@ window.reShareQuizFromHistory = function(quizId, title) {
       var oldFrames = document.querySelectorAll('#official-board-border-frame, .print-page-frame-box, #print-page-border-frame');
       oldFrames.forEach(function(f) { if (f && f.parentNode) f.parentNode.removeChild(f); });
 
-      // ೨. ಕಾಗದದ ಅಂಚಿನಿಂದ ಜಾಗ ಬಿಟ್ಟು ಒಳಗೆ ಕೂರುವ ಡಬಲ್ ಬಾರ್ಡರ್ CSS
+      // ೨. ಮೂಲ ಹೆಡ್‌ನಲ್ಲಿರುವ ಹಳೆಯ 4mm 6mm ಮಾರ್ಜಿನ್ ಅನ್ನು ಅಳಿಸಿ 14mm 16mm ಗೆ ಬದಲಾಯಿಸುವುದು
+      document.querySelectorAll('style').forEach(function(s) {
+        if (s.id !== 'wy-final-inset-double-frame' && s.innerHTML.includes('@page') && s.innerHTML.includes('4mm')) {
+          s.innerHTML = s.innerHTML.replace(/margin:\s*4mm\s*6mm\s*!important/gi, 'margin: 14mm 16mm 14mm 16mm !important');
+        }
+      });
+
+      // ೩. ಕಾಗದದ ಅಂಚಿನಿಂದ ಸಾಕಷ್ಟು ಜಾಗ ಬಿಟ್ಟು ಒಳಗೆ ಕೂರುವ ಮಾಸ್ಟರ್ CSS
       var styleEl = document.createElement('style');
-      styleEl.id = 'wy-inset-model-double-frame';
+      styleEl.id = 'wy-final-inset-double-frame';
       styleEl.innerHTML = `
-        /* ಸ್ಕ್ರೀನ್ ಪ್ರಿವ್ಯೂನಲ್ಲಿ ಪೂರ್ಣ ಪುಟ & ಡಬಲ್ ಲೈನ್ */
+        /* ಸ್ಕ್ರೀನ್ ಪ್ರಿವ್ಯೂನಲ್ಲಿ ಅಚ್ಚುಕಟ್ಟಾದ ಡಬಲ್ ಲೈನ್ */
         .a4-board-sheet {
           box-sizing: border-box !important;
           border: 1.5px solid #000000 !important;
           padding: 3.5px !important;
           background: #ffffff !important;
           margin: 0 auto 24px auto !important;
-          max-width: 820px !important;
+          max-width: 790px !important;
           width: 100% !important;
           min-height: 1050px !important;
           display: flex !important;
@@ -22528,16 +22535,16 @@ window.reShareQuizFromHistory = function(quizId, title) {
         }
 
         /* -------------------------------------------------------------
-           🖨️ ಪ್ರಿಂಟ್ ಪ್ರಿವ್ಯೂ & PDF ನಿಯಮಗಳು (AMPLE WHITE MARGIN ALL AROUND)
+           🖨️ ಪ್ರಿಂಟ್ ಪ್ರಿವ್ಯೂ & PDF ನಿಯಮಗಳು (16mm GENEROUS WHITE MARGIN)
            ------------------------------------------------------------- */
         @media print {
           @page {
             size: A4 portrait !important;
-            /* 🌟 ಕಾಗದದ ಅಂಚಿನಿಂದ (Edge) ಒಳಗೆ ತರಲು 14mm ಸ್ಪಷ್ಟ ವೈಟ್ ಸ್ಪೇಸ್ */
-            margin: 12mm 14mm 14mm 14mm !important;
+            /* 🌟 ಕಾಗದದ ಅಂಚಿನಿಂದ (Edge ನಿಂದ) ಬಾರ್ಡರ್‌ಗೆ 16mm ಸ್ಪಷ್ಟ ಬಿಳಿ ಜಾಗ */
+            margin: 14mm 16mm 14mm 16mm !important;
           }
 
-          /* ಪ್ರಿಂಟ್‌ನಲ್ಲಿ ಅನಗತ್ಯ ಅಂಶಗಳನ್ನು ಸಂಪೂರ್ಣ ಅಳಿಸುವುದು */
+          /* ಪ್ರಿಂಟ್‌ನಲ್ಲಿ ಅನಗತ್ಯ ಹೆಡರ್, ಬಟನ್ ಸಂಪೂರ್ಣ ಅಳಿಸುವುದು */
           header, nav, #top-nav-actions-container, #view-dashboard, #auth-modal-wrapper,
           #toast-container, .no-print, button, #view-generator > .grid, .btn-live-q-edit {
             display: none !important;
@@ -22569,7 +22576,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
-            margin: 0 !important;
+            margin: 0 auto !important;
             padding: 0 !important;
             background: #ffffff !important;
           }
@@ -22582,25 +22589,25 @@ window.reShareQuizFromHistory = function(quizId, title) {
             visibility: visible !important;
           }
 
-          /* 🌟 ಕಾಗದದ ಅಂಚಿಗೆ ಅಂಟಿಕೊಳ್ಳದೆ ಒಳಗೆ ಕೂರುವ ಹೊರ ಬಾರ್ಡರ್ */
+          /* 🌟 ಕಾಗದದ ಎಡ್ಜ್‌ಗೆ ಹೋಗದಂತೆ ಒಳಗೆ ಕೂರುವ ಹೊರ ಬಾರ್ಡರ್ (Outer Line) */
           .a4-board-sheet {
             width: 100% !important;
-            max-width: 100% !important;
-            min-height: 260mm !important;          /* 14mm ಮಾರ್ಜಿನ್‌ಗೆ ತಕ್ಕಂತೆ ನಿಖರ ಎತ್ತರ */
+            max-width: 178mm !important;          /* ಅಂಚಿಗೆ ಹೋಗದಂತೆ ನಿಖರ ಅಗಲ */
+            min-height: 258mm !important;          /* ಕೆಳಗಿನ ಲೈನ್ ಪಕ್ಕಾ ಕ್ಲೋಸ್ ಆಗಿರಲು */
             border: 1.5px solid #000000 !important; /* ೧. ಹೊರ ಗೆರೆ */
             padding: 3.5px !important;              /* ೨. 3.5px ಗ್ಯಾಪ್ */
-            margin: 0 auto !important;
+            margin: 0 auto !important;              /* ಸೆಂಟರ್ ಜೋಡಣೆ */
             box-sizing: border-box !important;
             display: flex !important;
             flex-direction: column !important;
             -webkit-box-decoration-break: clone !important;
-            box-decoration-break: clone !important; /* ೨ನೇ ಪುಟದಲ್ಲೂ ಕೆಳಗೆ ಲೈನ್ ಕ್ಲೋಸ್ ಆಗಲು */
+            box-decoration-break: clone !important; /* ಎಲ್ಲಾ ಪುಟಗಳಲ್ಲೂ ಬಾರ್ಡರ್ ಸೀಲ್ ಆಗಲು */
           }
 
-          /* 🌟 ಒಳ ಬಾರ್ಡರ್ (ಪ್ರಶ್ನೆಗಳು ಮುಗಿದ ನಂತರ ಕೆಳಗೆ ಆರಾಮದಾಯಕ ವೈಟ್ ಸ್ಪೇಸ್) */
+          /* 🌟 ಒಳಗಿನ ಬಾರ್ಡರ್ (Inner Line) */
           .a4-inner-frame {
             width: 100% !important;
-            min-height: 254mm !important;          /* ಕೆಳ ಅಂಚಿನವರೆಗೂ ಲೈನ್ ಸರಿಯಾಗಿ ಕ್ಲೋಸ್ ಆಗಲು */
+            min-height: 250mm !important;
             flex: 1 !important;
             border: 1.5px solid #000000 !important; /* ೩. ಒಳ ಗೆರೆ */
             padding: 4mm 6mm 10mm 6mm !important;   /* ಒಳಗಡೆ 10mm ವೈಟ್ ಗ್ಯಾಪ್ */
@@ -22611,7 +22618,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
             box-decoration-break: clone !important;
           }
 
-          /* ಪ್ರಶ್ನೆಗಳು ಸುಂದರವಾಗಿ ಫಿಟ್ ಆಗಲು ನಿಖರ ಅಂತರ */
+          /* ಪ್ರಶ್ನೆಗಳು ಸುಂದರವಾಗಿ ಕಾಣಲು ಸೂಕ್ತ ಅಂತರ */
           .main-roman-section-block {
             margin-bottom: 3.5px !important;
           }
@@ -22634,7 +22641,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
       `;
       document.head.appendChild(styleEl);
 
-      // ೩. ಪ್ರತಿಯೊಂದು ಶೀಟ್‌ಗೂ ಒಳಗೆ ಮತ್ತು ಹೊರಗೆ ಡಬಲ್ ಫ್ರೇಮ್ ಅಳವಡಿಕೆ
+      // ೪. ಪ್ರತಿಯೊಂದು ಶೀಟ್‌ಗೂ ಒಳಗೆ ಮತ್ತು ಹೊರಗೆ ಡಬಲ್ ಫ್ರೇಮ್ ಅಳವಡಿಕೆ
       window.wrapSheetWithModelFrame = function() {
         var sheets = document.querySelectorAll('.a4-board-sheet');
         sheets.forEach(function(sheet) {
@@ -22649,7 +22656,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         });
       };
 
-      // ೪. ರೆಂಡರರ್ ಹುಕ್ಸ್
+      // ೫. ರೆಂಡರರ್ ಹುಕ್ಸ್
       var origMasterPaperRenderer = window.renderRegularBoardPaperAndKeySynchronized;
       window.renderRegularBoardPaperAndKeySynchronized = function(allQuestions, actualMarks, rawSubj, grade, curSet, finalHeaderHtml) {
         if (typeof origMasterPaperRenderer === 'function') {
@@ -22662,6 +22669,14 @@ window.reShareQuizFromHistory = function(quizId, title) {
       window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
         if (typeof origCustomHeaderRenderer === 'function') {
           origCustomHeaderRenderer(headerHtml);
+        }
+        window.wrapSheetWithModelFrame();
+      };
+
+      var origNMMSComp = window.renderDedicatedNMMSCompetitivePaper;
+      window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks, rawSubj, grade) {
+        if (typeof origNMMSComp === 'function') {
+          origNMMSComp(allQuestions, actualMarks, rawSubj, grade);
         }
         window.wrapSheetWithModelFrame();
       };
@@ -22681,15 +22696,14 @@ window.reShareQuizFromHistory = function(quizId, title) {
       if (appState.activeGeneratedQuestions && appState.activeGeneratedQuestions.length > 0) {
         var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
         var grade = document.getElementById('cfg-class')?.value || '8';
-        var rawSubj = document.getElementById('cfg-subject')?.value || 'ಕನ್ನಡ (Kannada)';
-        var rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ-1 (SA-1) 2026-27';
+        var rawSubj = document.getElementById('cfg-subject')?.value || 'NMMS GMAT (ಪತ್ರಿಕೆ 1 - ಬೌದ್ಧಿಕ ಸಾಮರ್ಥ್ಯ)';
+        var rawExamType = document.getElementById('cfg-exam-type')?.value || 'NMMS ವಿದ್ಯಾರ್ಥಿವೇತನ ಪರೀಕ್ಷೆ 2026-27';
         var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
         var actualMarks = appState.activeGeneratedQuestions.reduce((a, b) => a + getExactQuestionMarks(b), 0);
         var headerHtml = generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate);
         window.renderFullExamPaperWithCustomHeader(headerHtml);
       }
     })();
-
     
     
 </script>

@@ -22601,6 +22601,154 @@ window.reShareQuizFromHistory = function(quizId, title) {
       // ತಕ್ಷಣ ಸಕ್ರಿಯಗೊಳಿಸುವುದು
       window.attachPrintBorderFrameToDOM();
     })();
+
+
+
+
+
+    // =========================================================================
+    // 🖨️ 100% FLAWLESS PRINT ENGINE: NO BLANK PAGE 1 + CRISP 4-SIDED BORDER
+    // =========================================================================
+    (function installFlawlessPrintSystem() {
+      // ೧. ಹಳೆಯ ಗೊಂದಲಕಾರಿ ಪ್ರಿಂಟ್ ಸ್ಟೈಲ್‌ಗಳ ಕ್ಲಿಯರ್
+      ['wy-all-pages-print-border-style', 'wy-print-full-page-border-fix', 'wy-master-print-border-fix'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.remove();
+      });
+
+      // ೨. ಪರಿಪೂರ್ಣ ಪ್ರಿಂಟ್ CSS ಇಂಜೆಕ್ಷನ್ (No Blank Page + Crisp Board Border)
+      var styleEl = document.createElement('style');
+      styleEl.id = 'wy-master-print-border-fix';
+      styleEl.innerHTML = `
+        @media print {
+          @page {
+            size: A4 portrait !important;
+            margin: 6mm 7mm !important; /* ಅಧಿಕೃತ ಪ್ರಿಂಟ್ ಮಾರ್ಜಿನ್ */
+          }
+
+          /* ಮೊದಲ ಪೇಜ್ ಖಾಲಿ ಬರುವುದನ್ನು ತಡೆಯಲು ಅನಗತ್ಯ ಎಲ್ಲಾ ವಿಭಾಗಗಳನ್ನು ಸಂಪೂರ್ಣ ಅಳಿಸುವುದು */
+          header, nav, #view-dashboard, #auth-modal-wrapper, #toast-container,
+          .no-print, button, #view-generator > .grid, .btn-live-q-edit {
+            display: none !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          html, body {
+            background: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+          }
+
+          /* ಪತ್ರಿಕೆ ೧ನೇ ಪೇಜ್‌ನ ಟಾಪ್‌ನಿಂದಲೇ ಆರಂಭವಾಗಲು */
+          main, #view-generator, #output-section {
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+            display: block !important;
+          }
+
+          #print-area {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 2mm 3mm !important;
+            background: #ffffff !important;
+            box-sizing: border-box !important;
+          }
+
+          /* ಡಬಲ್ ಮತ್ತು ಮುರಿದ ಬಾರ್ಡರ್ ರದ್ದು */
+          .a4-board-sheet,
+          .nk-board-sheet,
+          .nk-page-sheet,
+          .omr-sheet-container {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 2mm 3mm !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+
+          /* 🌟 ಪ್ರತಿಯೊಂದು ಪುಟಕ್ಕೂ (Page 1, Page 2...) 
+             ಮೇಲ್ಭಾಗ, ಕೆಳಭಾಗ, ಎಡ ಮತ್ತು ಬಲ ೪ ಬದಿಗಳಲ್ಲೂ ಅಚ್ಚುಕಟ್ಟಾದ ಏಕೈಕ ಬೋರ್ಡ್ ಬಾರ್ಡರ್ */
+          #official-board-border-frame {
+            display: block !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            border: 2px solid #000000 !important;
+            box-sizing: border-box !important;
+            pointer-events: none !important;
+            z-index: 999999 !important;
+            visibility: visible !important;
+          }
+
+          /* ಪ್ರಶ್ನೆಗಳು ಅರ್ಧಕ್ಕೆ ಕಟ್ ಆಗಿ ಮುಂದಿನ ಪುಟಕ್ಕೆ ಬೀಳದಂತೆ ತಡೆ */
+          .q-indivisible-block {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          .board-heading-row-table {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+        }
+
+        /* ಸ್ಕ್ರೀನ್‌ನಲ್ಲಿ ಈ ಪ್ರಿಂಟ್ ಫ್ರೇಮ್ ಬರುವುದಿಲ್ಲ */
+        #official-board-border-frame {
+          display: none;
+        }
+      `;
+      document.head.appendChild(styleEl);
+
+      // ೩. DOM ನಲ್ಲಿ ಬಾರ್ಡರ್ ಫ್ರೇಮ್ ಅಳವಡಿಕೆ
+      window.ensureOfficialBoardBorderFrame = function() {
+        var printArea = document.getElementById('print-area');
+        if (!printArea) return;
+
+        var existing = document.getElementById('official-board-border-frame');
+        if (!existing) {
+          var frame = document.createElement('div');
+          frame.id = 'official-board-border-frame';
+          printArea.insertBefore(frame, printArea.firstChild);
+        }
+      };
+
+      // ಪ್ರಿಂಟ್ ಈವೆಂಟ್ ಮತ್ತು ರಿಸಲ್ಟ್ ಹುಕ್‌ಗಳಿಗೆ ಜೋಡಣೆ
+      window.addEventListener('beforeprint', window.ensureOfficialBoardBorderFrame);
+
+      var origExportPDF = window.exportCurrentTabToPDF;
+      window.exportCurrentTabToPDF = function() {
+        window.ensureOfficialBoardBorderFrame();
+        if (typeof origExportPDF === 'function') {
+          origExportPDF();
+        } else {
+          window.print();
+        }
+      };
+
+      var origCustomRenderHook = window.renderFullExamPaperWithCustomHeader;
+      window.renderFullExamPaperWithCustomHeader = function(headerHtml) {
+        if (typeof origCustomRenderHook === 'function') {
+          origCustomRenderHook(headerHtml);
+        }
+        window.ensureOfficialBoardBorderFrame();
+      };
+
+      window.ensureOfficialBoardBorderFrame();
+    })();
     
 </script>
 </body>

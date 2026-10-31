@@ -22471,7 +22471,189 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
 
+// =========================================================================
+// 🚀 100% PERMANENT FIX: FRESH QUIZ ID PER PAPER & INSTANT RESET ENGINE
+// =========================================================================
 
+// ೧. ಪ್ರತಿಯೊಂದು ಹೊಸ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚನೆಯಾದಾಗಲೂ ಹಳೆಯ Quiz ID ಯನ್ನು ಕಡ್ಡಾಯವಾಗಿ ತೆರವುಗೊಳಿಸುವುದು
+(function patchPaperGenerationQuizReset() {
+  var prevGenExamPackage = window.generateExamPackageFromBank;
+  window.generateExamPackageFromBank = function() {
+    // ಹೊಸ ಪತ್ರಿಕೆ ರಚನೆಯಾದ ತಕ್ಷಣ Quiz ID Reset
+    appState.activeQuizId = null;
+    window.currentActiveSharedQuiz = null;
+
+    if (typeof prevGenExamPackage === 'function') {
+      prevGenExamPackage.apply(this, arguments);
+    }
+  };
+
+  // ವಿಷಯ ಅಥವಾ ತರಗತಿ ಬದಲಾದಾಗಲೂ Quiz ID Reset
+  var prevSubjChange = window.handleSubjectOrPartChange;
+  window.handleSubjectOrPartChange = function() {
+    appState.activeQuizId = null;
+    window.currentActiveSharedQuiz = null;
+    if (typeof prevSubjChange === 'function') {
+      prevSubjChange.apply(this, arguments);
+    }
+  };
+})();
+
+// ೨. ಪ್ರತಿ ಬಾರಿಯೂ ಸಂಪೂರ್ಣ ಯೂನಿಕ್ Quiz ID ಸೃಷ್ಟಿಸುವ ಮತ್ತು "ಹೊಸ ಲಿಂಕ್ ರಚಿಸಿ" ಬಟನ್ ಇರುವ ಮಾಸ್ಟರ್ ಎಂಜಿನ್
+window.openCreateOnlineQuizModal = async function() {
+  var allQ = appState.activeGeneratedQuestions || [];
+  if (allQ.length === 0) {
+    return alert("⚠️ ದಯವಿಟ್ಟು ಮೊದಲು 'ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಿ' ಬಟನ್ ಒತ್ತಿ ಪತ್ರಿಕೆ ಸಿದ್ಧಪಡಿಸಿ.");
+  }
+
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  var rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+  var grade = document.getElementById('cfg-class')?.value || '8';
+  var examType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+  var totalMarks = allQ.reduce(function(a, b) {
+    return a + (typeof getExactQuestionMarks === 'function' ? getExactQuestionMarks(b) : 1);
+  }, 0);
+
+  // 🌟 ಪ್ರತಿ ಪತ್ರಿಕೆಗೂ ಗ್ಯಾರಂಟಿ ಹೊಸ ಹಾಗೂ ಯೂನಿಕ್ Quiz ID ಸೃಷ್ಟಿ (Timestamp + Random)
+  if (!appState.activeQuizId) {
+    var uniqueSuffix = Date.now().toString().slice(-5) + Math.floor(10 + Math.random() * 90);
+    appState.activeQuizId = 'QZ-' + uniqueSuffix;
+  }
+  var quizId = appState.activeQuizId;
+
+  var quizPayload = {
+    id: quizId,
+    title: `${grade}ನೇ ತರಗತಿ ${rawSubj} - ${examType}`,
+    school: schoolName,
+    subject: rawSubj,
+    grade: grade,
+    examType: examType,
+    totalMarks: totalMarks,
+    timestamp: Date.now(),
+    createdAt: new Date().toLocaleString('kn-IN'),
+    questions: allQ.map(function(q, idx) {
+      return {
+        num: idx + 1,
+        q: q.q || '',
+        image: (typeof extractUniversalImage === 'function') ? extractUniversalImage(q) : (q.image || null),
+        a: q.a || null,
+        b: q.b || null,
+        c: q.c || null,
+        d: q.d || null,
+        img_a: (typeof getOptionImageSrc === 'function') ? getOptionImageSrc(q, 'a') : null,
+        img_b: (typeof getOptionImageSrc === 'function') ? getOptionImageSrc(q, 'b') : null,
+        img_c: (typeof getOptionImageSrc === 'function') ? getOptionImageSrc(q, 'c') : null,
+        img_d: (typeof getOptionImageSrc === 'function') ? getOptionImageSrc(q, 'd') : null,
+        ans: String(q.ans || '').trim(),
+        marks: (typeof getExactQuestionMarks === 'function') ? getExactQuestionMarks(q) : 1
+      };
+    })
+  };
+
+  showToast("⚡ ಹೊಸ ಪರೀಕ್ಷಾ ಲಿಂಕ್ ಸಿದ್ಧವಾಗುತ್ತಿದೆ...", "info");
+
+  // Firebase ಕ್ಲೌಡ್‌ಗೆ ಸೇವ್
+  try {
+    await fetch(`${WY_FIREBASE_URL}/quizzes/${quizId}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(quizPayload)
+    });
+  } catch(e) {}
+
+  localStorage.setItem('wy_quiz_' + quizId, JSON.stringify(quizPayload));
+
+  // ಶಿಕ್ಷಕರ ಇತಿಹಾಸಕ್ಕೆ ಸೇರ್ಪಡೆ
+  var myQuizzes = JSON.parse(localStorage.getItem('wy_my_online_quizzes') || '[]');
+  myQuizzes = myQuizzes.filter(function(q) { return q.id !== quizId; });
+  myQuizzes.unshift({
+    id: quizId,
+    title: quizPayload.title,
+    date: quizPayload.createdAt,
+    totalMarks: totalMarks,
+    questionsCount: allQ.length
+  });
+  localStorage.setItem('wy_my_online_quizzes', JSON.stringify(myQuizzes.slice(0, 25)));
+
+  var currentUrl = window.location.origin + window.location.pathname;
+  var studentExamLink = `${currentUrl}?quiz=${quizId}`;
+
+  window.currentActiveSharedQuiz = {
+    id: quizId,
+    title: quizPayload.title,
+    link: studentExamLink
+  };
+
+  // ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಟ್ಯಾಬ್ ಅಪ್ಡೇಟ್
+  if (typeof renderOnlineQuizTabPanel === 'function') {
+    renderOnlineQuizTabPanel(quizPayload, studentExamLink);
+  }
+
+  var wrapper = document.getElementById('auth-modal-wrapper');
+  if (!wrapper) return;
+
+  wrapper.className = 'fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto';
+  wrapper.style.display = 'flex';
+
+  wrapper.innerHTML = `
+    <div class="bg-white rounded-3xl p-6 sm:p-7 space-y-4 max-w-lg w-full shadow-2xl border border-slate-200" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b pb-3">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-black text-lg shadow">
+            <i class="fa-solid fa-share-nodes"></i>
+          </div>
+          <div>
+            <h3 class="font-black text-base text-slate-900 leading-tight">ಮಕ್ಕಳಿಗೆ ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಲಿಂಕ್</h3>
+            <p class="text-xs text-emerald-700 font-extrabold">ಯಾವುದೇ Login ಇಲ್ಲದೆ ಮೊಬೈಲ್‌ನಲ್ಲಿ ನೇರವಾಗಿ ತೆರೆಯುತ್ತದೆ!</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAuthModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">✕</button>
+      </div>
+
+      <div class="p-3 bg-purple-50 rounded-2xl border border-purple-200 space-y-1.5 text-xs font-bold text-purple-950">
+        <div>📝 <b>ಪರೀಕ್ಷೆ:</b> ${escapeHtml(quizPayload.title)}</div>
+        <div class="flex justify-between">
+          <span>🎯 <b>ಅಂಕಗಳು:</b> ${totalMarks}</span>
+          <span>🔢 <b>ಪ್ರಶ್ನೆಗಳು:</b> ${allQ.length}</span>
+          <span>🔑 <b>ಟೆಸ್ಟ್ ID:</b> <b class="font-mono text-purple-700">${quizId}</b></span>
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-bold text-slate-700">ವಿದ್ಯಾರ್ಥಿಗಳಿಗೆ ಕಳುಹಿಸುವ ನೇರ ಲಿಂಕ್:</label>
+          <button type="button" onclick="window.generateFreshNewQuizLinkForcefully()" class="text-[11px] text-indigo-700 hover:text-indigo-900 font-black cursor-pointer underline flex items-center gap-1">
+            <i class="fa-solid fa-rotate"></i> <span>ಹೊಸ ಲಿಂಕ್ ರಚಿಸಿ (Reset)</span>
+          </button>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <input type="text" id="share-exam-url-input" value="${studentExamLink}" readonly class="w-full px-3 py-2 bg-slate-100 border rounded-xl text-xs font-bold font-mono text-slate-800 outline-none" />
+          <button type="button" onclick="window.copyStudentExamLink()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer transition">Copy</button>
+        </div>
+      </div>
+
+      <div class="pt-2 flex flex-col gap-2">
+        <button type="button" onclick="window.handleShareWhatsAppClick()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+          <i class="fa-brands fa-whatsapp text-lg text-emerald-200"></i>
+          <span>WhatsApp ನಲ್ಲಿ ಮಕ್ಕಳಿಗೆ ಕಳುಹಿಸಿ (Share on WhatsApp)</span>
+        </button>
+
+        <button type="button" onclick="window.viewLiveClassLeaderboard('${quizId}')" class="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-black text-xs rounded-xl cursor-pointer transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-trophy text-amber-500"></i>
+          <span>ಮಕ್ಕಳ ಫಲಿತಾಂಶ & Leaderboard ವೀಕ್ಷಿಸಿ</span>
+        </button>
+      </div>
+    </div>
+  `;
+};
+
+// ೩. ಶಿಕ್ಷಕರು ಒಂದೇ ಕ್ಲಿಕ್‌ನಲ್ಲಿ ಹಳೆಯದನ್ನು ಕ್ಲಿಯರ್ ಮಾಡಿ ಹೊಚ್ಚಹೊಸ ಕ್ವಿಜ್ ಐಡಿ ಪಡೆಯುವ ಫಂಕ್ಷನ್
+window.generateFreshNewQuizLinkForcefully = function() {
+  appState.activeQuizId = null;
+  window.currentActiveSharedQuiz = null;
+  showToast("🔄 ಹೊಚ್ಚಹೊಸ ಪರೀಕ್ಷಾ ಲಿಂಕ್ ರಚಿಸಲಾಗುತ್ತಿದೆ...", "info");
+  window.openCreateOnlineQuizModal();
+};
 
     
 </script>

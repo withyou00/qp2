@@ -23992,6 +23992,352 @@ window.exportCurrentTabToPDF = function() {
     window.loadQuestionsFromGitHub('kannada_medium', grade, subj, part);
   }
 })();
+
+
+
+
+
+
+    // =========================================================================
+// 🚀 100% BULLETPROOF NMMS SAT 7-FILES MERGER & DIAGRAM DISPLAY ENGINE
+// =========================================================================
+
+// ೧. GitHub ಇಮೇಜ್ URL ಫಿಕ್ಸರ್ (ಯಾವುದೇ ಲಿಂಕ್ ಅಥವಾ ಕೇವಲ 'test.png' ಇದ್ದರೂ ಪರ್ಫೆಕ್ಟ್)
+function fixAnyGitHubImageUrl(urlStr) {
+  if (!urlStr || typeof urlStr !== 'string') return '';
+  var s = urlStr.trim();
+  if (s.length < 3) return '';
+
+  if (!s.startsWith('http://') && !s.startsWith('https://')) {
+    var fileName = s.replace(/^images\//i, '').replace(/^\.\//, '').trim();
+    return 'https://raw.githubusercontent.com/withyou00/withyouqbank/main/images/' + fileName;
+  }
+
+  if (s.includes('github.com') && s.includes('/blob/')) {
+    s = s.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+  }
+
+  return s;
+}
+
+// ೨. JSON ನಲ್ಲಿ "image", "image ", "img", "diagram" ಯಾವುದಿದ್ದರೂ ಚಿತ್ರ ಎಳೆಯುವ ಫಂಕ್ಷನ್
+function extractUniversalImage(q) {
+  if (!q || typeof q !== 'object') return null;
+
+  for (var key in q) {
+    if (Object.prototype.hasOwnProperty.call(q, key)) {
+      var cleanK = String(key).replace(/\s+/g, '').toLowerCase();
+      if (cleanK === 'image' || cleanK === 'img' || cleanK === 'diagram' || cleanK === 'figure' || cleanK === 'pic' || cleanK === 'photo' || cleanK === 'imgurl' || cleanK === 'imageurl') {
+        var val = q[key];
+        if (typeof val === 'string' && val.trim().length > 2) {
+          return fixAnyGitHubImageUrl(val);
+        }
+      }
+    }
+  }
+
+  if (q.q && typeof q.q === 'string') {
+    var mdMatch = q.q.match(/!\[.*?\]\(([^\s\)]+)\)/i);
+    if (mdMatch) return fixAnyGitHubImageUrl(mdMatch[1]);
+    var rawUrlMatch = q.q.match(/(https?:\/\/[^\s\)\"\'\>]+(?:png|jpg|jpeg|webp|gif|svg)[^\s\)\"\'\>]*)/i);
+    if (rawUrlMatch) return fixAnyGitHubImageUrl(rawUrlMatch[1]);
+  }
+
+  return null;
+}
+window.extractUniversalImage = extractUniversalImage;
+window.extractFullQuestionImage = extractUniversalImage;
+
+// ೩. ಚಿತ್ರ ಲೋಡ್ ಆಗದಿದ್ದರೆ .PNG / .jpg / .jpeg ಗಳನ್ನು ಆಟೋಮ್ಯಾಟಿಕ್ ಟ್ರೈ ಮಾಡುವ ಹ್ಯಾಂಡ್ಲರ್
+document.addEventListener('error', function(e) {
+  if (e.target && e.target.tagName === 'IMG') {
+    var img = e.target;
+    var src = img.src || '';
+
+    if (src.includes('.png') && !img.dataset.triedUpper) {
+      img.dataset.triedUpper = 'true';
+      img.src = src.replace('.png', '.PNG');
+    } else if (src.includes('.PNG') && !img.dataset.triedJpg) {
+      img.dataset.triedJpg = 'true';
+      img.src = src.replace('.PNG', '.jpg');
+    } else if (src.includes('.jpg') && !img.dataset.triedJpeg) {
+      img.dataset.triedJpeg = 'true';
+      img.src = src.replace('.jpg', '.jpeg');
+    }
+  }
+}, true);
+
+// ೪. NMMS SAT ನ ಎಲ್ಲಾ ೭ ಫೈಲ್‌ಗಳನ್ನು (ಬಯಾಲಜಿ, ಫಿಸಿಕ್ಸ್, ಕೆಮಿಸ್ಟ್ರಿ, ಮ್ಯಾಥ್ಸ್...) ಒಟ್ಟಿಗೆ ಲೋಡ್ ಮಾಡುವ ಮಾಸ್ಟರ್ ಲೋಡರ್
+window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part) {
+  appState.activeSubjectQuestions = [];
+  if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
+
+  var gradeStr = String(grade).replace(/\D/g, '') || '8';
+  var subjectKey = window.getNormalizedSubjectKey ? window.getNormalizedSubjectKey(rawSubject) : '';
+
+  var isGMAT = (subjectKey === 'nmms_gmat') || rawSubject.includes('GMAT') || rawSubject.includes('ಬೌದ್ಧಿಕ') || rawSubject.includes('ಪತ್ರಿಕೆ 1');
+  var isSAT = ((subjectKey === 'nmms_sat') || rawSubject.includes('SAT') || rawSubject.includes('ಶೈಕ್ಷಣಿಕ') || rawSubject.includes('ಪತ್ರಿಕೆ 2')) && !isGMAT;
+
+  showToast(`🌐 ${rawSubject} ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ...`, 'info');
+
+  try {
+    var loadedList = [];
+
+    // 🌟 SAT ಆಯ್ಕೆ ಮಾಡಿದಾಗ ನಿಮ್ಮ GitHub ನಲ್ಲಿರುವ ನಿಖರ ೭ ಫೈಲ್‌ಗಳನ್ನು ಏಕಕಾಲದಲ್ಲಿ ಲೋಡ್ ಮಾಡುವುದು!
+    if (isSAT) {
+      var satFiles = [
+        { file: 'nmms_biology.json', defaultTitle: '೩. ಜೀವಶಾಸ್ತ್ರ (Biology)' },
+        { file: 'nmms_physics.json', defaultTitle: '೧. ಭೌತಶಾಸ್ತ್ರ (Physics)' },
+        { file: 'nmms_chemistry.json', defaultTitle: '೨. ರಸಾಯನಶಾಸ್ತ್ರ (Chemistry)' },
+        { file: 'nmms_maths.json', defaultTitle: '೭. ಗಣಿತ (Mathematics)' },
+        { file: 'nmms_history.json', defaultTitle: '೪. ಇತಿಹಾಸ (History)' },
+        { file: 'nmms_geography.json', defaultTitle: '೫. ಭೂಗೋಳಶಾಸ್ತ್ರ (Geography)' },
+        { file: 'nmms_civics.json', defaultTitle: '೬. ರಾಜ್ಯಶಾಸ್ತ್ರ / ಪೌರನೀತಿ (Civics)' },
+        { file: 'nmms_sat.json', defaultTitle: 'ಶೈಕ್ಷಣಿಕ ಸಾಮರ್ಥ್ಯ (SAT)' }
+      ];
+
+      var satFetchPromises = satFiles.map(async function(itemObj) {
+        var sFile = itemObj.file;
+        var sPaths = [
+          `kannada_medium/${sFile}`, // ನಿಮ್ಮ GitHub ನ ನಿಖರ ಫೋಲ್ಡರ್
+          `${sFile}`,
+          `class_${gradeStr}/${sFile}`
+        ];
+
+        for (var sp = 0; sp < sPaths.length; sp++) {
+          var sUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(sPaths[sp])}?t=${Date.now()}`;
+          try {
+            var sRes = await fetch(sUrl);
+            if (sRes.ok) {
+              var sData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await sRes.text()) : [];
+              if (Array.isArray(sData) && sData.length > 0) {
+                sData.forEach(function(q) {
+                  if (!q.chapter || q.chapter === 'ಸಾಮಾನ್ಯ ವಿಭಾಗ') {
+                    q.chapter = itemObj.defaultTitle;
+                  }
+                });
+                return sData;
+              }
+            }
+          } catch(e) {}
+        }
+        return null;
+      });
+
+      var satResults = await Promise.all(satFetchPromises);
+      satResults.forEach(function(items) {
+        if (items && Array.isArray(items)) {
+          loadedList.push(...items);
+        }
+      });
+    } 
+    // GMAT ಆಯ್ಕೆ ಮಾಡಿದಾಗ nmms_gmat.json
+    else if (isGMAT) {
+      var gUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/kannada_medium/nmms_gmat.json?t=${Date.now()}`;
+      try {
+        var gRes = await fetch(gUrl);
+        if (gRes.ok) loadedList = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await gRes.text()) : [];
+      } catch(e) {}
+    } 
+    // ಇತರ ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳು (ಕನ್ನಡ, ಸಮಾಜ, ವಿಜ್ಞಾನ)
+    else {
+      var cFiles = (part === 'part1') 
+        ? [`kannada_medium/${subjectKey}_part1.json`, `kannada_medium/${subjectKey}.json`]
+        : [`kannada_medium/${subjectKey}_part2.json`, `kannada_medium/${subjectKey}.json`];
+
+      for (var f = 0; f < cFiles.length; f++) {
+        var cUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(cFiles[f])}?t=${Date.now()}`;
+        try {
+          var cRes = await fetch(cUrl);
+          if (cRes.ok) {
+            var cData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await cRes.text()) : [];
+            if (Array.isArray(cData) && cData.length > 0) {
+              loadedList = cData;
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+    }
+
+    if (loadedList.length > 0) {
+      var seenIds = new Set();
+      appState.activeSubjectQuestions = loadedList.filter(function(q) {
+        if (!q) return false;
+        var uid = q.id || q.q;
+        if (!uid) return true;
+        if (seenIds.has(uid)) return false;
+        seenIds.add(uid);
+        return true;
+      });
+
+      if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
+      if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats();
+      showToast(`⚡ ${rawSubject} (${appState.activeSubjectQuestions.length} ಪ್ರಶ್ನೆಗಳು) ಯಶಸ್ವಿಯಾಗಿ ಲೋಡ್ ಆಗಿವೆ!`, 'success');
+    } else {
+      appState.activeSubjectQuestions = [];
+      if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
+      showToast(`⚠️ GitHub ನಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು ಕಂಡುಬಂದಿಲ್ಲ.`, 'error');
+    }
+  } catch (err) {
+    console.error("Load error:", err);
+  }
+};
+
+// ೫. 🌟 ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳಿಗೆ ೧ನೇ ಆದ್ಯತೆ (Diagram Priority Selection)
+// ಇದು ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳು (ಉದಾ: sat_bio_35) ಶಫಲ್‌ನಲ್ಲಿ ಬಿಟ್ಟುಹೋಗದಂತೆ ಕಡ್ಡಾಯವಾಗಿ ಆಯ್ಕೆ ಮಾಡುತ್ತದೆ!
+var origStrictSolveMath = window.solveStrictExactExamMath;
+window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selectedTypes) {
+  if (pool && pool.length > 0) {
+    // ಚಿತ್ರವಿರುವ ಎಲ್ಲಾ ಪ್ರಶ್ನೆಗಳನ್ನು ಪೂಲ್‌ನ ಆರಂಭಕ್ಕೆ ತರುವುದು
+    pool.sort(function(a, b) {
+      var aHasImg = extractUniversalImage(a) ? 1 : 0;
+      var bHasImg = extractUniversalImage(b) ? 1 : 0;
+      return bHasImg - aHasImg;
+    });
+  }
+  return origStrictSolveMath ? origStrictSolveMath(pool, targetMarks, targetCount, selectedTypes) : pool.slice(0, targetCount);
+};
+
+// ೬. NMMS SAT ನಲ್ಲಿ ಬಯಾಲಜಿ, ಫಿಸಿಕ್ಸ್, ಕೆಮಿಸ್ಟ್ರಿ, ಮ್ಯಾಥ್ಸ್ ಚಿತ್ರಗಳನ್ನು ಮಧ್ಯದಲ್ಲಿ ದೊಡ್ಡದಾಗಿ ಪ್ರದರ್ಶಿಸುವ ರೆಂಡರರ್
+window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks, rawSubj, grade) {
+  if (!allQuestions || allQuestions.length === 0) return;
+
+  var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+  var rawExamType = document.getElementById('cfg-exam-type')?.value || 'NMMS ವಿದ್ಯಾರ್ಥಿವೇತನ ಪರೀಕ್ಷೆ 2026-27';
+  var examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+  var isBookletMode = document.getElementById('cfg-paper-layout-mode')?.value === 'with_answer_space';
+  var curSet = appState.currentExamSet || 'A';
+
+  var finalHeaderHtml = `
+    <div style="width: 100%; border-bottom: 2.2px solid #000; padding-bottom: 3px; margin-bottom: 6px;">
+      <div style="display: flex; justify-content: flex-end; margin-bottom: -20px;">
+        <span style="font-size: 11pt; font-weight: 900; border: 2px solid #000; padding: 1px 8px; background: #f1f5f9; border-radius: 4px; letter-spacing: 1px;">
+          SET - ${curSet}
+        </span>
+      </div>
+      <div style="text-align: center; margin-bottom: 2px;">
+        <h1 style="font-size: 13.5pt; font-weight: 900; margin: 0; line-height: 1.2;">${escapeHtml(schoolName)}</h1>
+        <div style="font-size: 11pt; font-weight: 900; margin-top: 1px; color: #0f172a;">
+          ${escapeHtml(rawExamType)}
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 2px;">
+        <tr>
+          <td style="width: 36%; text-align: left; font-weight: 800; font-size: 10pt;">ವಿಷಯ : <b>${escapeHtml(rawSubj)}</b></td>
+          <td style="width: 20%; text-align: center; font-weight: 800; font-size: 10pt;">ತರಗತಿ : <b>${grade}ನೇ ತರಗತಿ</b></td>
+          <td style="width: 22%; text-align: center; font-weight: 800; font-size: 10pt;">ದಿನಾಂಕ : <b>${escapeHtml(examDate)}</b></td>
+          <td style="width: 22%; text-align: right; font-weight: 800; font-size: 10pt;">ಒಟ್ಟು ಅಂಕಗಳು : <b>${actualMarks}</b></td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  var chapterGroups = new Map();
+  allQuestions.forEach(function(q) {
+    var ch = (q.chapter || 'ಸಾಮಾನ್ಯ ವಿಭಾಗ').trim();
+    if (!chapterGroups.has(ch)) chapterGroups.set(ch, []);
+    chapterGroups.get(ch).push(q);
+  });
+
+  var paperSectionsHtml = [];
+  var keySectionsHtml = [];
+  var sharedQNum = 1;
+
+  chapterGroups.forEach(function(qList, chapterTitle) {
+    var subjectBannerHtml = `
+      <div style="width: 100%; border: 1.8px solid #000; background: #f1f5f9; text-align: center; padding: 4px 6px; margin: 10px 0 6px 0; font-weight: 900; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px; page-break-after: avoid; break-after: avoid;">
+        ✦ ${escapeHtml(chapterTitle)} ✦ &nbsp; <span style="font-size: 9.5pt; font-weight: 700; color: #475569;">(${qList.length} ಪ್ರಶ್ನೆಗಳು)</span>
+      </div>
+    `;
+
+    var currentSectionKeyItems = [];
+
+    var sectionPaperQuestions = qList.map(function(m) {
+      var globalIdx = allQuestions.indexOf(m);
+      var qNum = sharedQNum++;
+
+      // 🌟 ಪ್ರಶ್ನೆಯ ಮುಖ್ಯ ಚಿತ್ರ (SAT ಬಯಾಲಜಿ ಚಿತ್ರ)
+      var mainImg = extractUniversalImage(m);
+
+      var cleanQText = String(m.q || '')
+        .replace(/!\[.*?\]\([^\)]+\)/g, '')
+        .replace(/<img[^>]+>/gi, '')
+        .trim();
+
+      var correctAns = m.ans || (m.a ? `(A) ${m.a}` : 'ಸರಿಯಾದ ಆಯ್ಕೆ');
+      currentSectionKeyItems.push(`
+        <div style="display: flex; align-items: flex-start; gap: 6px; padding: 3px 6px; border: 1px dashed #cbd5e1; background: #fff; border-radius: 4px; font-size: 9.8pt;">
+          <span style="font-weight: 900; min-width: 26px;">${qNum}.</span>
+          <span style="font-weight: 900; color: #047857;">${formatQuestionTextForDisplay(correctAns)}</span>
+        </div>
+      `);
+
+      return `
+        <div class="q-indivisible-block" style="margin-bottom: ${isBookletMode ? '6px' : '4px'};">
+          <table class="board-q-table-row" style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td class="board-q-num-cell" style="vertical-align: top; width: 28px;">${qNum}.</td>
+              <td class="board-q-text-cell" style="vertical-align: top;">${formatQuestionTextForDisplay(cleanQText)}</td>
+              <td style="width: 45px; text-align: right; vertical-align: top;" class="no-print">
+                <button type="button" onclick="openPopupQuestionEditor(${globalIdx})" class="btn-live-q-edit"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+              </td>
+            </tr>
+          </table>
+
+          <!-- 🌟 ಚಿತ್ರ ಪ್ರದರ್ಶನ (ಮಧ್ಯದಲ್ಲಿ ದೊಡ್ಡದಾಗಿ ಸ್ಪಷ್ಟವಾಗಿ ಬರುತ್ತದೆ) -->
+          ${mainImg ? `
+            <div style="display: block; text-align: center; margin: 8px auto; width: 100%; clear: both;">
+              <img src="${mainImg}" style="max-height: 185px; max-width: 90%; object-fit: contain; border: 1.8px solid #1e293b; background: #ffffff; padding: 4px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block;" alt="ಚಿತ್ರ" referrerpolicy="no-referrer" loading="eager" />
+            </div>
+          ` : ''}
+
+          <!-- ೪ ಆಯ್ಕೆಗಳು -->
+          <table style="width: 100%; margin: 2px 0;">
+            <tr>
+              <td style="width: 25%; font-size: 10pt; font-weight: 600; padding: 1px 4px 1px 28px;">(A) ${formatQuestionTextForDisplay(m.a || '')}</td>
+              <td style="width: 25%; font-size: 10pt; font-weight: 600; padding: 1px 4px;">(B) ${formatQuestionTextForDisplay(m.b || '')}</td>
+              <td style="width: 25%; font-size: 10pt; font-weight: 600; padding: 1px 4px;">(C) ${formatQuestionTextForDisplay(m.c || '')}</td>
+              <td style="width: 25%; font-size: 10pt; font-weight: 600; padding: 1px 4px;">(D) ${formatQuestionTextForDisplay(m.d || '')}</td>
+            </tr>
+          </table>
+
+          ${isBookletMode ? `<div style="padding-left: 28px; margin-bottom: 4px; font-size: 9.5pt; font-weight: 700;">ಉತ್ತರ : ________________________________________________________________</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    paperSectionsHtml.push(`<div class="main-roman-section-block">${subjectBannerHtml}${sectionPaperQuestions}</div>`);
+    keySectionsHtml.push(`
+      <div class="main-roman-section-block">
+        <div style="border-bottom: 1.5px solid #000; padding: 3px 6px; margin: 8px 0 4px 0; font-weight: 900; font-size: 10.5pt; background: #f8fafc;">
+          <b>✦ ${escapeHtml(chapterTitle)} ✦</b>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px; margin-bottom: 6px;">
+          ${currentSectionKeyItems.join('')}
+        </div>
+      </div>
+    `);
+  });
+
+  document.getElementById('rendered-paper').innerHTML = `<div class="a4-board-sheet">${finalHeaderHtml}<div>${paperSectionsHtml.join('')}</div></div>`;
+  document.getElementById('rendered-key').innerHTML = `
+    <div class="a4-board-sheet">
+      ${finalHeaderHtml}
+      <div style="text-align: center; margin-bottom: 6px; border-bottom: 2px solid #000; padding-bottom: 2px;">
+        <h3 style="font-size: 12pt; font-weight: 900; text-transform: uppercase;">
+          ಅಧಿಕೃತ ಕೀ ಉತ್ತರ ಸೂಚಿ & ಪರಿಹಾರಗಳು (KEY ANSWERS - SET ${curSet})
+        </h3>
+      </div>
+      <div>${keySectionsHtml.join('')}</div>
+    </div>
+  `;
+
+  if (typeof renderCompleteOfficialDSERTBlueprint === 'function') {
+    renderCompleteOfficialDSERTBlueprint(allQuestions, actualMarks, rawSubj, grade);
+  }
+};
+
     
 </script>
 </body>

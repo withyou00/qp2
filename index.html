@@ -23009,6 +23009,89 @@ window.clearAllTeacherSavedQuizzes = async function() {
   showToast("🧹 ಎಲ್ಲಾ ಹಳೆಯ ಕ್ವಿಜ್‌ಗಳನ್ನು ಅಳಿಸಲಾಗಿದೆ.", "success");
   window.openTeacherQuizzesDashboardModal();
 };
+
+
+
+// =========================================================================
+// 🖨️ 100% PERFECT DESKTOP & MOBILE PRINT BORDER FIX (ZERO CUTOFF)
+// =========================================================================
+
+(function installPerfectPrintBorderCSS() {
+  // ಹಳೆಯ ಪ್ರಿಂಟ್ ಸ್ಟೈಲ್‌ಗಳಿದ್ದರೆ ತೆಗೆದುಹಾಕುವುದು
+  var oldStyle = document.getElementById('wy-perfect-print-border-styles');
+  if (oldStyle) oldStyle.remove();
+
+  var styleEl = document.createElement('style');
+  styleEl.id = 'wy-perfect-print-border-styles';
+  document.head.appendChild(styleEl);
+
+  styleEl.innerHTML = `
+    /* ಕಂಪ್ಯೂಟರ್ ಸ್ಕ್ರೀನ್ ಹಾಗೂ ಪ್ರಿಂಟ್ ಎರಡರಲ್ಲೂ ಬಾರ್ಡರ್ ಗ್ಯಾರಂಟಿ */
+    .a4-board-sheet, .nk-board-sheet, .omr-sheet-container {
+      box-sizing: border-box !important;
+      -webkit-box-sizing: border-box !important;
+    }
+
+    @media print {
+      /* ೧. ಕಂಪ್ಯೂಟರ್ ಪ್ರಿಂಟ್ ಮಾರ್ಜಿನ್ ಲಾಕ್ (A4 ಅಳತೆ) */
+      @page {
+        size: A4 portrait !important;
+        margin: 5mm 6mm 5mm 6mm !important; /* ಕಂಪ್ಯೂಟರ್‌ನಲ್ಲಿ ಬಾರ್ಡರ್ ಕಟ್ ಆಗದಂತೆ ನಿಖರ ಅಂತರ */
+      }
+
+      /* ೨. ಪ್ರಿಂಟಿಂಗ್ ಕಲರ್ ಮತ್ತು ಬಾರ್ಡರ್‌ಗಳನ್ನು ಬ್ರೌಸರ್ ಡಿಲೀಟ್ ಮಾಡದಂತೆ ಫೋರ್ಸ್ ಮಾಡುವುದು */
+      html, body {
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      /* ೩. ಪ್ರಿಂಟ್ ಏರಿಯಾ ಫುಲ್ ಫಿಟ್ */
+      #print-area {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+      }
+
+      /* ೪. ಕಂಪ್ಯೂಟರ್‌ನಲ್ಲಿ ಬಾರ್ಡರ್ ೧೦೦% ಕಪ್ಪು ಮತ್ತು ದಪ್ಪವಾಗಿ ಮೂಡುವಂತೆ ಮಾಡುವುದು */
+      .a4-board-sheet, .nk-board-sheet {
+        width: 100% !important;
+        max-width: 100% !important;
+        border: 2.2px solid #000000 !important;
+        outline: none !important;
+        padding: 4mm 6mm !important;
+        margin: 0 auto 6mm auto !important;
+        box-sizing: border-box !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+        -webkit-box-decoration-break: clone !important;
+        box-decoration-break: clone !important;
+      }
+
+      /* ಕೋಷ್ಟಕಗಳು ಮತ್ತು ಗೆರೆಗಳ ಬಾರ್ಡರ್ ಸ್ಪಷ್ಟತೆ */
+      table, th, td {
+        border-color: #000000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      /* ಪ್ರಿಂಟ್ ಆಗುವಾಗ ಅನಗತ್ಯ ಬಟನ್‌ಗಳು ಮರೆಯಾಗುವುದು */
+      header, button, .no-print, .btn-live-q-edit {
+        display: none !important;
+      }
+    }
+  `;
+})();
     
 </script>
 </body>

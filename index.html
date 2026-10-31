@@ -22472,35 +22472,30 @@ window.reShareQuizFromHistory = function(quizId, title) {
 
 
 // =========================================================================
-// 🚀 100% PERMANENT FIX: FRESH QUIZ ID PER PAPER & INSTANT RESET ENGINE
+// 🚀 100% BULLETPROOF FIX: SEPARATE QUIZ ID PER SUBJECT + RETAKE BUTTON
 // =========================================================================
 
-// ೧. ಪ್ರತಿಯೊಂದು ಹೊಸ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚನೆಯಾದಾಗಲೂ ಹಳೆಯ Quiz ID ಯನ್ನು ಕಡ್ಡಾಯವಾಗಿ ತೆರವುಗೊಳಿಸುವುದು
-(function patchPaperGenerationQuizReset() {
-  var prevGenExamPackage = window.generateExamPackageFromBank;
-  window.generateExamPackageFromBank = function() {
-    // ಹೊಸ ಪತ್ರಿಕೆ ರಚನೆಯಾದ ತಕ್ಷಣ Quiz ID Reset
-    appState.activeQuizId = null;
-    window.currentActiveSharedQuiz = null;
+var WY_FIREBASE_URL = "https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app";
 
-    if (typeof prevGenExamPackage === 'function') {
-      prevGenExamPackage.apply(this, arguments);
+// ೧. ವಿದ್ಯಾರ್ಥಿಗೆ ಮತ್ತೊಮ್ಮೆ ಪರೀಕ್ಷೆ ಬರೆಯಲು ಅವಕಾಶ ನೀಡುವ ಅನ್‌ಲಾಕ್ ಫಂಕ್ಷನ್
+window.allowStudentRetakeExam = function(quizId) {
+  if (confirm("ನೀವು ಈ ಪರೀಕ್ಷೆಯನ್ನು ಮತ್ತೊಮ್ಮೆ ಬರೆಯಲು ಬಯಸುವಿರಾ?")) {
+    if (quizId) {
+      localStorage.removeItem('wy_student_sub_' + quizId);
     }
-  };
+    // ಬ್ರೌಸರ್‌ನಲ್ಲಿರುವ ಹಳೆಯ ಸಬ್ಮಿಷನ್ ಕೀಗಳನ್ನು ಕ್ಲಿಯರ್ ಮಾಡಿ ಪರೀಕ್ಷೆ ತೆರೆಯುವುದು
+    var allKeys = Object.keys(localStorage);
+    allKeys.forEach(function(k) {
+      if (k.startsWith('wy_student_sub_') && (!quizId || k.includes(quizId))) {
+        localStorage.removeItem(k);
+      }
+    });
+    window.location.reload();
+  }
+};
 
-  // ವಿಷಯ ಅಥವಾ ತರಗತಿ ಬದಲಾದಾಗಲೂ Quiz ID Reset
-  var prevSubjChange = window.handleSubjectOrPartChange;
-  window.handleSubjectOrPartChange = function() {
-    appState.activeQuizId = null;
-    window.currentActiveSharedQuiz = null;
-    if (typeof prevSubjChange === 'function') {
-      prevSubjChange.apply(this, arguments);
-    }
-  };
-})();
-
-// ೨. ಪ್ರತಿ ಬಾರಿಯೂ ಸಂಪೂರ್ಣ ಯೂನಿಕ್ Quiz ID ಸೃಷ್ಟಿಸುವ ಮತ್ತು "ಹೊಸ ಲಿಂಕ್ ರಚಿಸಿ" ಬಟನ್ ಇರುವ ಮಾಸ್ಟರ್ ಎಂಜಿನ್
-window.openCreateOnlineQuizModal = async function() {
+// ೨. ಪ್ರತಿ ವಿಷಯಕ್ಕೂ (ಕನ್ನಡ, ಸಮಾಜ, ವಿಜ್ಞಾನ) ೧೦೦% ಪ್ರತ್ಯೇಕ Quiz ID ಜನರೇಟರ್
+window.openCreateOnlineQuizModal = async function(forceNew) {
   var allQ = appState.activeGeneratedQuestions || [];
   if (allQ.length === 0) {
     return alert("⚠️ ದಯವಿಟ್ಟು ಮೊದಲು 'ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಿ' ಬಟನ್ ಒತ್ತಿ ಪತ್ರಿಕೆ ಸಿದ್ಧಪಡಿಸಿ.");
@@ -22509,15 +22504,27 @@ window.openCreateOnlineQuizModal = async function() {
   var schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
   var rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
   var grade = document.getElementById('cfg-class')?.value || '8';
+  var gradeStr = String(grade).replace(/\D/g, '') || '8';
   var examType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
   var totalMarks = allQ.reduce(function(a, b) {
     return a + (typeof getExactQuestionMarks === 'function' ? getExactQuestionMarks(b) : 1);
   }, 0);
 
-  // 🌟 ಪ್ರತಿ ಪತ್ರಿಕೆಗೂ ಗ್ಯಾರಂಟಿ ಹೊಸ ಹಾಗೂ ಯೂನಿಕ್ Quiz ID ಸೃಷ್ಟಿ (Timestamp + Random)
-  if (!appState.activeQuizId) {
-    var uniqueSuffix = Date.now().toString().slice(-5) + Math.floor(10 + Math.random() * 90);
-    appState.activeQuizId = 'QZ-' + uniqueSuffix;
+  // 🌟 ವಿಷಯವಾರು ನಿಖರ ಕೋಡ್ (ಕನ್ನಡ ಮತ್ತು ಸಮಾಜ ಯಾವತ್ತೂ ಒಂದಾಗುವುದಿಲ್ಲ!)
+  var subCode = 'GEN';
+  if (rawSubj.includes('ಸಮಾಜ')) subCode = 'SOC';
+  else if (rawSubj.includes('ಕನ್ನಡ')) subCode = 'KAN';
+  else if (rawSubj.includes('ವಿಜ್ಞಾನ')) subCode = 'SCI';
+  else if (rawSubj.includes('ಗಣಿತ')) subCode = 'MAT';
+  else if (rawSubj.includes('English') || rawSubj.includes('ಇಂಗ್ಲಿಷ್')) subCode = 'ENG';
+  else if (rawSubj.includes('ಹಿಂದಿ')) subCode = 'HIN';
+  else if (rawSubj.includes('GMAT')) subCode = 'GMAT';
+  else if (rawSubj.includes('SAT')) subCode = 'SAT';
+
+  // ವಿಷಯ ಬದಲಾಗಿದ್ದರೆ ಅಥವಾ ಹೊಸದಾಗಿ ರಚಿಸುತ್ತಿದ್ದರೆ ಕಡ್ಡಾಯ ಹೊಸ Quiz ID
+  if (forceNew || !appState.activeQuizId || !appState.activeQuizId.includes(subCode)) {
+    var uniqueSuffix = Date.now().toString().slice(-6);
+    appState.activeQuizId = 'QZ-' + subCode + gradeStr + '-' + uniqueSuffix;
   }
   var quizId = appState.activeQuizId;
 
@@ -22563,31 +22570,16 @@ window.openCreateOnlineQuizModal = async function() {
 
   localStorage.setItem('wy_quiz_' + quizId, JSON.stringify(quizPayload));
 
-  // ಶಿಕ್ಷಕರ ಇತಿಹಾಸಕ್ಕೆ ಸೇರ್ಪಡೆ
-  var myQuizzes = JSON.parse(localStorage.getItem('wy_my_online_quizzes') || '[]');
-  myQuizzes = myQuizzes.filter(function(q) { return q.id !== quizId; });
-  myQuizzes.unshift({
-    id: quizId,
-    title: quizPayload.title,
-    date: quizPayload.createdAt,
-    totalMarks: totalMarks,
-    questionsCount: allQ.length
-  });
-  localStorage.setItem('wy_my_online_quizzes', JSON.stringify(myQuizzes.slice(0, 25)));
-
+  // ಲಿಂಕ್‌ನಲ್ಲೇ ಡೇಟಾ ಎಂಬೆಡ್ (ನೆಟ್‌ವರ್ಕ್ ಇಲ್ಲದಿದ್ದರೂ ತಕ್ಷಣ ಓಪನ್ ಆಗಲು)
   var currentUrl = window.location.origin + window.location.pathname;
-  var studentExamLink = `${currentUrl}?quiz=${quizId}`;
+  var compressedCode = (typeof compressQuizDataForLink === 'function') ? compressQuizDataForLink(quizPayload) : '';
+  var studentExamLink = `${currentUrl}?quiz=${quizId}${compressedCode ? '#d=' + compressedCode : ''}`;
 
   window.currentActiveSharedQuiz = {
     id: quizId,
     title: quizPayload.title,
     link: studentExamLink
   };
-
-  // ಆನ್‌ಲೈನ್ ಟೆಸ್ಟ್ ಟ್ಯಾಬ್ ಅಪ್ಡೇಟ್
-  if (typeof renderOnlineQuizTabPanel === 'function') {
-    renderOnlineQuizTabPanel(quizPayload, studentExamLink);
-  }
 
   var wrapper = document.getElementById('auth-modal-wrapper');
   if (!wrapper) return;
@@ -22615,15 +22607,15 @@ window.openCreateOnlineQuizModal = async function() {
         <div class="flex justify-between">
           <span>🎯 <b>ಅಂಕಗಳು:</b> ${totalMarks}</span>
           <span>🔢 <b>ಪ್ರಶ್ನೆಗಳು:</b> ${allQ.length}</span>
-          <span>🔑 <b>ಟೆಸ್ಟ್ ID:</b> <b class="font-mono text-purple-700">${quizId}</b></span>
+          <span>🔑 <b>ಟೆಸ್ಟ್ ID:</b> <b class="font-mono text-purple-700 font-black">${quizId}</b></span>
         </div>
       </div>
 
       <div class="space-y-1.5">
         <div class="flex items-center justify-between">
           <label class="block text-xs font-bold text-slate-700">ವಿದ್ಯಾರ್ಥಿಗಳಿಗೆ ಕಳುಹಿಸುವ ನೇರ ಲಿಂಕ್:</label>
-          <button type="button" onclick="window.generateFreshNewQuizLinkForcefully()" class="text-[11px] text-indigo-700 hover:text-indigo-900 font-black cursor-pointer underline flex items-center gap-1">
-            <i class="fa-solid fa-rotate"></i> <span>ಹೊಸ ಲಿಂಕ್ ರಚಿಸಿ (Reset)</span>
+          <button type="button" onclick="window.openCreateOnlineQuizModal(true)" class="text-[11px] text-indigo-700 hover:text-indigo-900 font-black cursor-pointer underline flex items-center gap-1">
+            <i class="fa-solid fa-rotate"></i> <span>ಹೊಸ ಲಿಂಕ್ ರಚಿಸಿ (Reset Link)</span>
           </button>
         </div>
         <div class="flex items-center gap-1.5">
@@ -22647,13 +22639,85 @@ window.openCreateOnlineQuizModal = async function() {
   `;
 };
 
-// ೩. ಶಿಕ್ಷಕರು ಒಂದೇ ಕ್ಲಿಕ್‌ನಲ್ಲಿ ಹಳೆಯದನ್ನು ಕ್ಲಿಯರ್ ಮಾಡಿ ಹೊಚ್ಚಹೊಸ ಕ್ವಿಜ್ ಐಡಿ ಪಡೆಯುವ ಫಂಕ್ಷನ್
-window.generateFreshNewQuizLinkForcefully = function() {
-  appState.activeQuizId = null;
-  window.currentActiveSharedQuiz = null;
-  showToast("🔄 ಹೊಚ್ಚಹೊಸ ಪರೀಕ್ಷಾ ಲಿಂಕ್ ರಚಿಸಲಾಗುತ್ತಿದೆ...", "info");
-  window.openCreateOnlineQuizModal();
+// ೩. ಈಗಾಗಲೇ ಸಲ್ಲಿಸಿದ ಸ್ಕ್ರೀನ್‌ನಲ್ಲಿ [🔄 ಮತ್ತೊಮ್ಮೆ ಪರೀಕ್ಷೆ ಬರೆಯಿರಿ] ಬಟನ್ ಸೇರ್ಪಡೆ
+window.renderAlreadySubmittedScreen = function(quizOrId, pastSub) {
+  var container = document.getElementById('student-quiz-container');
+  if (!container) return;
+
+  var qId = (typeof quizOrId === 'object' && quizOrId) ? quizOrId.id : String(quizOrId || '');
+  if (!qId) {
+    var urlParams = new URLSearchParams(window.location.search);
+    qId = urlParams.get('quiz') || '';
+  }
+
+  container.innerHTML = `
+    <div class="space-y-6 animate-fade-in pb-16">
+      <div class="bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-slate-950 p-6 sm:p-8 rounded-3xl shadow-xl text-center space-y-3 border-2 border-amber-300">
+        <div class="w-16 h-16 bg-white/30 rounded-full flex items-center justify-center font-black text-3xl mx-auto shadow">
+          ⚠️
+        </div>
+        <h2 class="text-xl sm:text-2xl font-black text-slate-950">ನೀವು ಈ ಪರೀಕ್ಷೆಯನ್ನು ಸಲ್ಲಿಸಿದ್ದೀರಿ!</h2>
+        <p class="text-xs sm:text-sm font-extrabold text-slate-900">ಒಬ್ಬ ವಿದ್ಯಾರ್ಥಿ ಕೇವಲ ಒಂದು ಬಾರಿ ಮಾತ್ರ ಪರೀಕ್ಷೆ ಬರೆಯಲು ಅವಕಾಶವಿದೆ.</p>
+
+        <div class="bg-white p-4 rounded-2xl border border-slate-300 max-w-sm mx-auto shadow-sm">
+          <div class="text-xs font-bold text-slate-500">ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು: <b class="text-slate-900">${escapeHtml(pastSub.name)}</b> (ರೋಲ್ ನಂ: ${escapeHtml(pastSub.roll)})</div>
+          <div class="text-3xl font-black text-emerald-700 my-1">${pastSub.score} / ${pastSub.totalMarks}</div>
+          <div class="text-xs font-black text-indigo-700">ಶೇಕಡಾವಾರು: ${pastSub.percent}% | ಗ್ರೇಡ್: ${pastSub.grade}</div>
+          <div class="text-[10px] text-slate-400 font-bold mt-1">ಸಲ್ಲಿಸಿದ ಸಮಯ: ${pastSub.submittedAt}</div>
+        </div>
+
+        <!-- 🌟 ಈ ಬಟನ್ ಒತ್ತಿದ ತಕ್ಷಣ ಲಾಕ್ ತೆರೆದು ಮಗು ಮತ್ತೊಮ್ಮೆ ಪರೀಕ್ಷೆ ಬರೆಯಬಹುದು! -->
+        <div class="pt-2">
+          <button type="button" onclick="window.allowStudentRetakeExam('${qId}')" class="px-6 py-3 bg-slate-950 hover:bg-slate-900 text-amber-300 font-black text-xs sm:text-sm rounded-2xl shadow-lg cursor-pointer transition inline-flex items-center gap-2 border border-amber-400">
+            <i class="fa-solid fa-rotate-right text-amber-400"></i>
+            <span>🔄 ಮತ್ತೊಮ್ಮೆ ಪರೀಕ್ಷೆ ಬರೆಯಿರಿ (Re-Take Exam)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ಸರಿ/ತಪ್ಪು ಉತ್ತರಗಳ ಪರಿಶೀಲನೆ (Review) -->
+      ${pastSub.reviewData && typeof renderAnswersReviewHtml === 'function' ? renderAnswersReviewHtml(quizOrId, pastSub.reviewData) : ''}
+
+      <!-- ಸಹಪಾಠಿಗಳ ಶ್ರೇಯಾಂಕ ಪಟ್ಟಿ (Leaderboard) -->
+      <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-xl border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow">
+              <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div>
+              <h3 class="font-black text-sm text-slate-900">ತರಗತಿಯ ಸಹಪಾಠಿಗಳ ಶ್ರೇಯಾಂಕ ಪಟ್ಟಿ (Live Leaderboard)</h3>
+              <p class="text-[11px] text-slate-500 font-bold">ಎಲ್ಲಾ ಸಹಪಾಠಿಗಳ ರಿಸಲ್ಟ್ ಲೈವ್ ಆಗಿ ವೀಕ್ಷಿಸಿ</p>
+            </div>
+          </div>
+          <button type="button" onclick="window.refreshStudentLeaderboard('${qId}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition">
+            🔄 Refresh
+          </button>
+        </div>
+        <div id="live-leaderboard-table-box" class="overflow-x-auto">
+          <div class="py-6 text-center text-xs font-bold text-slate-400">ಶ್ರೇಯಾಂಕ ಪಟ್ಟಿ ಲೋಡ್ ಆಗುತ್ತಿದೆ...</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (typeof window.loadAndDisplayLeaderboardTable === 'function') {
+    window.loadAndDisplayLeaderboardTable(qId, pastSub.name);
+  }
 };
+
+// ೪. ಹೊಸ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚನೆಯಾದಾಗ ಹಳೆಯ Quiz ID ಯನ್ನು ಕಡ್ಡಾಯವಾಗಿ ನಲ್ ಮಾಡುವುದು
+(function forceResetQuizIdOnPaperRegen() {
+  var origGenFn = window.generateExamPackageFromBank;
+  window.generateExamPackageFromBank = function() {
+    appState.activeQuizId = null;
+    window.currentActiveSharedQuiz = null;
+    if (typeof origGenFn === 'function') {
+      origGenFn.apply(this, arguments);
+    }
+    appState.activeQuizId = null;
+  };
+})();
 
     
 </script>

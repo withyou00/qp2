@@ -23741,6 +23741,131 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
     window.renderFullExamPaperWithCustomHeader(headerHtml);
   }
 })();
+
+
+
+
+    // =========================================================================
+// 🖨️ 100% FLAWLESS PRINT ENGINE: NO BLANK PAGE + 4-SIDED CLOSED BORDER ON ALL PAGES
+// =========================================================================
+
+(function installCleanMultiPageBorderPrintEngine() {
+  // ಹಳೆಯ ಪ್ರಿಂಟ್ ಸ್ಟೈಲ್‌ಗಳಿದ್ದರೆ ತೆಗೆದುಹಾಕುವುದು
+  var oldStyle = document.getElementById('wy-clean-multipage-border-styles');
+  if (oldStyle) oldStyle.remove();
+
+  var styleEl = document.createElement('style');
+  styleEl.id = 'wy-clean-multipage-border-styles';
+  document.head.appendChild(styleEl);
+
+  styleEl.innerHTML = `
+    /* ಸ್ಕ್ರೀನ್ ಮೇಲೆ ಸಾಮಾನ್ಯ ನೋಟ */
+    .print-page-border-frame {
+      display: none !important;
+    }
+
+    @media print {
+      /* 🌟 ೧. ಕಾಗದದ ಮಾರ್ಜಿನ್ ಲಾಕ್ */
+      @page {
+        size: A4 portrait;
+        margin: 6mm 8mm 6mm 8mm !important;
+      }
+
+      /* 🌟 ೨. ಮೊದಲ ಪುಟ ಖಾಲಿ ಬರದಂತೆ ಸೆಟಪ್ ಫಾರ್ಮ್ ಅನ್ನು ಸಂಪೂರ್ಣವಾಗಿ ತೆಗೆಯುವುದು */
+      header,
+      #view-dashboard,
+      #view-generator > .grid,
+      #wy-user-profile-header,
+      #wy-live-notice-bar,
+      #toast-container,
+      #auth-modal-wrapper,
+      .no-print,
+      .btn-live-q-edit,
+      button {
+        display: none !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      html, body {
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      main, #view-generator, #output-section {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+      }
+
+      #print-area {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+      }
+
+      /* 🌟 ೩. ಪ್ರತಿಯೊಂದು ಪುಟಕ್ಕೂ (Page 1, Page 2...) ಮೇಲೆ ಮತ್ತು ಕೆಳಗೆ ೧೦೦% ಕ್ಲೋಸ್ ಆಗುವ ಅಧಿಕೃತ ಕಪ್ಪು ಬಾರ್ಡರ್ ಫ್ರೇಮ್ */
+      .print-page-border-frame {
+        display: block !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        border: 2px solid #000000 !important; /* ಪ್ರತಿ ಪುಟದಲ್ಲೂ ಮೇಲೆ ಮತ್ತು ಕೆಳಗೆ ಬಾರ್ಡರ್ ಗ್ಯಾರಂಟಿ */
+        box-sizing: border-box !important;
+        pointer-events: none !important;
+        z-index: 999999 !important;
+      }
+
+      /* ಪತ್ರಿಕೆಯ ಒಳಗಿನ ಅಂಶಗಳು ಬಾರ್ಡರ್ ಒಳಗೆ ಅಚ್ಚುಕಟ್ಟಾಗಿ ಕೂರಲು */
+      .a4-board-sheet, .nk-board-sheet {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 4mm 6mm !important;
+        border: none !important; /* ಡಬಲ್ ಬಾರ್ಡರ್ ಆಗದಂತೆ ಒಳಬಾರ್ಡರ್ ಆಫ್ */
+        box-sizing: border-box !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        page-break-before: avoid !important;
+        break-before: avoid !important;
+      }
+
+      .q-indivisible-block {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    }
+  `;
+
+  // ಪ್ರಿಂಟ್ ಕಂಟೈನರ್ ಒಳಗೆ ಬಾರ್ಡರ್ ಫ್ರೇಮ್ ಸೇರಿಸುವ ಫಂಕ್ಷನ್
+  function ensurePrintBorderElement() {
+    var printArea = document.getElementById('print-area');
+    if (printArea && !document.getElementById('wy-print-frame-div')) {
+      var frameDiv = document.createElement('div');
+      frameDiv.id = 'wy-print-frame-div';
+      frameDiv.className = 'print-page-border-frame';
+      printArea.insertBefore(frameDiv, printArea.firstChild);
+    }
+  }
+  ensurePrintBorderElement();
+  setInterval(ensurePrintBorderElement, 1000);
+})();
     
 </script>
 </body>

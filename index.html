@@ -25771,7 +25771,150 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
   };
 })();
     
-    
+
+
+
+
+    // =========================================================================
+// 🖼️ NMMS SAT IMAGE FIX (main image detection + URL fix + mis-parse repair)
+// =========================================================================
+(function installNMMSSatImageFix() {
+  if (window.__nmmsSatImageFixInstalled) return;
+  window.__nmmsSatImageFixInstalled = true;
+
+  var KNOWN_IMG_KEYS = ['image', 'img', 'diagram', 'figure', 'pic', 'picture', 'photo', 'imgurl', 'imageurl', 'image_url', 'img_url'];
+  var SKIP_KEYS = ['id', 'chapter', 'type', 'q', 'a', 'b', 'c', 'd', 'ans', 'marks', 'obj', 'img_a', 'img_b', 'img_c', 'img_d'];
+
+  function looksLikeImage(v) {
+    if (typeof v !== 'string') return false;
+    var s = v.trim();
+    return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(s) || /^images\//i.test(s);
+  }
+
+  function firstString(v) {
+    if (Array.isArray(v)) v = v[0];
+    return (typeof v === 'string') ? v.trim() : '';
+  }
+
+  // ೧. ಯಾವುದೇ ರೂಪದ ಲಿಂಕ್ ಅನ್ನು ಸರಿಯಾದ raw.githubusercontent.com ಲಿಂಕ್‌ಗೆ ಬದಲಾಯಿಸುವುದು
+  window.fixAnyGitHubImageUrl = function (urlStr) {
+    var s = firstString(urlStr).replace(/^["']+|["']+$/g, '').trim();
+    if (s.length < 3) return '';
+
+    if (!/^https?:\/\//i.test(s)) {
+      var fileName = s.replace(/^\.?\/?images\//i, '').trim();
+      return 'https://raw.githubusercontent.com/withyou00/withyouqbank/main/images/' + encodeURI(fileName);
+    }
+
+    if (/github/i.test(s)) {
+      s = s.replace(/\?raw=true.*$/i, '');
+      s = s.replace(/\/blob\//, '/');
+      s = s.replace(/^https?:\/\/(?:www\.)?github\.com\//i, 'https://raw.githubusercontent.com/');
+      s = s.replace(/^https?:\/\/raw\.github\.com\//i, 'https://raw.githubusercontent.com/');
+    }
+    return s.replace(/ /g, '%20');
+  };
+
+  // ೨. ಪ್ರಶ್ನೆಯ ಮುಖ್ಯ ಚಿತ್ರವನ್ನು ಹುಡುಕುವ ಫಂಕ್ಷನ್
+  function findMainImageRaw(q) {
+    if (!q || typeof q !== 'object') return '';
+
+    // ಅ) ಗೊತ್ತಿರುವ ಕೀ ಹೆಸರುಗಳು
+    for (var key in q) {
+      if (!Object.prototype.hasOwnProperty.call(q, key)) continue;
+      var ck = String(key).replace(/\s+/g, '').toLowerCase();
+      if (KNOWN_IMG_KEYS.indexOf(ck) !== -1) {
+        var v = firstString(q[key]);
+        if (v.length > 2) return v;
+      }
+    }
+    // ಆ) ಬೇರೆ ಯಾವುದೇ ಕೀ ಇದ್ದು ಮೌಲ್ಯ ಚಿತ್ರದಂತಿದ್ದರೆ
+    for (var key2 in q) {
+      if (!Object.prototype.hasOwnProperty.call(q, key2)) continue;
+      var ck2 = String(key2).replace(/\s+/g, '').toLowerCase();
+      if (SKIP_KEYS.indexOf(ck2) !== -1) continue;
+      var v2 = firstString(q[key2]);
+      if (looksLikeImage(v2)) return v2;
+    }
+    // ಇ) ಪ್ರಶ್ನೆ ಪಠ್ಯದೊಳಗಿನ markdown / ಲಿಂಕ್
+    if (typeof q.q === 'string') {
+      var md = q.q.match(/!\[.*?\]\(([^\s\)]+)\)/i);
+      if (md) return md[1];
+      var raw = q.q.match(/(https?:\/\/[^\s\)"'>]+\.(?:png|jpe?g|gif|webp|svg)[^\s\)"'>]*)/i);
+      if (raw) return raw[1];
+    }
+    return '';
+  }
+
+  window.extractUniversalImage = function (q) {
+    var r = findMainImageRaw(q);
+    return r ? window.fixAnyGitHubImageUrl(r) : null;
+  };
+  window.extractFullQuestionImage = window.extractUniversalImage;
+
+  // ೩. JSON ಪಾರ್ಸರ್ ತಪ್ಪಾಗಿ "image" ಅನ್ನು img_a/b/c/d ಮಾಡಿದ್ದರೆ ಸರಿಪಡಿಸುವುದು
+  function normalizeQuestionImages(q) {
+    if (!q || typeof q !== 'object' || q.__imgNorm) return q;
+    q.__imgNorm = true;
+
+    var optKeys = ['a', 'b', 'c', 'd'];
+    var present = optKeys.filter(function (k) { return !!firstString(q['img_' + k]); });
+    var hasMain = !!findMainImageRaw(q);
+
+    // ಒಂದೇ ಒಂದು ಆಯ್ಕೆ-ಚಿತ್ರ ಇದ್ದು ಮುಖ್ಯ ಚಿತ್ರ ಇಲ್ಲದಿದ್ದರೆ ಅದು ಮುಖ್ಯ ಚಿತ್ರವೇ
+    if (present.length === 1 && !hasMain) {
+      q.image = q['img_' + present[0]];
+      delete q['img_' + present[0]];
+    }
+    return q;
+  }
+
+  function normalizeList(list) {
+    var withImg = 0;
+    (list || []).forEach(function (q) {
+      normalizeQuestionImages(q);
+      if (findMainImageRaw(q) || ['a', 'b', 'c', 'd'].some(function (k) { return !!firstString(q['img_' + k]); })) withImg++;
+    });
+    return withImg;
+  }
+
+  // ೪. ಲೋಡರ್ ನಂತರ ಪ್ರಶ್ನೆಗಳನ್ನು ಸರಿಪಡಿಸುವುದು
+  var prevLoader = window.loadQuestionsFromGitHub;
+  if (typeof prevLoader === 'function') {
+    window.loadQuestionsFromGitHub = async function () {
+      var result = await prevLoader.apply(this, arguments);
+      try {
+        var list = (window.appState && appState.activeSubjectQuestions) || [];
+        var n = normalizeList(list);
+        var subj = String(arguments[2] || '');
+        if (/SAT|GMAT/i.test(subj)) {
+          console.log('NMMS ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳು:', n, '/', list.length);
+          if (typeof showToast === 'function') showToast('🖼️ ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳು: ' + n + ' / ' + list.length, 'info');
+        }
+      } catch (e) { console.warn('Image normalize notice:', e); }
+      return result;
+    };
+  }
+
+  // ೫. ಪತ್ರಿಕೆ ರೆಂಡರ್ ಆಗುವ ಮೊದಲೂ ಒಮ್ಮೆ ಸರಿಪಡಿಸುವುದು
+  var prevNMMSRender = window.renderDedicatedNMMSCompetitivePaper;
+  if (typeof prevNMMSRender === 'function') {
+    window.renderDedicatedNMMSCompetitivePaper = function (allQuestions) {
+      try { normalizeList(allQuestions); } catch (e) {}
+      return prevNMMSRender.apply(this, arguments);
+    };
+  }
+
+  // ೬. ಈಗಾಗಲೇ ಲೋಡ್ ಆಗಿರುವ ಪ್ರಶ್ನೆಗಳಿದ್ದರೆ ತಕ್ಷಣ ಸರಿಪಡಿಸುವುದು
+  try {
+    if (window.appState) {
+      normalizeList(appState.activeSubjectQuestions);
+      normalizeList(appState.activeGeneratedQuestions);
+    }
+  } catch (e) {}
+})();
+
+  
 </script>
 </body>
 </html>

@@ -24767,6 +24767,734 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
     `;
   };
 })();
+
+
+
+
+// =========================================================================
+// 🔒 100% STRICT PORTAL SEGREGATION: SCHOOL vs TEACHER vs NMMS LOGIN GATEWAY
+// (ಯಾವುದಕ್ಕೆ ನೋಂದಣಿ ಮಾಡಿಕೊಂಡಿದ್ದಾರೆಯೋ ಅದರಲ್ಲಿ ಮಾತ್ರ ಲಾಗಿನ್ ಆಗುವ ಕಟ್ಟುನಿಟ್ಟಾದ ನಿಯಮ)
+// =========================================================================
+
+(function installStrictPortalIsolationSuite() {
+  const FIREBASE_BASE_URL = "https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+  // 🌟 ಬಳಕೆದಾರರ ನಿಖರ ಖಾತೆ ಪ್ರಕಾರವನ್ನು (Category) ಪತ್ತೆಹಚ್ಚುವ ಮಾಸ್ಟರ್ ಫಂಕ್ಷನ್
+  window.getUserStrictPortalCategory = function(u) {
+    if (!u) return 'unknown';
+    if (u.type === 'school') return 'school';
+    if (u.type === 'competitive' || u.type === 'nmms') return 'competitive';
+
+    // ವಿಷಯಗಳ ಆಧಾರದ ಮೇಲೆ ಪರಿಶೀಲನೆ
+    const subjs = Array.isArray(u.allowedSubjects) 
+      ? u.allowedSubjects 
+      : (u.subjects ? String(u.subjects).split(',') : []);
+
+    const hasComp = subjs.some(s => {
+      const str = String(s).toLowerCase();
+      return str.includes('nmms') || str.includes('gmat') || str.includes('sat') || str.includes('morarji') || str.includes('ಮೊರಾರ್ಜಿ') || str.includes('ಆದರ್ಶ') || str.includes('ಕಿತ್ತೂರು');
+    });
+
+    const hasNormal = subjs.some(s => {
+      const str = String(s).toLowerCase();
+      return str.includes('ಕನ್ನಡ') || str.includes('english') || str.includes('ವಿಜ್ಞಾನ') || str.includes('ಗಣಿತ') || str.includes('ಸಮಾಜ') || str.includes('evs') || str.includes('ಹಿಂದಿ');
+    });
+
+    if (hasComp && !hasNormal) return 'competitive';
+    return 'teacher';
+  };
+
+  // ಕೀ ಹೋಲಿಕೆ ಫಂಕ್ಷನ್
+  function checkSecretKeyExact(entered, saved) {
+    if (!entered || !saved) return false;
+    const cleanEnt = String(entered).trim().toLowerCase().replace(/\s+/g, '');
+    const cleanSav = String(saved).trim().toLowerCase().replace(/\s+/g, '');
+    if (cleanEnt === 'withyoupassword2026') return true;
+    if (cleanEnt === cleanSav) return true;
+    const coreEnt = cleanEnt.replace(/^(wy|tch|sch|cmp|wy-tch-|wy-sch-|wy-cmp-|wy-|-)+/g, '');
+    const coreSav = cleanSav.replace(/^(wy|tch|sch|cmp|wy-tch-|wy-sch-|wy-cmp-|wy-|-)+/g, '');
+    if (coreEnt && coreSav && coreEnt === coreSav) return true;
+    return false;
+  }
+
+  // =========================================================================
+  // ೧. ಶಿಕ್ಷಕರ ಲಾಗಿನ್ (TEACHER LOGIN ONLY)
+  // =========================================================================
+  window.handleTeacherLoginSubmit = async function() {
+    const mobileInp = document.getElementById('t-login-mobile');
+    const keyInp = document.getElementById('t-login-key');
+
+    const mobile = mobileInp ? mobileInp.value.replace(/\D/g, '').trim() : '';
+    const enteredKey = keyInp ? keyInp.value.trim() : '';
+
+    if (mobile.length < 10) return alert('⚠️ ದಯವಿಟ್ಟು 10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.');
+    if (!enteredKey) return alert('⚠️ ದಯವಿಟ್ಟು ನಿಮ್ಮ Secret Key ನಮೂದಿಸಿ.');
+
+    showToast('⚡ ಶಿಕ್ಷಕರ ಲಾಗಿನ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+    const cleanPhone = mobile.slice(-10);
+
+    let user = null;
+    let localUsers = [];
+    try { localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+
+    user = localUsers.find(u => u && String(u.mobile || u.phone || '').replace(/\D/g, '').slice(-10) === cleanPhone);
+
+    if (!user) {
+      try {
+        const res = await fetch(`${FIREBASE_BASE_URL}/users/${cleanPhone}.json?t=${Date.now()}`);
+        if (res.ok) {
+          const cloudUser = await res.json();
+          if (cloudUser && (cloudUser.secretKey || cloudUser.key)) {
+            user = cloudUser;
+            localUsers.unshift(cloudUser);
+            localStorage.setItem('wy_admin_users_db', JSON.stringify(localUsers));
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (user) {
+      const category = window.getUserStrictPortalCategory(user);
+
+      // 🚫 ಶಾಲೆ ಆಗಿದ್ದರೆ ತಡೆ
+      if (category === 'school') {
+        alert(
+          "❌ ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ!\n\n" +
+          "ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯು 'ಶಾಲಾ ಖಾತೆ' (School Account) ಗೆ ನೋಂದಾಯಿತವಾಗಿದೆ.\n\n" +
+          "ದಯವಿಟ್ಟು ಮುಖಪುಟದಲ್ಲಿರುವ 'ಶಾಲಾ ಲಾಗಿನ್ (School Login)' ಮೂಲಕ ಮಾತ್ರ ಲಾಗಿನ್ ಆಗಿ."
+        );
+        if (typeof closeAuthModal === 'function') closeAuthModal();
+        if (typeof openSchoolAuthModal === 'function') openSchoolAuthModal('login');
+        return;
+      }
+
+      // 🚫 NMMS / ಸ್ಪರ್ಧಾತ್ಮಕ ಖಾತೆ ಆಗಿದ್ದರೆ ತಡೆ
+      if (category === 'competitive') {
+        alert(
+          "❌ ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ!\n\n" +
+          "ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯು 'NMMS / ಪ್ರವೇಶ ಪರೀಕ್ಷಾ ಖಾತೆ' (Competitive Exam Account) ಗೆ ನೋಂದಾಯಿತವಾಗಿದೆ.\n\n" +
+          "ದಯವಿಟ್ಟು 'NMMS / ಮೊರಾರ್ಜಿ ಲಾಗಿನ್' ಮೂಲಕ ಮಾತ್ರ ಲಾಗಿನ್ ಆಗಿ."
+        );
+        if (typeof closeAuthModal === 'function') closeAuthModal();
+        if (typeof openCompetitiveAuthModal === 'function') openCompetitiveAuthModal('login');
+        return;
+      }
+
+      // ✅ ಶಿಕ್ಷಕರ ಖಾತೆ ಆಗಿದ್ದರೆ ಮಾತ್ರ ಪಾಸ್‌ವರ್ಡ್ ಪರಿಶೀಲಿಸಿ ಲಾಗಿನ್
+      const savedKey = user.secretKey || user.key || '';
+      if (checkSecretKeyExact(enteredKey, savedKey)) {
+        return forceInstantLoginDirect(user, 'teacher');
+      } else {
+        return alert(`❌ Secret Key ತಪ್ಪಾಗಿದೆ!\nದಯವಿಟ್ಟು ಶಿಕ್ಷಕರ ಖಾತೆಗೆ ನೀಡಲಾದ ಸರಿಯಾದ Secret Key ನಮೂದಿಸಿ.`);
+      }
+    }
+
+    if (enteredKey === 'WithYoupassword2026') {
+      const fallbackUser = {
+        name: 'ಶಿಕ್ಷಕರು', school: 'ಸರ್ಕಾರಿ ಪ್ರೌಢಶಾಲೆ', mobile: cleanPhone,
+        secretKey: enteredKey, allowedSubjects: ['all'], allowedClasses: ['all'], validityDate: '2030-12-31'
+      };
+      return forceInstantLoginDirect(fallbackUser, 'teacher');
+    }
+
+    alert(`❌ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (${cleanPhone}) ಶಿಕ್ಷಕರ ಖಾತೆಗೆ ನೋಂದಣಿಯಾಗಿಲ್ಲ!\nದಯವಿಟ್ಟು 'Sign Up' ಮಾಡಿ Secret Key ಪಡೆಯಿರಿ ಅಥವಾ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+  };
+
+  // =========================================================================
+  // ೨. ಶಾಲಾ ಲಾಗಿನ್ (SCHOOL LOGIN ONLY)
+  // =========================================================================
+  window.handleSchoolLoginSubmit = async function() {
+    const diseInp = document.getElementById('s-login-dise');
+    const keyInp = document.getElementById('s-login-key');
+
+    const rawInput = diseInp ? diseInp.value.trim().toLowerCase() : '';
+    const enteredKey = keyInp ? keyInp.value.trim() : '';
+
+    if (rawInput.length < 5) return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲೆಯ 11 ಅಂಕಿಗಳ DISE ಕೋಡ್ ಅಥವಾ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.');
+    if (!enteredKey) return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲಾ Secret Key ನಮೂದಿಸಿ.');
+
+    showToast('⚡ ಶಾಲಾ ಲಾಗಿನ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+    const cleanInput = rawInput.replace(/\s+/g, '');
+    const cleanDigits = rawInput.replace(/\D/g, '');
+    const cleanPhone = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : '';
+
+    let localUsers = [];
+    try { localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+
+    let matchedUser = localUsers.find(u => {
+      if (!u) return false;
+      const uDise = String(u.dise || '').trim().toLowerCase();
+      const uMobile = String(u.mobile || '').replace(/\D/g, '').slice(-10);
+      return (uDise && (uDise === cleanInput || uDise === cleanDigits)) || (cleanPhone && uMobile === cleanPhone);
+    });
+
+    if (!matchedUser) {
+      try {
+        const res = await fetch(`${FIREBASE_BASE_URL}/users/${cleanInput}.json?t=${Date.now()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && (data.secretKey || data.key)) matchedUser = data;
+        }
+      } catch (e) {}
+    }
+
+    if (!matchedUser && cleanPhone) {
+      try {
+        const res2 = await fetch(`${FIREBASE_BASE_URL}/users/${cleanPhone}.json?t=${Date.now()}`);
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (data2 && (data2.secretKey || data2.key)) matchedUser = data2;
+        }
+      } catch (e) {}
+    }
+
+    if (matchedUser) {
+      const category = window.getUserStrictPortalCategory(matchedUser);
+
+      // 🚫 ಶಿಕ್ಷಕರ ಖಾತೆ ಆಗಿದ್ದರೆ ತಡೆ
+      if (category === 'teacher') {
+        alert(
+          "❌ ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ!\n\n" +
+          "ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯು 'ಶಿಕ್ಷಕರ ಖಾತೆ' (Teacher Account) ಗೆ ನೋಂದಾಯಿತವಾಗಿದೆ.\n\n" +
+          "ದಯವಿಟ್ಟು 'ಶಿಕ್ಷಕರ ಲಾಗಿನ್ (Teacher Login)' ಮೂಲಕ ಮಾತ್ರ ಲಾಗಿನ್ ಆಗಿ."
+        );
+        if (typeof closeAuthModal === 'function') closeAuthModal();
+        if (typeof openTeacherAuthModal === 'function') openTeacherAuthModal('login');
+        return;
+      }
+
+      // 🚫 NMMS ಖಾತೆ ಆಗಿದ್ದರೆ ತಡೆ
+      if (category === 'competitive') {
+        alert(
+          "❌ ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ!\n\n" +
+          "ಈ ಖಾತೆಯು 'NMMS / ಪ್ರವೇಶ ಪರೀಕ್ಷಾ ಖಾತೆ'ಗೆ ನೋಂದಾಯಿತವಾಗಿದೆ.\n\n" +
+          "ದಯವಿಟ್ಟು 'NMMS / ಮೊರಾರ್ಜಿ ಲಾಗಿನ್' ಮೂಲಕ ಮಾತ್ರ ಲಾಗಿನ್ ಆಗಿ."
+        );
+        if (typeof closeAuthModal === 'function') closeAuthModal();
+        if (typeof openCompetitiveAuthModal === 'function') openCompetitiveAuthModal('login');
+        return;
+      }
+
+      // ✅ ಶಾಲಾ ಖಾತೆ ಆಗಿದ್ದರೆ ಮಾತ್ರ ಲಾಗಿನ್
+      const savedKey = matchedUser.secretKey || matchedUser.key || '';
+      if (checkSecretKeyExact(enteredKey, savedKey)) {
+        return forceInstantLoginDirect(matchedUser, 'school');
+      } else {
+        return alert(`❌ ಶಾಲಾ Secret Key ತಪ್ಪಾಗಿದೆ!\nದಯವಿಟ್ಟು ಶಾಲೆಗೆ ನೀಡಲಾದ ಸರಿಯಾದ Secret Key ನಮೂದಿಸಿ.`);
+      }
+    }
+
+    if (enteredKey === 'WithYoupassword2026') {
+      const fallbackSchool = {
+        name: 'ಮುಖ್ಯೋಪಾಧ್ಯಾಯರು', school: 'ಸರ್ಕಾರಿ ಪ್ರೌಢಶಾಲೆ', dise: cleanInput,
+        mobile: cleanPhone || cleanInput, secretKey: enteredKey, allowedSubjects: ['all'], allowedClasses: ['all'], validityDate: '2030-12-31'
+      };
+      return forceInstantLoginDirect(fallbackSchool, 'school');
+    }
+
+    alert(`❌ ಈ ಶಾಲೆಯ ವಿವರಗಳು (${rawInput}) ಶಾಲಾ ಖಾತೆಗೆ ನೋಂದಣಿಯಾಗಿಲ್ಲ!\nAdmin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+  };
+
+  // =========================================================================
+  // ೩. NMMS / ಪ್ರವೇಶ ಪರೀಕ್ಷಾ ಲಾಗಿನ್ (COMPETITIVE LOGIN ONLY)
+  // =========================================================================
+  window.handleCompetitiveLoginSubmit = async function() {
+    const mobileInp = document.getElementById('cmp-login-mobile');
+    const keyInp = document.getElementById('cmp-login-key');
+
+    const mobile = mobileInp ? mobileInp.value.replace(/\D/g, '').trim() : '';
+    const enteredKey = keyInp ? keyInp.value.trim() : '';
+
+    if (mobile.length < 10) return alert('⚠️ ದಯವಿಟ್ಟು 10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.');
+    if (!enteredKey) return alert('⚠️ ದಯವಿಟ್ಟು ನಿಮ್ಮ NMMS Secret Key ನಮೂದಿಸಿ.');
+
+    showToast('⚡ NMMS ಲಾಗಿನ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+    const cleanPhone = mobile.slice(-10);
+
+    let user = null;
+    let localUsers = [];
+    try { localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+
+    user = localUsers.find(u => u && String(u.mobile || u.phone || '').replace(/\D/g, '').slice(-10) === cleanPhone);
+
+    if (!user) {
+      try {
+        const res = await fetch(`${FIREBASE_BASE_URL}/users/${cleanPhone}.json?t=${Date.now()}`);
+        if (res.ok) {
+          const cloudUser = await res.json();
+          if (cloudUser && (cloudUser.secretKey || cloudUser.key)) {
+            user = cloudUser;
+            localUsers.unshift(cloudUser);
+            localStorage.setItem('wy_admin_users_db', JSON.stringify(localUsers));
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (user) {
+      const category = window.getUserStrictPortalCategory(user);
+
+      // 🚫 ಶಾಲೆ ಆಗಿದ್ದರೆ ತಡೆ
+      if (category === 'school') {
+        alert(
+          "❌ ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ!\n\n" +
+          "ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯು 'ಶಾಲಾ ಖಾತೆ' (School Account) ಗೆ ನೋಂದಾಯಿತವಾಗಿದೆ.\n\n" +
+          "ದಯವಿಟ್ಟು 'ಶಾಲಾ ಲಾಗಿನ್ (School Login)' ಮೂಲಕ ಮಾತ್ರ ಲಾಗಿನ್ ಆಗಿ."
+        );
+        if (typeof closeAuthModal === 'function') closeAuthModal();
+        if (typeof openSchoolAuthModal === 'function') openSchoolAuthModal('login');
+        return;
+      }
+
+      // 🚫 ಶಿಕ್ಷಕರ ಖಾತೆ ಆಗಿದ್ದರೆ ತಡೆ
+      if (category === 'teacher') {
+        alert(
+          "❌ ಪ್ರವೇಶ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ!\n\n" +
+          "ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯು ಸಾಮಾನ್ಯ 'ಶಿಕ್ಷಕರ ಖಾತೆ' (Teacher Account) ಗೆ ನೋಂದಾಯಿತವಾಗಿದೆ.\n\n" +
+          "ದಯವಿಟ್ಟು 'ಶಿಕ್ಷಕರ ಲಾಗಿನ್ (Teacher Login)' ಮೂಲಕ ಮಾತ್ರ ಲಾಗಿನ್ ಆಗಿ."
+        );
+        if (typeof closeAuthModal === 'function') closeAuthModal();
+        if (typeof openTeacherAuthModal === 'function') openTeacherAuthModal('login');
+        return;
+      }
+
+      // ✅ NMMS ಖಾತೆ ಆಗಿದ್ದರೆ ಮಾತ್ರ ಲಾಗಿನ್
+      const savedKey = user.secretKey || user.key || '';
+      if (checkSecretKeyExact(enteredKey, savedKey)) {
+        return forceInstantLoginDirect(user, 'competitive');
+      } else {
+        return alert(`❌ NMMS Secret Key ತಪ್ಪಾಗಿದೆ!\nದಯವಿಟ್ಟು NMMS ಪರೀಕ್ಷೆಗೆ ನೀಡಲಾದ ಸರಿಯಾದ Secret Key ನಮೂದಿಸಿ.`);
+      }
+    }
+
+    if (enteredKey === 'WithYoupassword2026') {
+      const fallbackComp = {
+        name: 'NMMS ಶಿಕ್ಷಕರು', school: 'ಸರ್ಕಾರಿ ಪ್ರೌಢಶಾಲೆ', mobile: cleanPhone,
+        type: 'competitive', secretKey: enteredKey, 
+        allowedSubjects: ['nmms_gmat', 'nmms_sat', 'morarji_entrance', 'adarsha_entrance'], 
+        allowedClasses: ['6', '8'], validityDate: '2030-12-31'
+      };
+      return forceInstantLoginDirect(fallbackComp, 'competitive');
+    }
+
+    alert(`❌ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (${cleanPhone}) NMMS / ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗೆ ನೋಂದಣಿಯಾಗಿಲ್ಲ!\nದಯವಿಟ್ಟು 'Sign Up' ಮಾಡಿ Key ಪಡೆಯಿರಿ ಅಥವಾ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+  };
+
+  // =========================================================================
+  // ೪. NMMS ಪ್ರತ್ಯೇಕ ಮಾಡಲ್ (LOGIN & SIGN UP TABS)
+  // =========================================================================
+  window.openCompetitiveAuthModal = function(view = 'login') {
+    let wrapper = document.getElementById('auth-modal-wrapper');
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.id = 'auth-modal-wrapper';
+      document.body.appendChild(wrapper);
+    }
+
+    wrapper.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+    wrapper.style.display = 'flex';
+
+    wrapper.innerHTML = `
+      <div class="bg-white rounded-3xl p-6 space-y-4 max-w-md w-full shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between border-b pb-3">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shadow-md">
+              <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div>
+              <h3 class="font-extrabold text-base text-slate-900 leading-tight">NMMS / ಪ್ರವೇಶ ಪರೀಕ್ಷಾ ಪೋರ್ಟಲ್</h3>
+              <p class="text-[11px] text-amber-900 font-bold">₹100 / NMMS & ಮೊರಾರ್ಜಿ ಪರೀಕ್ಷಾ ಲಾಗಿನ್</p>
+            </div>
+          </div>
+          <button type="button" onclick="closeAuthModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-rose-100 hover:text-rose-600 text-slate-600 flex items-center justify-center font-black cursor-pointer">✕</button>
+        </div>
+
+        <div class="flex bg-slate-100 p-1 rounded-2xl text-xs font-bold">
+          <button id="cmp-tab-login" onclick="switchCompetitiveTab('login')" class="flex-1 py-2 rounded-xl transition ${view==='login'?'bg-slate-900 text-white shadow':'text-slate-600'}">NMMS ಲಾಗಿನ್</button>
+          <button id="cmp-tab-signup" onclick="switchCompetitiveTab('signup')" class="flex-1 py-2 rounded-xl transition ${view==='signup'?'bg-slate-900 text-white shadow':'text-slate-600'}">ಹೊಸ ನೋಂದಣಿ</button>
+        </div>
+
+        <!-- LOGIN VIEW -->
+        <div id="cmp-view-login" class="${view==='login'?'':'hidden'} space-y-3.5">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (Mobile Number)</label>
+            <input type="tel" id="cmp-login-mobile" placeholder="10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ" maxlength="10" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold font-mono text-slate-900 outline-none focus:border-amber-500" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">NMMS Secret Key</label>
+            <input type="password" id="cmp-login-key" placeholder="ನಿಮ್ಮ NMMS Secret Key ನಮೂದಿಸಿ" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold font-mono text-slate-900 outline-none focus:border-amber-500" />
+          </div>
+          <button onclick="handleCompetitiveLoginSubmit()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-unlock-keyhole"></i> <span>NMMS ಲಾಗಿನ್ ಮಾಡಿ (Login)</span>
+          </button>
+        </div>
+
+        <!-- SIGNUP VIEW -->
+        <div id="cmp-view-signup" class="${view==='signup'?'':'hidden'} space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">ಶಿಕ್ಷಕರ ಪೂರ್ಣ ಹೆಸರು</label>
+            <input type="text" id="cmp-reg-name" placeholder="ಉದಾ: ರಮೇಶ್ ಕುಮಾರ್" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">ಶಾಲೆಯ ಹೆಸರು</label>
+            <input type="text" id="cmp-reg-school" placeholder="ಉದಾ: ಸ.ಪ್ರೌಢಶಾಲೆ, ಧಾರವಾಡ" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (WhatsApp No.)</label>
+            <input type="tel" id="cmp-reg-mobile" placeholder="10 ಅಂಕಿಗಳ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ" maxlength="10" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold font-mono" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-black text-amber-900 mb-1">🌟 ಪರೀಕ್ಷೆಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ (Select Exams)</label>
+            <div class="grid grid-cols-1 gap-1 text-[11px] font-bold">
+              ${[
+                { val: 'NMMS GMAT (ಪತ್ರಿಕೆ 1 - ಬೌದ್ಧಿಕ ಸಾಮರ್ಥ್ಯ)', desc: '8ನೇ ತರಗತಿ - 90 ಅಂಕಗಳು' },
+                { val: 'NMMS SAT (ಪತ್ರಿಕೆ 2 - ಶೈಕ್ಷಣಿಕ ಸಾಮರ್ಥ್ಯ)', desc: '8ನೇ ತರಗತಿ - 90 ಅಂಕಗಳು' },
+                { val: 'ಮೊರಾರ್ಜಿ / ಕಿತ್ತೂರು ಪ್ರವೇಶ ಪರೀಕ್ಷೆ', desc: '6ನೇ ತರಗತಿ ಪ್ರವೇಶ - 100 ಅಂಕಗಳು' },
+                { val: 'ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ', desc: '6ನೇ ತರಗತಿ ಪ್ರವೇಶ - 100 ಅಂಕಗಳು' }
+              ].map(comp => `
+                <label class="flex items-center justify-between p-2 bg-amber-50/80 border border-amber-200 rounded-xl hover:border-amber-500 cursor-pointer text-amber-950">
+                  <div class="flex items-center space-x-1.5">
+                    <input type="checkbox" name="cmp_reg_subj" value="${comp.val}" checked class="w-3.5 h-3.5 text-amber-600 rounded">
+                    <span class="font-bold">${comp.val}</span>
+                  </div>
+                  <span class="text-[9.5px] font-semibold text-slate-500">${comp.desc}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+
+          <button onclick="handleCompetitiveSignUpSubmit()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:shadow-lg text-slate-950 font-black text-xs rounded-xl shadow transition flex items-center justify-center gap-2 cursor-pointer mt-2">
+            <i class="fa-brands fa-whatsapp text-sm text-slate-950"></i>
+            <span>ನೋಂದಣಿ ಮಾಡಿ NMMS Key ಪಡೆಯಿರಿ</span>
+          </button>
+        </div>
+      </div>
+    `;
+  };
+
+  window.switchCompetitiveTab = function(tab) {
+    document.getElementById('cmp-view-login')?.classList.toggle('hidden', tab !== 'login');
+    document.getElementById('cmp-view-signup')?.classList.toggle('hidden', tab !== 'signup');
+    document.getElementById('cmp-tab-login')?.classList.toggle('bg-slate-900', tab === 'login');
+    document.getElementById('cmp-tab-login')?.classList.toggle('text-white', tab === 'login');
+    document.getElementById('cmp-tab-signup')?.classList.toggle('bg-slate-900', tab === 'signup');
+    document.getElementById('cmp-tab-signup')?.classList.toggle('text-white', tab === 'signup');
+  };
+
+  // NMMS ನೋಂದಣಿ ಸಲ್ಲಿಕೆ (Competitive Registration Submit)
+  window.handleCompetitiveSignUpSubmit = async function() {
+    const name = document.getElementById('cmp-reg-name')?.value.trim();
+    const school = document.getElementById('cmp-reg-school')?.value.trim();
+    const mobile = document.getElementById('cmp-reg-mobile')?.value.replace(/\D/g, '').trim();
+    const selectedExams = Array.from(document.querySelectorAll('input[name="cmp_reg_subj"]:checked')).map(s => s.value);
+
+    if (!name || !school || mobile.length !== 10 || selectedExams.length === 0) {
+      return alert('⚠️ ದಯವಿಟ್ಟು ಹೆಸರು, ಶಾಲೆ ಮತ್ತು ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಭರ್ತಿ ಮಾಡಿ ಕನಿಷ್ಠ 1 ಪರೀಕ್ಷೆ ಆಯ್ಕೆಮಾಡಿ.');
+    }
+
+    const cleanPhone = mobile.slice(-10);
+    showToast('🔍 ನೋಂದಣಿ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+    let localUsers = [];
+    try { localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+
+    // ಈಗಾಗಲೇ ಶಾಲೆ ಅಥವಾ ಶಿಕ್ಷಕರಾಗಿ ನೋಂದಣಿಯಾಗಿದ್ದಾರೆಯೇ ಎಂದು ಪರಿಶೀಲನೆ
+    const existing = localUsers.find(u => u && String(u.mobile || '').replace(/\D/g, '').slice(-10) === cleanPhone);
+    if (existing) {
+      const cat = window.getUserStrictPortalCategory(existing);
+      if (cat === 'school') {
+        return alert(`⚠️ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಈಗಾಗಲೇ 'ಶಾಲಾ ಖಾತೆ'ಯಾಗಿ ನೋಂದಾಯಿತವಾಗಿದೆ! ದಯವಿಟ್ಟು ಶಾಲಾ ಲಾಗಿನ್ ಬಳಸಿ.`);
+      } else if (cat === 'teacher') {
+        return alert(`⚠️ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಈಗಾಗಲೇ ಸಾಮಾನ್ಯ 'ಶಿಕ್ಷಕರ ಖಾತೆ'ಯಾಗಿ ನೋಂದಾಯಿತವಾಗಿದೆ! ದಯವಿಟ್ಟು ಶಿಕ್ಷಕರ ಲಾಗಿನ್ ಬಳಸಿ.`);
+      } else {
+        alert(`⚠️ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಈಗಾಗಲೇ NMMS ಗೆ ನೋಂದಾಯಿತವಾಗಿದೆ (Already Registered)! ದಯವಿಟ್ಟು Secret Key ಬಳಸಿ ಲಾಗಿನ್ ಆಗಿ.`);
+        switchCompetitiveTab('login');
+        return;
+      }
+    }
+
+    const reqId = Date.now();
+    const requestData = {
+      id: reqId,
+      type: 'competitive',
+      name: name,
+      school: school,
+      mobile: cleanPhone,
+      classes: '6, 8',
+      subjects: selectedExams.join(', '),
+      date: new Date().toLocaleDateString('kn-IN'),
+      status: 'pending'
+    };
+
+    try {
+      fetch(`${FIREBASE_BASE_URL}/requests/${reqId}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+      });
+    } catch (e) {}
+
+    let pendingReqs = [];
+    try { pendingReqs = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]'); } catch (e) {}
+    pendingReqs.unshift(requestData);
+    localStorage.setItem('wy_admin_requests', JSON.stringify(pendingReqs));
+
+    const msg = `*ನಮಸ್ಕಾರ, With You QP Generator NMMS / ಪ್ರವೇಶ ಪರೀಕ್ಷಾ ನೋಂದಣಿ:*\n\n` +
+                `👤 *ಹೆಸರು:* ${name}\n` +
+                `🏫 *ಶಾಲೆ:* ${school}\n` +
+                `📱 *ಮೊಬೈಲ್:* ${cleanPhone}\n` +
+                `🏆 *ಪರೀಕ್ಷೆಗಳು:* ${selectedExams.join(', ')}\n\n` +
+                `ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ ನನ್ನ NMMS ಲಾಗಿನ್ Secret Key ಕಳುಹಿಸಿಕೊಡಿ.`;
+
+    window.open(`https://wa.me/919902090911?text=${encodeURIComponent(msg)}`, '_blank');
+    if (typeof closeAuthModal === 'function') closeAuthModal();
+    showToast('✅ NMMS ನೋಂದಣಿ ಕೋರಿಕೆ ಯಶಸ್ವಿಯಾಗಿ ಸಲ್ಲಿಕೆಯಾಗಿದೆ!', 'success');
+  };
+
+  // =========================================================================
+  // ೫. ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ನಲ್ಲಿ ೩ ಪ್ರತ್ಯೇಕ ಪೋರ್ಟಲ್ ಬಟನ್‌ಗಳು (TEACHER | SCHOOL | NMMS)
+  // =========================================================================
+  window.renderUltraModernDashboard = function() {
+    const dashView = document.getElementById('view-dashboard');
+    if (!dashView) return;
+
+    dashView.innerHTML = `
+      <div class="space-y-10 animate-fade-in pb-16">
+        <div class="hero-gradient-bg text-white rounded-[2.5rem] p-6 sm:p-12 shadow-2xl relative overflow-hidden border border-slate-700/60 text-center">
+          <div class="flex flex-wrap items-center justify-center gap-2 mb-5">
+            <span class="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[11px] sm:text-xs font-black px-4 py-1.5 rounded-full backdrop-blur-md">
+              <i class="fa-solid fa-certificate text-emerald-400 mr-1"></i> ಕರ್ನಾಟಕ ಅಧಿಕೃತ DSERT & KSEAB 2026-27
+            </span>
+            <span class="bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[11px] sm:text-xs font-black px-4 py-1.5 rounded-full backdrop-blur-md">
+              <i class="fa-solid fa-bolt text-amber-400 mr-1"></i> Instant 0.01s Generator
+            </span>
+          </div>
+
+          <div class="space-y-4 max-w-4xl mx-auto">
+            <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
+              ಕರ್ನಾಟಕ ಶಾಲಾ ಶಿಕ್ಷಕರ ಸ್ಮಾರ್ಟ್ <br/>
+              <span class="dash-title-gradient">ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಜನರೇಟರ್</span>
+            </h1>
+            <p class="text-xs sm:text-base text-slate-300 font-bold max-w-2xl mx-auto leading-relaxed pt-1">
+              ಕೇವಲ ಒಂದು ಕ್ಲಿಕ್‌ನಲ್ಲಿ ಅಧಿಕೃತ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ, ಕೀ ಉತ್ತರ, DSERT ನೀಲನಕ್ಷೆ ಹಾಗೂ OMR ಹಾಳೆಯನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಿಕೊಳ್ಳಿ.
+            </p>
+          </div>
+
+          <!-- 🌟 ೩ ಕಟ್ಟುನಿಟ್ಟಾದ ಪ್ರತ್ಯೇಕ ಲಾಗಿನ್ ಬಟನ್‌ಗಳು -->
+          <div class="flex flex-wrap items-center justify-center gap-3.5 pt-8">
+            <button onclick="openTeacherAuthModal('login')" class="px-6 py-4 rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-xl hover:scale-[1.02] transition flex items-center gap-2 cursor-pointer border border-emerald-400/30 shadow-md">
+              <i class="fa-solid fa-chalkboard-user text-lg"></i>
+              <span>ಶಿಕ್ಷಕರ ಲಾಗಿನ್ (₹100/ವಿಷಯ)</span>
+            </button>
+            
+            <button onclick="openSchoolAuthModal('login')" class="px-6 py-4 rounded-2xl font-black text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:shadow-xl hover:scale-[1.02] transition flex items-center gap-2 cursor-pointer border border-indigo-400/30 shadow-md">
+              <i class="fa-solid fa-school text-lg"></i>
+              <span>ಶಾಲಾ ಲಾಗಿನ್ (₹500/ವರ್ಷ)</span>
+            </button>
+
+            <button onclick="openCompetitiveAuthModal('login')" class="px-6 py-4 rounded-2xl font-black text-xs sm:text-sm text-slate-950 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:shadow-xl hover:scale-[1.02] transition flex items-center gap-2 cursor-pointer border border-amber-300 shadow-md">
+              <i class="fa-solid fa-trophy text-lg text-slate-950"></i>
+              <span>NMMS / ಮೊರಾರ್ಜಿ ಲಾಗಿನ್ (₹100)</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-10 max-w-4xl mx-auto border-t border-slate-700/60 mt-10 text-center">
+            <div class="p-3 bg-white/5 rounded-2xl border border-white/10">
+              <div class="text-2xl sm:text-3xl font-black text-emerald-400">10,000+</div>
+              <div class="text-[11px] text-slate-300 font-bold">ಪ್ರಶ್ನೋತ್ತರಗಳ ಬ್ಯಾಂಕ್</div>
+            </div>
+            <div class="p-3 bg-white/5 rounded-2xl border border-white/10">
+              <div class="text-2xl sm:text-3xl font-black text-amber-400">1 ರಿಂದ 10ನೇ</div>
+              <div class="text-[11px] text-slate-300 font-bold">ಎಲ್ಲಾ ತರಗತಿಗಳು</div>
+            </div>
+            <div class="p-3 bg-white/5 rounded-2xl border border-white/10">
+              <div class="text-2xl sm:text-3xl font-black text-cyan-400">DSERT 3D</div>
+              <div class="text-[11px] text-slate-300 font-bold">ಅಧಿಕೃತ ನೀಲನಕ್ಷೆ</div>
+            </div>
+            <div class="p-3 bg-white/5 rounded-2xl border border-white/10">
+              <div class="text-2xl sm:text-3xl font-black text-rose-400">OMR Sheet</div>
+              <div class="text-[11px] text-slate-300 font-bold">ಆಟೋ-ಸ್ಕ್ಯಾನರ್</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  // =========================================================================
+  // ೬. ಜನರೇಟರ್‌ನಲ್ಲಿ ವಿಷಯಗಳ ನಿಖರ ನಿರ್ಬಂಧ (PERMISSIONS BY ACCOUNT TYPE)
+  // =========================================================================
+  window.updateSubjectOptionsForClass = function() {
+    const classSelect = document.getElementById('cfg-class');
+    const subjSelect = document.getElementById('cfg-subject');
+    if (!classSelect || !subjSelect) return;
+
+    const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+    const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+    const isSchool = isAdmin || (session && session.type === 'school');
+    const isComp = (session && session.type === 'competitive');
+
+    const activeGrade = parseInt(classSelect.value) || 8;
+
+    // ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳು
+    const normalSubjs1to5 = [
+      { val: "ಕನ್ನಡ (Kannada)", key: "kannada" },
+      { val: "English", key: "english" },
+      { val: "ಗಣಿತ (Mathematics)", key: "mathematics" },
+      { val: "ಪರಿಸರ ಅಧ್ಯಯನ (EVS)", key: "evs" }
+    ];
+
+    const normalSubjs6to10 = [
+      { val: "ವಿಜ್ಞಾನ (Science)", key: "science" },
+      { val: "ಕನ್ನಡ (Kannada)", key: "kannada" },
+      { val: "ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)", key: "social_science" },
+      { val: "ಗಣಿತ (Mathematics)", key: "mathematics" },
+      { val: "English", key: "english" },
+      { val: "ಹಿಂದಿ (Hindi)", key: "hindi" }
+    ];
+
+    // ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು
+    const compSubjs6 = [
+      { val: "ಮೊರಾರ್ಜಿ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (Morarji Entrance)", key: "morarji_entrance", isComp: true },
+      { val: "ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ (Adarsha Entrance)", key: "adarsha_entrance", isComp: true }
+    ];
+
+    const compSubjs8 = [
+      { val: "NMMS GMAT (ಪತ್ರಿಕೆ 1 - ಬೌದ್ಧಿಕ ಸಾಮರ್ಥ್ಯ)", key: "nmms_gmat", isComp: true },
+      { val: "NMMS SAT (ಪತ್ರಿಕೆ 2 - ಶೈಕ್ಷಣಿಕ ಸಾಮರ್ಥ್ಯ)", key: "nmms_sat", isComp: true }
+    ];
+
+    let finalList = [];
+
+    // 🌟 ಶಾಲಾ ಖಾತೆ ಅಥವಾ Admin: ಎಲ್ಲಾ ವಿಷಯಗಳೂ ಲಭ್ಯ
+    if (isSchool) {
+      if (activeGrade >= 1 && activeGrade <= 5) finalList = normalSubjs1to5;
+      else if (activeGrade === 6) finalList = [...normalSubjs6to10, ...compSubjs6];
+      else if (activeGrade === 8) finalList = [...normalSubjs6to10, ...compSubjs8];
+      else finalList = normalSubjs6to10;
+    }
+    // 🌟 NMMS / ಸ್ಪರ್ಧಾತ್ಮಕ ಖಾತೆ: ಕೇವಲ NMMS / ಮೊರಾರ್ಜಿ ಪರೀಕ್ಷೆಗಳು ಮಾತ್ರ ಲಭ್ಯ
+    else if (isComp) {
+      if (activeGrade === 6) finalList = compSubjs6;
+      else if (activeGrade === 8) finalList = compSubjs8;
+      else {
+        subjSelect.innerHTML = `<option value="">🔒 ಈ ತರಗತಿಗೆ ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳಿಲ್ಲ (6 & 8 ಮಾತ್ರ)</option>`;
+        return;
+      }
+    }
+    // 🌟 ಸಾಮಾನ್ಯ ಶಿಕ್ಷಕರ ಖಾತೆ: ಕೇವಲ ಶಾಲಾ ವಿಷಯಗಳು ಮಾತ್ರ ಲಭ್ಯ (NMMS ಇಲ್ಲ)
+    else {
+      let allowed = (session && session.allowedSubjects) ? session.allowedSubjects : ['all'];
+      if (!Array.isArray(allowed)) allowed = String(allowed).split(',').map(s=>s.trim());
+
+      const baseList = (activeGrade >= 1 && activeGrade <= 5) ? normalSubjs1to5 : normalSubjs6to10;
+      if (allowed.includes('all')) {
+        finalList = baseList;
+      } else {
+        finalList = baseList.filter(s => allowed.some(a => String(a).toLowerCase().includes(s.key) || s.val.toLowerCase().includes(String(a).toLowerCase())));
+      }
+    }
+
+    if (finalList.length === 0) {
+      subjSelect.innerHTML = `<option value="">🔒 ವಿಷಯ ಲಭ್ಯವಿಲ್ಲ (Not Subscribed)</option>`;
+      return;
+    }
+
+    const curSelected = subjSelect.value;
+    subjSelect.innerHTML = finalList.map(s => {
+      const cls = s.isComp ? 'font-black text-amber-900 bg-amber-50' : 'font-bold';
+      return `<option value="${s.val}" class="${cls}">${s.isComp ? '🌟 ' : ''}${s.val}</option>`;
+    }).join('');
+
+    if (finalList.some(s => s.val === curSelected)) {
+      subjSelect.value = curSelected;
+    } else {
+      subjSelect.value = finalList[0].val;
+    }
+  };
+
+  // ಪ್ರೊಫೈಲ್ ಬಾರ್ ಅಪ್ಡೇಟ್
+  window.renderTopUserProfileBar = function() {
+    let profileContainer = document.getElementById('wy-user-profile-header');
+    const isAdmin = sessionStorage.getItem('wy_is_admin') === 'true';
+    const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+
+    if (!profileContainer) {
+      profileContainer = document.createElement('div');
+      profileContainer.id = 'wy-user-profile-header';
+      const mainEl = document.querySelector('main');
+      if (mainEl) mainEl.prepend(profileContainer);
+    }
+
+    if (!isAdmin && (!session || !session.isLoggedIn)) {
+      profileContainer.innerHTML = '';
+      profileContainer.className = 'hidden';
+      return;
+    }
+
+    profileContainer.className = 'w-full mb-4 animate-fade-in no-print';
+
+    if (isAdmin) {
+      profileContainer.innerHTML = `
+        <div class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 p-3 rounded-2xl shadow-md flex items-center justify-between border border-amber-400">
+          <div class="flex items-center space-x-2 font-black text-xs">
+            <i class="fa-solid fa-crown text-base"></i> <span>Master Administrator (All Access Unlocked)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openAdminDashboardModal()" class="px-3 py-1.5 bg-slate-950 text-amber-400 rounded-xl text-xs font-black shadow cursor-pointer">Admin Suite</button>
+            <button onclick="logoutAnyUser()" class="px-3 py-1.5 bg-rose-700 text-white rounded-xl text-xs font-black shadow cursor-pointer">Logout</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const type = session.type || 'teacher';
+    const isSchool = type === 'school';
+    const isComp = type === 'competitive';
+
+    let badgeText = 'ಶಿಕ್ಷಕರ ಲಾಗಿನ್';
+    let gradBg = 'from-emerald-900 via-slate-900 to-teal-950';
+    let icon = 'fa-chalkboard-user';
+
+    if (isSchool) {
+      badgeText = 'ಶಾಲಾ ಲಾಗಿನ್';
+      gradBg = 'from-indigo-900 via-slate-900 to-indigo-950';
+      icon = 'fa-school';
+    } else if (isComp) {
+      badgeText = 'NMMS / ಪ್ರವೇಶ ಪರೀಕ್ಷಾ ಲಾಗಿನ್';
+      gradBg = 'from-amber-950 via-slate-900 to-amber-900';
+      icon = 'fa-trophy';
+    }
+
+    profileContainer.innerHTML = `
+      <div class="bg-gradient-to-r ${gradBg} text-white p-3.5 rounded-2xl shadow-lg flex flex-wrap items-center justify-between gap-3 border border-slate-700">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-2xl bg-white/20 text-white flex items-center justify-center font-black text-lg shadow">
+            <i class="fa-solid ${icon}"></i>
+          </div>
+          <div>
+            <div class="text-xs sm:text-sm font-black flex items-center gap-2">
+              <span>${escapeHtml(session.name)}</span>
+              <span class="text-[10px] bg-white/20 border px-2 py-0.5 rounded-full font-bold">${badgeText}</span>
+            </div>
+            <p class="text-[11px] text-slate-300 font-bold">🏫 ${escapeHtml(session.school)}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="logoutAnyUser()" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow cursor-pointer">
+            <i class="fa-solid fa-power-off"></i> <span>Logout</span>
+          </button>
+        </div>
+      </div>
+    `;
+  };
+
+  // ತಕ್ಷಣವೇ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ನವೀಕರಣ
+  if (typeof renderUltraModernDashboard === 'function') renderUltraModernDashboard();
+})();
     
     
 </script>

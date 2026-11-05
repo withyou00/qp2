@@ -25776,7 +25776,198 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
 
 
 
+/* =====================================================================
+   ===================================================================== */
+(function installSATImageFix() {
+  if (window.__satImageFixInstalled) return;
+  window.__satImageFixInstalled = true;
 
+  var RAW_BASE = 'https://raw.githubusercontent.com/withyou00/withyouqbank/main/';
+  var IMG_EXT = /\.(png|jpe?g|webp|gif|svg|bmp)(\?[^\s"']*)?$/i;
+  var SKIP_KEYS = /^(q|question|a|b|c|d|ans|answer|explanation|solution|chapter|topic|id|type|marks|mark|level|difficulty|hint|_src)$/i;
+  var OPTION_KEY = /(^|[_\-\s])(a|b|c|d|opt|option|optiona|optionb|optionc|optiond)([_\-\s]|$)|^(img|image)[abcd]$/i;
+
+  // ---------- URL ಸರಿಪಡಿಸುವಿಕೆ ----------
+  function fixUrl(raw) {
+    if (!raw || typeof raw !== 'string') return '';
+    var s = raw.trim();
+    if (s.length < 3) return '';
+    if (!/^https?:\/\//i.test(s)) {
+      s = s.replace(/^\.?\/?images\//i, '').replace(/^\.\//, '').trim();
+      return RAW_BASE + 'images/' + encodeURI(s);
+    }
+    if (/github\.com/i.test(s) && !/raw\.githubusercontent\.com/i.test(s)) {
+      s = s.replace(/\/blob\//, '/').replace(/https?:\/\/(www\.)?github\.com\//i, 'https://raw.githubusercontent.com/');
+    }
+    s = s.replace(/\/refs\/heads\//, '/');
+    // ಸ್ಪೇಸ್, ಕನ್ನಡ ಅಕ್ಷರಗಳು ಇದ್ದರೆ ಸುರಕ್ಷಿತವಾಗಿ encode
+    try { s = encodeURI(decodeURI(s)); } catch (e) { s = encodeURI(s); }
+    return s;
+  }
+  window.fixAnyGitHubImageUrl = fixUrl;
+
+  function pickFromValue(v) {
+    if (!v) return '';
+    if (typeof v === 'string') return v.trim();
+    if (Array.isArray(v)) { for (var i = 0; i < v.length; i++) { var r = pickFromValue(v[i]); if (r) return r; } return ''; }
+    if (typeof v === 'object') return pickFromValue(v.url || v.src || v.link || v.path || v.file || v.name);
+    return '';
+  }
+
+  // ---------- ಮುಖ್ಯ ಚಿತ್ರ ----------
+  function extractImage(q) {
+    if (!q || typeof q !== 'object') return null;
+
+    // 1) ಹೆಸರಿನಲ್ಲಿ image/img/diagram/figure ... ಇರುವ key (ಆಯ್ಕೆ-ಚಿತ್ರ key ಹೊರತುಪಡಿಸಿ)
+    var nameRe = /(img|image|diagram|figure|fig|pic|photo|picture|chitra|ಚಿತ್ರ|url|link)/i;
+    for (var key in q) {
+      if (!Object.prototype.hasOwnProperty.call(q, key)) continue;
+      var k = String(key).trim();
+      if (SKIP_KEYS.test(k) || OPTION_KEY.test(k)) continue;
+      if (!nameRe.test(k)) continue;
+      var val = pickFromValue(q[key]);
+      if (val && val.length > 2 && !/^(null|none|nil|no|false|-|n\/a)$/i.test(val)) return fixUrl(val);
+    }
+
+    // 2) ಯಾವುದೇ key ನಲ್ಲಿ ಚಿತ್ರದ ಫೈಲ್ ಹೆಸರು (.png/.jpg) ಇದ್ದರೆ
+    for (var k2 in q) {
+      if (!Object.prototype.hasOwnProperty.call(q, k2)) continue;
+      if (SKIP_KEYS.test(k2) || OPTION_KEY.test(k2)) continue;
+      var v2 = pickFromValue(q[k2]);
+      if (v2 && IMG_EXT.test(v2) && v2.length < 400) return fixUrl(v2);
+    }
+
+    // 3) ಪ್ರಶ್ನೆ ಪಠ್ಯದೊಳಗೆ
+    var text = typeof q.q === 'string' ? q.q : (typeof q.question === 'string' ? q.question : '');
+    if (text) {
+      var md = text.match(/!\[[^\]]*\]\(([^)\s]+)\)/);
+      if (md) return fixUrl(md[1]);
+      var tag = text.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if (tag) return fixUrl(tag[1]);
+      var url = text.match(/(https?:\/\/[^\s)"'<>]+\.(?:png|jpe?g|webp|gif|svg)[^\s)"'<>]*)/i);
+      if (url) return fixUrl(url[1]);
+      var rel = text.match(/(?:^|[\s(\[])((?:images\/)?[\w\-\.%]+\.(?:png|jpe?g|webp|gif|svg))(?=$|[\s)\]])/i);
+      if (rel) return fixUrl(rel[1]);
+    }
+    return null;
+  }
+  window.extractUniversalImage = extractImage;
+  window.extractFullQuestionImage = extractImage;
+  try { extractUniversalImage = extractImage; } catch (e) {}
+  try { extractFullQuestionImage = extractImage; } catch (e) {}
+
+  // ---------- A/B/C/D ಆಯ್ಕೆ ಚಿತ್ರಗಳು ----------
+  function getOptImg(m, opt) {
+    if (!m) return null;
+    var lo = String(opt).toLowerCase(), up = lo.toUpperCase();
+    var keys = [
+      'img_' + lo, 'image_' + lo, lo + '_img', lo + '_image', 'img' + up, 'image' + up,
+      'opt_' + lo + '_img', 'opt_' + lo + '_image', 'option_' + lo + '_img', 'option_' + lo + '_image',
+      'img_opt_' + lo, 'image_opt_' + lo, 'img' + lo, 'image' + lo
+    ];
+    var raw = '';
+    for (var i = 0; i < keys.length && !raw; i++) raw = pickFromValue(m[keys[i]]);
+    if (!raw && typeof m[lo] === 'string') {
+      var v = m[lo].trim();
+      if (/^https?:\/\//i.test(v) || IMG_EXT.test(v) || /^images\//i.test(v)) raw = v;
+    }
+    return raw ? fixUrl(raw) : null;
+  }
+  window.getOptionImageSrc = getOptImg;
+  try { getOptionImageSrc = getOptImg; } catch (e) {}
+
+  // ---------- 8 SAT ಫೈಲ್‌ಗಳ ಸುರಕ್ಷಿತ ಲೋಡರ್ (id ಡ್ಯೂಪ್ಲಿಕೇಟ್ ಸಮಸ್ಯೆ ಇಲ್ಲ) ----------
+  var originalLoader = window.loadQuestionsFromGitHub;
+  var SAT_FILES = [
+    'nmms_biology.json', 'nmms_physics.json', 'nmms_chemistry.json', 'nmms_maths.json',
+    'nmms_history.json', 'nmms_geography.json', 'nmms_civics.json', 'nmms_sat.json'
+  ];
+
+  window.loadQuestionsFromGitHub = async function (medium, grade, rawSubject, part) {
+    var low = String(rawSubject || '').toLowerCase();
+    var isGMAT = low.includes('gmat') || low.includes('ಬೌದ್ಧಿಕ');
+    var isSAT = !isGMAT && (low.includes('sat') || low.includes('ಶೈಕ್ಷಣಿಕ'));
+    if (!isSAT) {
+      return originalLoader ? originalLoader.apply(this, arguments) : undefined;
+    }
+
+    appState.activeSubjectQuestions = [];
+    if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
+    var gradeStr = String(grade).replace(/\D/g, '') || '8';
+    if (typeof showToast === 'function') showToast('🌐 ' + rawSubject + ' ಲೋಡ್ ಆಗುತ್ತಿದೆ...', 'info');
+
+    try {
+      var perFile = await Promise.all(SAT_FILES.map(async function (fileName) {
+        var paths = [
+          'kannada_medium/class_' + gradeStr + '/' + fileName,
+          'kannada_medium/' + fileName,
+          'class_' + gradeStr + '/' + fileName,
+          fileName
+        ];
+        for (var p = 0; p < paths.length; p++) {
+          try {
+            var res = await fetch(RAW_BASE + encodeURI(paths[p]) + '?t=' + Date.now());
+            if (!res.ok) continue;
+            var txt = await res.text();
+            var data = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(txt) : JSON.parse(txt);
+            if (Array.isArray(data) && data.length) {
+              data.forEach(function (q) { if (q && typeof q === 'object') q._src = fileName; });
+              return data;
+            }
+          } catch (e) { /* ಮುಂದಿನ path ಪ್ರಯತ್ನ */ }
+        }
+        return [];
+      }));
+
+      var all = [], seen = new Set();
+      perFile.forEach(function (list) {
+        list.forEach(function (q) {
+          if (!q) return;
+          // ಫೈಲ್ + id + ಪ್ರಶ್ನೆ ಪಠ್ಯ — ಬೇರೆ ಫೈಲ್‌ನ ಒಂದೇ id ಇದ್ದರೂ ತೆಗೆಯುವುದಿಲ್ಲ
+          var key = (q._src || '') + '|' + (q.id != null ? q.id : '') + '|' + String(q.q || '').trim();
+          if (seen.has(key)) return;
+          seen.add(key);
+          all.push(q);
+        });
+      });
+
+      appState.activeSubjectQuestions = all;
+      if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
+      if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats();
+
+      var withImg = all.filter(function (q) { return !!extractImage(q); }).length;
+      if (typeof showToast === 'function') {
+        showToast(all.length
+          ? '⚡ ' + all.length + ' ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗಿವೆ (ಚಿತ್ರ ಇರುವವು: ' + withImg + ')'
+          : '⚠️ GitHub ನಲ್ಲಿ ' + rawSubject + ' ಪ್ರಶ್ನೆಗಳು ಕಂಡುಬಂದಿಲ್ಲ.', all.length ? 'success' : 'error');
+      }
+    } catch (err) {
+      console.error('SAT load error:', err);
+    }
+  };
+
+  // ---------- ಪರೀಕ್ಷೆಗೆ ಸಹಾಯ: browser Console ನಲ್ಲಿ  checkSATImages()  ಟೈಪ್ ಮಾಡಿ ----------
+  window.checkSATImages = function () {
+    var list = (appState && appState.activeSubjectQuestions) || [];
+    var rows = list.map(function (q, i) {
+      return { no: i + 1, file: q._src || '', chapter: q.chapter || '', image: extractImage(q) || '(ಇಲ್ಲ)' };
+    }).filter(function (r) { return r.image !== '(ಇಲ್ಲ)'; });
+    console.log('ಒಟ್ಟು ಪ್ರಶ್ನೆಗಳು:', list.length, '| ಚಿತ್ರ ಪತ್ತೆಯಾದವು:', rows.length);
+    console.table(rows);
+    return rows;
+  };
+
+  // ಈಗಾಗಲೇ SAT ಆಯ್ಕೆಯಾಗಿದ್ದರೆ ಹೊಸ ಲೋಡರ್‌ನಿಂದ ಮರು-ಲೋಡ್
+  try {
+    var subj = (document.getElementById('cfg-subject') || {}).value || '';
+    if (/sat|ಶೈಕ್ಷಣಿಕ/i.test(subj) && !/gmat|ಬೌದ್ಧಿಕ/i.test(subj)) {
+      var cls = (document.getElementById('cfg-class') || {}).value || '8';
+      window.loadQuestionsFromGitHub('kannada_medium', cls, subj, 'none');
+    }
+  } catch (e) {}
+})();
+
+          
   
 </script>
 </body>

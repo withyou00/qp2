@@ -23745,6 +23745,279 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
 
 
 
+
+
+    // =========================================================================
+// 📁 100% RELIABLE LOCAL STORAGE QUESTION PAPER AUTO-SAVE & ROTATION ENGINE
+// (Firebase ಮುಕ್ತ - ಕೇವಲ Local Storage ನಲ್ಲಿ ಗರಿಷ್ಠ 10 ಪತ್ರಿಕೆಗಳ FIFO ಆಟೋ-ಸೇವ್)
+// =========================================================================
+
+(function initBulletproofSavedPapersEngine() {
+  const MASTER_PAPERS_KEY = 'wy_local_saved_papers_master';
+  const MAX_SAVED_PAPERS = 10; // ಗರಿಷ್ಠ 10 ಪತ್ರಿಕೆಗಳು (ಹೊಸದು ಬಂದಂತೆ ಹಳೆಯದು ಆಟೋ-ಡಿಲೀಟ್)
+
+  // ೧. ಸೇವ್ ಆಗಿರುವ ಪತ್ರಿಕೆಗಳನ್ನು ಓದುವುದು
+  window.getSavedPapersListFromStorage = function() {
+    try {
+      let data = localStorage.getItem(MASTER_PAPERS_KEY);
+      if (!data) {
+        // ಹಳೆಯ ಕೀಲಿಗಳಿಂದ ರಿಕವರಿ
+        const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+        const phone = session ? (session.mobile || session.dise || '') : '';
+        const oldKey = 'wy_local_saved_papers_' + (phone.replace(/\D/g, '').slice(-10) || 'local_teacher');
+        data = localStorage.getItem(oldKey);
+      }
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+
+  // ೨. ಹೊಸ ಪತ್ರಿಕೆ ಸೇವ್ ಮಾಡುವಾಗ ಹಳೆಯದನ್ನು ಆಟೋಮ್ಯಾಟಿಕ್ ತೆಗೆಯುವುದು (FIFO)
+  window.savePaperToLocalStorageEngine = function(questions, headerHtml) {
+    try {
+      if (!questions || questions.length === 0) return;
+
+      let history = window.getSavedPapersListFromStorage();
+      if (!Array.isArray(history)) history = [];
+
+      const rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+      const grade = document.getElementById('cfg-class')?.value || '8';
+      const examType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+      const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+      const totalMarks = questions.reduce((sum, q) => {
+        return sum + (typeof getExactQuestionMarks === 'function' ? getExactQuestionMarks(q) : (parseInt(q.marks) || 1));
+      }, 0);
+
+      // ಅತಿ ದೊಡ್ಡ ಬೇಸ್‌೬೪ ಇಮೇಜ್‌ಗಳಿದ್ದರೆ ಮೆಮೊರಿ ಫುಲ್ ಆಗದಂತೆ ಸ್ನ್ಯಾಪ್‌ಶಾಟ್ ಕ್ಲೀನಿಂಗ್
+      const cleanSnapshot = questions.map(q => {
+        return {
+          num: q.num || q.id,
+          q: q.q || '',
+          a: q.a || '',
+          b: q.b || '',
+          c: q.c || '',
+          d: q.d || '',
+          ans: q.ans || '',
+          type: q.type || '',
+          marks: q.marks || 1,
+          chapter: q.chapter || '',
+          image: (typeof extractUniversalImage === 'function' ? extractUniversalImage(q) : (q.image || null))
+        };
+      });
+
+      const newRecord = {
+        id: Date.now(),
+        savedAt: new Date().toLocaleDateString('kn-IN', { month: 'short', day: 'numeric' }) + ' ' + new Date().toLocaleTimeString('kn-IN', { hour: '2-digit', minute: '2-digit' }),
+        title: `${grade}ನೇ ತರಗತಿ ${rawSubj}`,
+        subject: rawSubj,
+        grade: grade,
+        examType: examType,
+        examDate: examDate,
+        totalMarks: totalMarks,
+        questionsCount: questions.length,
+        headerHtml: headerHtml || '',
+        questionsSnapshot: cleanSnapshot
+      };
+
+      // ಹೊಸದನ್ನು ಮೊದಲಿಗೆ ಸೇರಿಸುವುದು
+      history.unshift(newRecord);
+
+      // 🌟 ಗರಿಷ್ಠ 10 ಪತ್ರಿಕೆಗಳನ್ನು ಮೀರಿ ಹೊಸದು ಬಂದಾಗ ಹಳೆಯ ಪತ್ರಿಕೆಗಳನ್ನು ಆಟೋಮ್ಯಾಟಿಕ್ ರಿಮೂವ್ ಮಾಡುವುದು
+      if (history.length > MAX_SAVED_PAPERS) {
+        history = history.slice(0, MAX_SAVED_PAPERS);
+      }
+
+      // LocalStorage ನಲ್ಲಿ ಸೇವ್ (ಕೋಶ ಭರ್ತಿಯಾದರೆ ಹಳೆಯದನ್ನು ತೆಗೆದು ರೀಟ್ರೈ)
+      try {
+        localStorage.setItem(MASTER_PAPERS_KEY, JSON.stringify(history));
+      } catch (quotaErr) {
+        history = history.slice(0, 5); // 5 ಪತ್ರಿಕೆಗಳಿಗೆ ಕಡಿತಗೊಳಿಸಿ ಸೇವ್
+        localStorage.setItem(MASTER_PAPERS_KEY, JSON.stringify(history));
+      }
+
+      // ಬಟನ್ ಬ್ಯಾಡ್ಜ್ ಮತ್ತು ನೋಟಿಫಿಕೇಶನ್ ತಕ್ಷಣ ಅಪ್ಡೇಟ್
+      window.refreshTopNavSavedPapersButton();
+      showToast(`💾 ಪತ್ರಿಕೆ ಉಳಿಸಲಾಗಿದೆ! (${history.length}/${MAX_SAVED_PAPERS})`, 'success');
+    } catch (err) {
+      console.warn("Auto save error:", err);
+    }
+  };
+
+  // ೩. ಹೆಡರ್ ನ್ಯಾವಿಗೇಶನ್‌ನಲ್ಲಿ "ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು (ಸಂಖ್ಯೆ)" ಬಟನ್ ಕಡ್ಡಾಯವಾಗಿ ಪ್ರದರ್ಶಿಸುವುದು
+  window.refreshTopNavSavedPapersButton = function() {
+    const nav = document.getElementById('top-nav-actions-container');
+    if (!nav) return;
+
+    const list = window.getSavedPapersListFromStorage();
+    const count = list.length;
+
+    let btn = document.getElementById('btn-saved-papers-history');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'btn-saved-papers-history';
+      btn.type = 'button';
+      btn.onclick = function() { window.openSavedPapersHistoryModal(); };
+      btn.className = 'px-3 py-1.5 rounded-xl font-black text-xs bg-indigo-50 text-indigo-900 border border-indigo-200 hover:bg-indigo-100 flex items-center gap-1.5 cursor-pointer transition shadow-sm';
+      
+      const genBtn = nav.querySelector("button[onclick*='generator']");
+      if (genBtn && genBtn.nextSibling) {
+        nav.insertBefore(btn, genBtn.nextSibling);
+      } else {
+        nav.appendChild(btn);
+      }
+    }
+
+    btn.innerHTML = `<i class="fa-solid fa-folder-open text-indigo-600"></i> <span>ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು</span> <span class="bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black ml-0.5">${count}</span>`;
+  };
+
+  // ೪. ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳ ಮಾಡಲ್ ವಿಂಡೋ
+  window.openSavedPapersHistoryModal = function() {
+    const history = window.getSavedPapersListFromStorage();
+    let wrapper = document.getElementById('auth-modal-wrapper');
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.id = 'auth-modal-wrapper';
+      document.body.appendChild(wrapper);
+    }
+
+    wrapper.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto';
+    wrapper.style.display = 'flex';
+
+    wrapper.innerHTML = `
+      <div class="bg-white rounded-3xl p-6 sm:p-7 space-y-4 max-w-2xl w-full shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between border-b pb-3">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black text-lg shadow">
+              <i class="fa-solid fa-folder-open"></i>
+            </div>
+            <div>
+              <h3 class="font-black text-base text-slate-900 leading-tight">ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳ ಲೈಬ್ರರಿ (Saved Papers)</h3>
+              <p class="text-[11px] text-slate-500 font-bold">ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ ಉಳಿಸಲಾದ ಪತ್ರಿಕೆಗಳು (${history.length}/${MAX_SAVED_PAPERS})</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            ${history.length > 0 ? `<button onclick="window.clearAllSavedPapersHistory()" class="px-2.5 py-1 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold border border-rose-200 hover:bg-rose-100 cursor-pointer">🗑️ Clear All</button>` : ''}
+            <button type="button" onclick="closeAuthModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">✕</button>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          ${history.length === 0 ? `
+            <div class="p-10 text-center bg-slate-50 border border-slate-200 rounded-2xl text-slate-500 font-bold text-xs space-y-2">
+              <div class="text-3xl">📭</div>
+              <p>ಇನ್ನೂ ಯಾವುದೇ ಪತ್ರಿಕೆಗಳು ಉಳಿಸಲ್ಪಟ್ಟಿಲ್ಲ.</p>
+              <p class="text-[11px] text-slate-400">ಜನರೇಟರ್‌ನಲ್ಲಿ ಯಾವುದೇ ವಿಷಯದ ಪತ್ರಿಕೆ ರಚಿಸಿದ ತಕ್ಷಣ ಇಲ್ಲಿ ಉಳಿಯುತ್ತದೆ.</p>
+            </div>
+          ` : history.map((p, idx) => `
+            <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 hover:border-indigo-300 hover:bg-white transition shadow-sm">
+              <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                <div class="flex items-center space-x-2">
+                  <span class="w-6 h-6 rounded-lg bg-indigo-600 text-white font-black text-xs flex items-center justify-center">${idx + 1}</span>
+                  <h4 class="font-black text-sm text-slate-900">${escapeHtml(p.title)}</h4>
+                  <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">${escapeHtml(String(p.examType).split(' ')[0])}</span>
+                </div>
+                <span class="text-[11px] text-slate-500 font-bold">🕒 ${p.savedAt}</span>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 bg-white p-2 rounded-xl border border-slate-100 text-xs font-bold text-slate-700 text-center">
+                <div>🎯 <b>ಅಂಕಗಳು:</b> <span class="text-emerald-700 font-black">${p.totalMarks}</span></div>
+                <div>📝 <b>ಪ್ರಶ್ನೆಗಳು:</b> <span class="text-indigo-700 font-black">${p.questionsCount}</span></div>
+                <div>📅 <b>ದಿನಾಂಕ:</b> <span>${escapeHtml(p.examDate || '2026-27')}</span></div>
+              </div>
+
+              <div class="flex items-center justify-end gap-2 pt-1">
+                <button onclick="window.loadSavedPaperDirectly(${idx})" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow cursor-pointer transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-eye"></i> <span>ವೀಕ್ಷಿಸಿ / ಪ್ರಿಂಟ್ ಮಾಡಿ (Open)</span>
+                </button>
+                <button onclick="window.deleteSingleSavedPaper(${idx})" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 cursor-pointer transition">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  };
+
+  // ೫. ಉಳಿಸಿದ ಪತ್ರಿಕೆಯನ್ನು ತೆರೆಯುವುದು
+  window.loadSavedPaperDirectly = function(index) {
+    const history = window.getSavedPapersListFromStorage();
+    const p = history[index];
+    if (!p) return;
+
+    appState.activeGeneratedQuestions = JSON.parse(JSON.stringify(p.questionsSnapshot));
+
+    if (typeof renderFullExamPaperWithCustomHeader === 'function') {
+      renderFullExamPaperWithCustomHeader(p.headerHtml);
+    }
+
+    if (typeof closeAuthModal === 'function') closeAuthModal();
+
+    document.getElementById('view-dashboard')?.classList.add('hidden');
+    document.getElementById('view-generator')?.classList.remove('hidden');
+
+    const outSec = document.getElementById('output-section');
+    if (outSec) {
+      outSec.classList.remove('hidden');
+      if (typeof switchOutputTab === 'function') switchOutputTab('paper');
+      outSec.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    showToast(`📂 "${p.title}" ಪತ್ರಿಕೆಯನ್ನು ಯಶಸ್ವಿಯಾಗಿ ತೆರೆಯಲಾಗಿದೆ!`, 'success');
+  };
+
+  // ೬. ಸಿಂಗಲ್ ಡಿಲೀಟ್ & ಆಲ್ ಕ್ಲಿಯರ್
+  window.deleteSingleSavedPaper = function(index) {
+    let history = window.getSavedPapersListFromStorage();
+    history.splice(index, 1);
+    localStorage.setItem(MASTER_PAPERS_KEY, JSON.stringify(history));
+    window.refreshTopNavSavedPapersButton();
+    window.openSavedPapersHistoryModal();
+    showToast('🗑️ ಪತ್ರಿಕೆಯನ್ನು ಡಿಲೀಟ್ ಮಾಡಲಾಗಿದೆ.', 'info');
+  };
+
+  window.clearAllSavedPapersHistory = function() {
+    if (!confirm('ಉಳಿಸಿದ ಎಲ್ಲಾ ಪತ್ರಿಕೆಗಳನ್ನು ಸಂಪೂರ್ಣವಾಗಿ ತೆರವುಗೊಳಿಸಲು ಖಚಿತವೇ?')) return;
+    localStorage.removeItem(MASTER_PAPERS_KEY);
+    window.refreshTopNavSavedPapersButton();
+    window.openSavedPapersHistoryModal();
+    showToast('🧹 ಎಲ್ಲಾ ಪತ್ರಿಕೆಗಳನ್ನು ಕ್ಲಿಯರ್ ಮಾಡಲಾಗಿದೆ.', 'info');
+  };
+
+  // ೭. 🌟 ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಜನರೇಟ್ ಬಟನ್ ಕ್ಲಿಕ್ ಆದ ತಕ್ಷಣ ಕಡ್ಡಾಯವಾಗಿ ಆಟೋ-ಸೇವ್ ಕಾಲ್ ಮಾಡುವುದು
+  const prevCoreGenerator = window.generateExamPackageFromBank;
+  window.generateExamPackageFromBank = function() {
+    if (typeof prevCoreGenerator === 'function') {
+      prevCoreGenerator.apply(this, arguments);
+    }
+
+    // ಪತ್ರಿಕೆಯ ಪ್ರಶ್ನೆಗಳು ರಚನೆಯಾದ ತಕ್ಷಣವೇ ಆಟೋ-ಸೇವ್
+    setTimeout(function() {
+      if (appState.activeGeneratedQuestions && appState.activeGeneratedQuestions.length > 0) {
+        const schoolName = document.getElementById('cfg-school-name')?.value.trim() || 'ಸರ್ಕಾರಿ ಶಾಲೆ';
+        const grade = document.getElementById('cfg-class')?.value || '8';
+        const rawSubj = document.getElementById('cfg-subject')?.value || 'ವಿಷಯ';
+        const rawExamType = document.getElementById('cfg-exam-type')?.value || 'ಪರೀಕ್ಷೆ';
+        const examDate = document.getElementById('cfg-exam-date')?.value || '2026-27';
+        const actualMarks = appState.activeGeneratedQuestions.reduce((sum, q) => {
+          return sum + (typeof getExactQuestionMarks === 'function' ? getExactQuestionMarks(q) : 1);
+        }, 0);
+
+        const headerHtml = (typeof generateOfficialBoardHeader === 'function')
+          ? generateOfficialBoardHeader(schoolName, rawSubj, grade, rawExamType, actualMarks, examDate)
+          : '';
+
+        window.savePaperToLocalStorageEngine(appState.activeGeneratedQuestions, headerHtml);
+      }
+    }, 150);
+  };
+
+  // ಪೇಜ್ ಲೋಡ್ ಆದ ತಕ್ಷಣ ಬಟನ್ ಪ್ರದರ್ಶನ
+  setTimeout(window.refreshTopNavSavedPapersButton, 300);
+  setTimeout(window.refreshTopNavSavedPapersButton, 1000);
+})();
  
     
 </script>

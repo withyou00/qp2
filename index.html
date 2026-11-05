@@ -25500,13 +25500,20 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
 
 
 /* =====================================================================
-  
+   🖨️ PRINT BORDER FIX v2 — ಹಳೆಯ fix ಕೋಡ್ ತೆಗೆದು ಇದನ್ನು ಕೊನೆಯ </script> ತಕ್ಷಣ ಮೇಲೆ paste ಮಾಡಿ
+   ಸಮಸ್ಯೆ 1: ಮೊದಲ page ಖಾಲಿ  → config/dashboard ಭಾಗಗಳು print ನಲ್ಲಿ ಜಾಗ ಆಕ್ರಮಿಸುತ್ತಿದ್ದವು
+   ಸಮಸ್ಯೆ 2: ಮೇಲೆ/ಕೆಳಗೆ border ಇಲ್ಲ → ಒಂದೇ ಬಾಕ್ಸ್ ಹಲವು page ಗೆ ಹರಿದಾಗ ಬ್ರೌಸರ್ ಮೇಲಿನ/ಕೆಳಗಿನ ಗೆರೆ ಹಾಕುವುದಿಲ್ಲ
+   ಪರಿಹಾರ: ಪ್ರತಿ page ನಲ್ಲಿಯೂ ಪುನರಾವರ್ತನೆ ಆಗುವ position:fixed ಚೌಕಟ್ಟು (frame)
    ===================================================================== */
 (function installPerfectPrintBorder() {
-  if (window.__perfectPrintBorderInstalled) return;
-  window.__perfectPrintBorderInstalled = true;
+  if (window.__perfectPrintBorderV2) return;
+  window.__perfectPrintBorderV2 = true;
 
   var BORDER_PX = '2.5px';
+  var PAGE_MARGIN_MM = 11;     // ಕಾಗದದ ಅಂಚಿನಿಂದ ಅಕ್ಷರಗಳ ವರೆಗೆ ಖಾಲಿ ಜಾಗ (ಮೇಲೆ/ಕೆಳಗೆ/ಎಡ/ಬಲ)
+  var BORDER_FROM_EDGE_MM = 5; // ಕಾಗದದ ಅಂಚಿನಿಂದ border ಗೆರೆ ಎಷ್ಟು ಒಳಗೆ
+  // ಗೆರೆ ಮತ್ತು ಅಕ್ಷರಗಳ ನಡುವಿನ ಅಂತರ = PAGE_MARGIN_MM - BORDER_FROM_EDGE_MM = 6mm
+  var FRAME_OFFSET_MM = -(PAGE_MARGIN_MM - BORDER_FROM_EDGE_MM);
 
   // 1️⃣ ಪ್ರತಿ page ನಲ್ಲಿ ಬರುವ ಚೌಕಟ್ಟು
   var frame = document.getElementById('print-page-frame');
@@ -25526,7 +25533,7 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
     #print-page-frame { display: none; }
 
     @media print {
-      @page { size: A4 portrait; margin: 7mm 8mm !important; }
+      @page { size: A4 portrait; margin: ${PAGE_MARGIN_MM}mm !important; }
 
       html, body {
         height: auto !important;
@@ -25567,7 +25574,8 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
       #print-page-frame {
         display: block !important;
         position: fixed !important;
-        top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+        top: ${FRAME_OFFSET_MM}mm !important; left: ${FRAME_OFFSET_MM}mm !important;
+        right: ${FRAME_OFFSET_MM}mm !important; bottom: ${FRAME_OFFSET_MM}mm !important;
         border: ${BORDER_PX} solid #000 !important;
         box-sizing: border-box !important;
         background: transparent !important;
@@ -25589,7 +25597,7 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
         border: none !important;
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 3.5mm 5mm !important;
+        padding: 0 !important;
         box-sizing: border-box !important;
         background: transparent !important;
         overflow: visible !important;
@@ -25599,8 +25607,6 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
         break-after: auto !important;
         page-break-before: auto !important;
         break-before: auto !important;
-        -webkit-box-decoration-break: clone !important;
-        box-decoration-break: clone !important;
       }
       /* ಒಂದಕ್ಕಿಂತ ಹೆಚ್ಚು sheet ಇದ್ದರೆ ಪ್ರತಿಯೊಂದೂ ಹೊಸ page ನಲ್ಲಿ ಪ್ರಾರಂಭ */
       .a4-board-sheet:not(:first-child), .nk-board-sheet:not(:first-child),

@@ -25500,19 +25500,20 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
 
 
 /* =====================================================================
-
+ 
    ===================================================================== */
-(function installPerfectPrintBorder() {
-  if (window.__perfectPrintBorderV2) return;
-  window.__perfectPrintBorderV2 = true;
+(function installPerfectPrintBorderV3() {
+  if (window.__perfectPrintBorderV3) return;
+  window.__perfectPrintBorderV3 = true;
 
-  var BORDER_PX = '2.5px';
-  var PAGE_MARGIN_MM = 11;     // ಕಾಗದದ ಅಂಚಿನಿಂದ ಅಕ್ಷರಗಳ ವರೆಗೆ ಖಾಲಿ ಜಾಗ (ಮೇಲೆ/ಕೆಳಗೆ/ಎಡ/ಬಲ)
-  var BORDER_FROM_EDGE_MM = 5; // ಕಾಗದದ ಅಂಚಿನಿಂದ border ಗೆರೆ ಎಷ್ಟು ಒಳಗೆ
-  // ಗೆರೆ ಮತ್ತು ಅಕ್ಷರಗಳ ನಡುವಿನ ಅಂತರ = PAGE_MARGIN_MM - BORDER_FROM_EDGE_MM = 6mm
-  var FRAME_OFFSET_MM = -(PAGE_MARGIN_MM - BORDER_FROM_EDGE_MM);
+  /* ✏️ ಇಲ್ಲಿ ಬೇಕಾದರೆ ಸಂಖ್ಯೆ ಬದಲಿಸಿ (mm) */
+  var BORDER_FROM_EDGE_MM = 10;  // ಕಾಗದದ ಅಂಚಿನಿಂದ border ಗೆರೆ ಎಷ್ಟು ಒಳಗೆ
+  var TEXT_GAP_MM         = 5;   // border ಗೆರೆಯಿಂದ ಅಕ್ಷರಗಳ ವರೆಗೆ ಅಂತರ
+  var BORDER_CSS          = '4.5px double #000'; // ಡಬಲ್ ಲೈನ್
 
-  // 1️⃣ ಪ್ರತಿ page ನಲ್ಲಿ ಬರುವ ಚೌಕಟ್ಟು
+  var INSET_MM = BORDER_FROM_EDGE_MM + TEXT_GAP_MM; // ಅಕ್ಷರಗಳು ಕಾಗದದ ಅಂಚಿನಿಂದ ಇರುವ ದೂರ
+
+  // 1️⃣ ಪ್ರತಿ page ನಲ್ಲಿ ಪುನರಾವರ್ತನೆ ಆಗುವ ಚೌಕಟ್ಟು
   var frame = document.getElementById('print-page-frame');
   if (!frame) {
     frame = document.createElement('div');
@@ -25520,7 +25521,7 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
     document.body.appendChild(frame);
   }
 
-  // 2️⃣ ಎಲ್ಲಾ ಹಳೆಯ print CSS ಗಳನ್ನು ಮೀರಿಸುವ CSS
+  // 2️⃣ CSS
   var styleEl = document.getElementById('perfect-print-border-style');
   if (!styleEl) {
     styleEl = document.createElement('style');
@@ -25530,9 +25531,10 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
     #print-page-frame { display: none; }
 
     @media print {
-      @page { size: A4 portrait; margin: ${PAGE_MARGIN_MM}mm !important; }
+      @page { size: A4 portrait; margin: 0 !important; }
 
       html, body {
+        display: block !important;
         height: auto !important;
         min-height: 0 !important;
         margin: 0 !important;
@@ -25543,12 +25545,11 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
         print-color-adjust: exact !important;
       }
 
-      /* ಮೊದಲ page ಖಾಲಿ ಆಗದಂತೆ — print ಗೆ ಬೇಡದ ಭಾಗಗಳು ಸಂಪೂರ್ಣ ಮಾಯ */
       .print-hide, header, #view-dashboard, .no-print, .btn-live-q-edit,
       button, #toast-container { display: none !important; }
 
-      /* print ಆಗುವ ಭಾಗದ ದಾರಿ (ancestors) ಸಾಮಾನ್ಯ flow ನಲ್ಲಿ */
       body * { visibility: visible !important; }
+
       .print-path, #print-area {
         display: block !important;
         position: static !important;
@@ -25567,20 +25568,43 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
         transform: none !important;
       }
 
-      /* ✅ ಪ್ರತಿ page ನಲ್ಲಿಯೂ ಮೇಲೆ-ಕೆಳಗೆ-ಅಕ್ಕಪಕ್ಕ ಪೂರ್ಣ border */
+      /* ✅ ಪ್ರತಿ page ನಲ್ಲಿ ಡಬಲ್-ಲೈನ್ border */
       #print-page-frame {
         display: block !important;
         position: fixed !important;
-        top: ${FRAME_OFFSET_MM}mm !important; left: ${FRAME_OFFSET_MM}mm !important;
-        right: ${FRAME_OFFSET_MM}mm !important; bottom: ${FRAME_OFFSET_MM}mm !important;
-        border: ${BORDER_PX} solid #000 !important;
+        top: ${BORDER_FROM_EDGE_MM}mm !important;
+        left: ${BORDER_FROM_EDGE_MM}mm !important;
+        right: ${BORDER_FROM_EDGE_MM}mm !important;
+        bottom: ${BORDER_FROM_EDGE_MM}mm !important;
+        border: ${BORDER_CSS} !important;
         box-sizing: border-box !important;
         background: transparent !important;
         pointer-events: none !important;
         z-index: 2147483647 !important;
       }
 
-      /* sheet ಗೆ ತನ್ನದೇ border ಬೇಡ (frame ಇದೆ) — ಎತ್ತರ ನಿರ್ಬಂಧಗಳು ತೆಗೆಯಿರಿ */
+      /* ಪ್ರತಿ page ನ ಮೇಲೆ-ಕೆಳಗೆ ಪುನರಾವರ್ತನೆ ಆಗುವ ಖಾಲಿ ಜಾಗ */
+      table.print-wrap {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        border: none !important;
+        table-layout: fixed !important;
+      }
+      table.print-wrap > thead { display: table-header-group !important; }
+      table.print-wrap > tfoot { display: table-footer-group !important; }
+      table.print-wrap > thead td, table.print-wrap > tfoot td {
+        height: ${INSET_MM}mm !important;
+        padding: 0 !important;
+        border: none !important;
+      }
+      table.print-wrap > tbody > tr > td {
+        padding: 0 ${INSET_MM}mm !important;
+        border: none !important;
+        vertical-align: top !important;
+      }
+      table.print-wrap > tbody > tr { page-break-inside: auto !important; break-inside: auto !important; }
+
+      /* sheet ಗೆ ಸ್ವಂತ border/ಎತ್ತರ ಬೇಡ */
       .a4-board-sheet, .nk-board-sheet, .omr-sheet-container,
       .a4-board-sheet.sheet-mode-20m, .a4-board-sheet.sheet-nalikali-mode {
         display: block !important;
@@ -25605,7 +25629,6 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
         page-break-before: auto !important;
         break-before: auto !important;
       }
-      /* ಒಂದಕ್ಕಿಂತ ಹೆಚ್ಚು sheet ಇದ್ದರೆ ಪ್ರತಿಯೊಂದೂ ಹೊಸ page ನಲ್ಲಿ ಪ್ರಾರಂಭ */
       .a4-board-sheet:not(:first-child), .nk-board-sheet:not(:first-child),
       .omr-sheet-container:not(:first-child) {
         page-break-before: always !important;
@@ -25617,12 +25640,17 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
     }
   `;
 
-  // 3️⃣ print ಗೆ ಮುನ್ನ: ಬೇಡದ ಭಾಗಗಳನ್ನು ಗುರುತಿಸಿ ಮರೆಮಾಡಿ
+  // 3️⃣ print ಗೆ ಮುನ್ನ
+  var wrapped = []; // {table, child, parent}
+
   function preparePrint() {
     cleanupPrint();
     document.head.appendChild(styleEl); // ಯಾವಾಗಲೂ ಕೊನೆಯಲ್ಲಿ → ಹೆಚ್ಚಿನ ಆದ್ಯತೆ
+
     var target = document.getElementById('print-area');
     if (!target) return;
+
+    // ಬೇಡದ ಭಾಗಗಳನ್ನು ಮರೆಮಾಡಿ (ಮೊದಲ page ಖಾಲಿ ಆಗದಂತೆ)
     var node = target;
     while (node && node !== document.body) {
       var parent = node.parentElement;
@@ -25633,15 +25661,38 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
       });
       node = parent;
     }
-    // body ನ ನೇರ ಮಕ್ಕಳಲ್ಲಿ frame ಹೊರತು ಬೇರೆಲ್ಲಾ (modal, banner ಇತ್ಯಾದಿ) ಮರೆಮಾಡಿ
     Array.prototype.forEach.call(document.body.children, function (el) {
       if (el.id === 'print-page-frame' || el.classList.contains('print-path')) return;
       if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') return;
       el.classList.add('print-hide');
     });
+
+    // ಕಾಣುತ್ತಿರುವ ಟ್ಯಾಬ್ ವಿಷಯವನ್ನು (ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ/ಉತ್ತರ/ನೀಲನಕ್ಷೆ) spacer-table ಒಳಗೆ ಹಾಕಿ
+    Array.prototype.forEach.call(target.children, function (child) {
+      if (child.classList.contains('hidden') || child.offsetParent === null && child.style.display === 'none') return;
+      var table = document.createElement('table');
+      table.className = 'print-wrap';
+      table.innerHTML =
+        '<thead><tr><td></td></tr></thead>' +
+        '<tfoot><tr><td></td></tr></tfoot>' +
+        '<tbody><tr><td></td></tr></tbody>';
+      var holder = table.querySelector('tbody td');
+      target.replaceChild(table, child);
+      holder.appendChild(child);
+      wrapped.push({ table: table, child: child, parent: target });
+    });
   }
 
   function cleanupPrint() {
+    // wrap ಹಿಂತೆಗೆದು ಮೂಲ ಸ್ಥಿತಿಗೆ
+    while (wrapped.length) {
+      var w = wrapped.pop();
+      try {
+        if (w.table.parentNode === w.parent) {
+          w.parent.replaceChild(w.child, w.table);
+        }
+      } catch (e) { /* ignore */ }
+    }
     Array.prototype.forEach.call(document.querySelectorAll('.print-hide, .print-path'), function (el) {
       el.classList.remove('print-hide');
       el.classList.remove('print-path');
@@ -25651,7 +25702,6 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
   window.addEventListener('beforeprint', preparePrint);
   window.addEventListener('afterprint', cleanupPrint);
 
-  // Print / Export PDF ಬಟನ್ ಕೂಡ ಇದೇ ಹಾದಿ ಬಳಸುತ್ತದೆ
   window.exportCurrentTabToPDF = function () { window.print(); };
 
   document.head.appendChild(styleEl);

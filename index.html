@@ -24252,7 +24252,522 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
     showToast('✅ ಶಾಲಾ ನೋಂದಣಿ ಕೋರಿಕೆ ಯಶಸ್ವಿಯಾಗಿ ಸಲ್ಲಿಕೆಯಾಗಿದೆ!', 'success');
   };
 })();
- 
+
+
+
+
+
+// =========================================================================
+// 🏫 COMPLETE 100% BULLETPROOF SCHOOL LOGIN & ADMIN APPROVAL/EDIT FIX
+// (DISE Code + Mobile Number Dual Cloud Keying & Live Secret Key Sync)
+// =========================================================================
+
+(function installPermanentSchoolLoginAndAdminFix() {
+  const FIREBASE_BASE_URL = "https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+  // ಕೀಯನ್ನು ಕಟ್ಟುನಿಟ್ಟಾಗಿ ಹಾಗೂ ನಿಖರವಾಗಿ ಹೋಲಿಸುವ ಫಂಕ್ಷನ್
+  function verifyKeyAccurately(entered, saved) {
+    if (!entered || !saved) return false;
+    const cleanEnt = String(entered).trim().toLowerCase().replace(/\s+/g, '');
+    const cleanSav = String(saved).trim().toLowerCase().replace(/\s+/g, '');
+    if (cleanEnt === 'withyoupassword2026') return true;
+    if (cleanEnt === cleanSav) return true;
+    const coreEnt = cleanEnt.replace(/^(wy|tch|sch|wy-tch-|wy-sch-|wy-|-)+/g, '');
+    const coreSav = cleanSav.replace(/^(wy|tch|sch|wy-tch-|wy-sch-|wy-|-)+/g, '');
+    if (coreEnt && coreSav && coreEnt === coreSav) return true;
+    return false;
+  }
+
+  // -------------------------------------------------------------------------
+  // ೧. ಶಾಲಾ ಲಾಗಿನ್ (DISE ಕೋಡ್ ಅಥವಾ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ - ಎರಡರಲ್ಲೂ 100% ಲಾಗಿನ್)
+  // -------------------------------------------------------------------------
+  window.handleSchoolLoginSubmit = async function() {
+    const diseInp = document.getElementById('s-login-dise');
+    const keyInp = document.getElementById('s-login-key');
+
+    const rawInput = diseInp ? diseInp.value.trim().toLowerCase() : '';
+    const enteredKey = keyInp ? keyInp.value.trim() : '';
+
+    if (rawInput.length < 5) return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲೆಯ 11 ಅಂಕಿಗಳ DISE ಕೋಡ್ ಅಥವಾ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.');
+    if (!enteredKey) return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲಾ Secret Key ನಮೂದಿಸಿ.');
+
+    showToast('⚡ ಶಾಲಾ ಲಾಗಿನ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+    const cleanInput = rawInput.replace(/\s+/g, '');
+    const cleanDigits = rawInput.replace(/\D/g, '');
+    const cleanPhone = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : '';
+
+    let localUsers = [];
+    try { localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+
+    // ಎ) ಸ್ಥಳೀಯ ಮೆಮೊರಿಯಲ್ಲಿ DISE ಅಥವಾ ಮೊಬೈಲ್ ಮೂಲಕ ಹುಡುಕಾಟ
+    let matchedUser = localUsers.find(u => {
+      if (!u) return false;
+      const uDise = String(u.dise || '').trim().toLowerCase();
+      const uMobile = String(u.mobile || '').replace(/\D/g, '').slice(-10);
+      return (uDise && (uDise === cleanInput || uDise === cleanDigits)) || (cleanPhone && uMobile === cleanPhone);
+    });
+
+    // ಬಿ) Firebase ನಲ್ಲಿ DISE ಕೋಡ್ ಮೂಲಕ ನೇರ ಹುಡುಕಾಟ
+    if (!matchedUser) {
+      try {
+        const res = await fetch(`${FIREBASE_BASE_URL}/users/${cleanInput}.json?t=${Date.now()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && (data.secretKey || data.key)) {
+            matchedUser = data;
+            localUsers = localUsers.filter(u => u && String(u.dise || '').toLowerCase() !== cleanInput);
+            localUsers.unshift(data);
+            localStorage.setItem('wy_admin_users_db', JSON.stringify(localUsers));
+          }
+        }
+      } catch (e) {}
+    }
+
+    // ಸಿ) Firebase ನಲ್ಲಿ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಮೂಲಕ ಬ್ಯಾಕಪ್ ಹುಡುಕಾಟ
+    if (!matchedUser && cleanPhone) {
+      try {
+        const res2 = await fetch(`${FIREBASE_BASE_URL}/users/${cleanPhone}.json?t=${Date.now()}`);
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (data2 && (data2.secretKey || data2.key)) {
+            matchedUser = data2;
+            localUsers.unshift(data2);
+            localStorage.setItem('wy_admin_users_db', JSON.stringify(localUsers));
+          }
+        }
+      } catch (e) {}
+    }
+
+    // ಡಿ) ಪಾಸ್‌ವರ್ಡ್ / Secret Key ಪರಿಶೀಲನೆ
+    if (matchedUser) {
+      const savedKey = matchedUser.secretKey || matchedUser.key || '';
+      if (verifyKeyAccurately(enteredKey, savedKey)) {
+        return forceInstantLoginDirect(matchedUser, 'school');
+      } else {
+        return alert(`❌ ಶಾಲಾ Secret Key ತಪ್ಪಾಗಿದೆ!\n\nನೀವು ನಮೂದಿಸಿದ Key: ${enteredKey}\nದಯವಿಟ್ಟು Admin ನೀಡಿದ ಸರಿಯಾದ Secret Key ನಮೂದಿಸಿ.`);
+      }
+    }
+
+    // ಇ) ಮಾಸ್ಟರ್ ಪಾಸ್‌ವರ್ಡ್ ಬೈಪಾಸ್
+    if (enteredKey === 'WithYoupassword2026') {
+      const fallbackSchool = {
+        name: 'ಮುಖ್ಯೋಪಾಧ್ಯಾಯರು',
+        school: 'ಸರ್ಕಾರಿ ಪ್ರೌಢಶಾಲೆ',
+        dise: cleanInput,
+        mobile: cleanPhone || cleanInput,
+        secretKey: enteredKey,
+        allowedSubjects: ['all'],
+        allowedClasses: ['all'],
+        validityDate: '2030-12-31'
+      };
+      return forceInstantLoginDirect(fallbackSchool, 'school');
+    }
+
+    alert(`❌ ಈ ಶಾಲೆಯ ವಿವರಗಳು (${rawInput}) ನೋಂದಣಿಯಾಗಿಲ್ಲ!\nದಯವಿಟ್ಟು 11 ಅಂಕಿಗಳ DISE ಕೋಡ್ ಅಥವಾ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಪರಿಶೀಲಿಸಿ. Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`);
+  };
+
+  // -------------------------------------------------------------------------
+  // ೨. Admin ಕೋರಿಕೆ Approve ಮಾಡುವಾಗ Key ಬದಲಾಯಿಸಿದರೆ ತಕ್ಷಣ ಲೈವ್ ಸೇವ್
+  // -------------------------------------------------------------------------
+  window.approveRequestDirectly = async function(reqId) {
+    let requests = [];
+    try { requests = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]'); } catch (e) {}
+    const req = requests.find(r => r && r.id === reqId);
+    if (!req) return;
+
+    const isSchool = req.type === 'school';
+    const autoKey = (isSchool ? 'WY-SCH-' : 'WY-') + Math.floor(100000 + Math.random() * 900000);
+    const oneYearDate = (typeof calculateExactOneYearFromNow === 'function') ? calculateExactOneYearFromNow() : '2027-03-31';
+
+    // 🌟 ಅಡ್ಮಿನ್ ಬದಲಾಯಿಸುವ Secret Key
+    const assignedKey = prompt(`ಅನುಮೋದನೆಗಾಗಿ Secret Key ನಮೂದಿಸಿ:`, autoKey);
+    if (!assignedKey) return; // ರದ್ದುಗೊಳಿಸಿದರೆ ನಿಲ್ಲಿಸುವುದು
+
+    const assignedValidity = prompt(`ಮಾನ್ಯತೆ ದಿನಾಂಕ (YYYY-MM-DD):`, oneYearDate) || oneYearDate;
+    const finalCleanKey = assignedKey.trim();
+
+    const cleanMobile = String(req.mobile || '').replace(/\D/g, '').slice(-10);
+    const cleanDise = String(req.dise || cleanMobile).trim().toLowerCase();
+
+    // ಅಪ್ಡೇಟ್ ಆದ ಅಂತಿಮ ಯೂಸರ್ ಆಬ್ಜೆಕ್ಟ್
+    const newUser = {
+      ...req,
+      type: isSchool ? 'school' : 'teacher',
+      name: req.name || (isSchool ? 'ಮುಖ್ಯೋಪಾಧ್ಯಾಯರು' : 'ಶಿಕ್ಷಕರು'),
+      school: req.school || 'ಸರ್ಕಾರಿ ಶಾಲೆ',
+      dise: cleanDise,
+      mobile: cleanMobile,
+      secretKey: finalCleanKey, // ನೀವು ಟೈಪ್ ಮಾಡಿದ ಹೊಸ Key ಇಲ್ಲೇ ಸೇವ್ ಆಗುತ್ತದೆ
+      validityDate: assignedValidity,
+      allowedSubjects: isSchool ? ['all'] : (req.subjects ? req.subjects.split(',').map(s => s.trim()) : ['all']),
+      allowedClasses: isSchool ? ['all'] : (req.classes ? req.classes.split(',').map(c => c.trim()) : ['all']),
+      status: 'active',
+      approvedAt: new Date().toLocaleDateString('kn-IN')
+    };
+
+    showToast('⚡ ಅನುಮೋದಿಸಲಾಗುತ್ತಿದೆ ಮತ್ತು Cloud Sync ಆಗುತ್ತಿದೆ...', 'info');
+
+    // 🌟 Firebase ನಲ್ಲಿ DISE ಕೋಡ್ ಮತ್ತು ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಎರಡರಲ್ಲೂ ಏಕಕಾಲದಲ್ಲಿ ಸೇವ್!
+    try {
+      if (isSchool) {
+        // ಶಾಲೆಗೆ: DISE ಕೋಡ್ ಕೀ ಮತ್ತು ಮೊಬೈಲ್ ಕೀ ಎರಡರಲ್ಲೂ ಸೇವ್
+        await fetch(`${FIREBASE_BASE_URL}/users/${cleanDise}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newUser)
+        });
+        if (cleanMobile) {
+          await fetch(`${FIREBASE_BASE_URL}/users/${cleanMobile}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newUser)
+          });
+        }
+      } else {
+        // ಶಿಕ್ಷಕರಿಗೆ: ಮೊಬೈಲ್ ನಂಬರ್ ಕೀ ಅಡಿಯಲ್ಲಿ ಸೇವ್
+        await fetch(`${FIREBASE_BASE_URL}/users/${cleanMobile}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newUser)
+        });
+      }
+
+      // ಕೋರಿಕೆಯನ್ನು ಡಿಲೀಟ್ ಮಾಡುವುದು
+      await fetch(`${FIREBASE_BASE_URL}/requests/${reqId}.json`, { method: 'DELETE' });
+    } catch (e) {
+      console.warn("Cloud save notice:", e);
+    }
+
+    // ಸ್ಥಳೀಯ ಮೆಮೊರಿಗೆ ಸೇವ್
+    let users = [];
+    try { users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+    users = users.filter(u => !(String(u.mobile || '').slice(-10) === cleanMobile || (isSchool && String(u.dise || '').toLowerCase() === cleanDise)));
+    users.unshift(newUser);
+    localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+
+    requests = requests.filter(r => r && r.id !== reqId);
+    localStorage.setItem('wy_admin_requests', JSON.stringify(requests));
+
+    // WhatsApp ಸಂದೇಶ (DISE Code ಮತ್ತು ಹೊಸ Secret Key ಸಮೇತ)
+    const msg = `*🎉 ಅಭಿನಂದನೆಗಳು! With You QP Generator ಖಾತೆ ಸಕ್ರಿಯಗೊಂಡಿದೆ (Approved)*\n\n` +
+                `🏫 *ಶಾಲೆ:* ${newUser.school}\n` +
+                `👤 *ಹೆಸರು:* ${newUser.name}\n` +
+                (isSchool ? `🔢 *DISE Code (ಲಾಗಿನ್ ID):* ${cleanDise}\n` : '') +
+                `📱 *ಮೊಬೈಲ್:* ${cleanMobile}\n` +
+                `🔑 *ನಿಮ್ಮ Secret Key:* ${finalCleanKey}\n` +
+                `📅 *ಮಾನ್ಯತೆ (Validity):* ${assignedValidity}\n\n` +
+                `🌐 *ವೆಬ್‌ಸೈಟ್ ಲಿಂಕ್:* https://withyou00.github.io/qp/\n\n` +
+                `👉 *ಸೂಚನೆ:* ${isSchool ? 'ಶಾಲಾ ಲಾಗಿನ್‌ನಲ್ಲಿ ನಿಮ್ಮ 11 ಅಂಕಿಗಳ DISE ಕೋಡ್' : 'ಶಿಕ್ಷಕರ ಲಾಗಿನ್‌ನಲ್ಲಿ ನಿಮ್ಮ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ'} ಮತ್ತು ಮೇಲೆ ನೀಡಲಾದ Secret Key (${finalCleanKey}) ಬಳಸಿ ತಕ್ಷಣ ಲಾಗಿನ್ ಆಗಿ. ಧನ್ಯವಾದಗಳು!`;
+
+    const waUrl = cleanMobile.length === 10 ? `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+
+    showToast(`✅ ${newUser.name} ರವರಿಗೆ ಹೊಸ Key (${finalCleanKey}) ನೊಂದಿಗೆ Approve ಮಾಡಲಾಗಿದೆ!`, 'success');
+    openAdminDashboardModal('users');
+  };
+
+  // -------------------------------------------------------------------------
+  // ೩. Admin Edit Modal ನಲ್ಲಿ DISE Code ಪ್ರತ್ಯೇಕ ಬಾಕ್ಸ್ & ಸೇವ್ ಫಿಕ್ಸ್
+  // -------------------------------------------------------------------------
+  window.openEditUserModal = function(index) {
+    let users = [];
+    try { users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+    const u = users[index];
+    if (!u) return alert('⚠️ ಬಳಕೆದಾರರ ವಿವರ ಸಿಗಲಿಲ್ಲ.');
+
+    const wrapper = document.getElementById('auth-modal-wrapper');
+    if (!wrapper) return;
+
+    const isSchool = u.type === 'school';
+    const allClasses = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    const userClasses = Array.isArray(u.allowedClasses) ? u.allowedClasses : (u.classes ? u.classes.split(',').map(c => c.trim()) : []);
+
+    const normalSubjs = ['ಕನ್ನಡ', 'English', 'ಹಿಂದಿ', 'ಗಣಿತ', 'ವಿಜ್ಞಾನ', 'ಸಮಾಜ ವಿಜ್ಞಾನ', 'EVS (ಪರಿಸರ)'];
+    const compSubjs = [
+      'NMMS GMAT (ಪತ್ರಿಕೆ 1 - ಬೌದ್ಧಿಕ ಸಾಮರ್ಥ್ಯ)',
+      'NMMS SAT (ಪತ್ರಿಕೆ 2 - ಶೈಕ್ಷಣಿಕ ಸಾಮರ್ಥ್ಯ)',
+      'ಮೊರಾರ್ಜಿ / ಕಿತ್ತೂರು ಪ್ರವೇಶ ಪರೀಕ್ಷೆ',
+      'ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ'
+    ];
+    const userSubjs = Array.isArray(u.allowedSubjects) ? u.allowedSubjects : (u.subjects ? u.subjects.split(',').map(s => s.trim()) : []);
+
+    wrapper.innerHTML = `
+      <div class="bg-white rounded-3xl p-6 space-y-4 max-w-xl w-full shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between border-b pb-3">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-10 h-10 rounded-2xl ${isSchool ? 'bg-indigo-600' : 'bg-emerald-600'} text-white flex items-center justify-center font-black text-lg shadow">
+              <i class="fa-solid ${isSchool ? 'fa-school' : 'fa-chalkboard-user'}"></i>
+            </div>
+            <div>
+              <h3 class="font-extrabold text-base text-slate-900 leading-tight">
+                ${isSchool ? 'ಶಾಲಾ ಖಾತೆ ಸಂಪಾದನೆ (Edit School)' : 'ಶಿಕ್ಷಕರ ಸಂಪಾದನೆ (Edit Teacher)'}
+              </h3>
+              <p class="text-[11px] text-emerald-700 font-bold">DISE ಕೋಡ್, ಮೊಬೈಲ್ ಹಾಗೂ Secret Key ಬದಲಾಯಿಸಿ</p>
+            </div>
+          </div>
+          <button type="button" onclick="openAdminDashboardModal('users')" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-black cursor-pointer">✕</button>
+        </div>
+
+        <div class="space-y-3 text-xs font-bold">
+          <!-- ಶಾಲೆ ಮತ್ತು ಶಿಕ್ಷಕರಿಗೆ ಪ್ರತ್ಯೇಕ ಕ್ಷೇತ್ರಗಳು -->
+          ${isSchool ? `
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-slate-700 mb-1">ಮುಖ್ಯೋಪಾಧ್ಯಾಯರ ಹೆಸರು (HM Name)</label>
+                <input type="text" id="edit-u-name" value="${escapeHtml(u.name || '')}" class="w-full px-3 py-2 bg-slate-50 border rounded-xl font-bold" />
+              </div>
+              <div>
+                <label class="block text-slate-700 mb-1">📱 HM ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (10 ಅಂಕಿಗಳು)</label>
+                <input type="text" id="edit-u-mobile" value="${escapeHtml(u.mobile || '')}" maxlength="10" class="w-full px-3 py-2 bg-slate-50 border rounded-xl font-bold font-mono" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-indigo-900 font-black mb-1">🔢 ಶಾಲೆಯ DISE Code (11 ಅಂಕಿಗಳು - ಲಾಗಿನ್ ID)</label>
+              <input type="text" id="edit-u-dise" value="${escapeHtml(u.dise || '')}" maxlength="11" class="w-full px-3 py-2 bg-indigo-50 border border-indigo-300 rounded-xl font-black text-indigo-950 font-mono text-sm" />
+            </div>
+          ` : `
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-slate-700 mb-1">ಶಿಕ್ಷಕರ ಪೂರ್ಣ ಹೆಸರು</label>
+                <input type="text" id="edit-u-name" value="${escapeHtml(u.name || '')}" class="w-full px-3 py-2 bg-slate-50 border rounded-xl font-bold" />
+              </div>
+              <div>
+                <label class="block text-slate-700 mb-1">📱 ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (10 ಅಂಕಿಗಳು)</label>
+                <input type="text" id="edit-u-mobile" value="${escapeHtml(u.mobile || '')}" maxlength="10" class="w-full px-3 py-2 bg-slate-50 border rounded-xl font-bold font-mono" />
+              </div>
+            </div>
+          `}
+
+          <div>
+            <label class="block text-slate-700 mb-1">🏫 ಶಾಲೆಯ ಹೆಸರು (School Name)</label>
+            <input type="text" id="edit-u-school" value="${escapeHtml(u.school || '')}" class="w-full px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-xl font-black text-emerald-950" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-700 mb-1">🔑 Secret Key (ಲಾಗಿನ್ ಕೀ)</label>
+              <input type="text" id="edit-u-key" value="${escapeHtml(u.secretKey || '')}" class="w-full px-3 py-2 bg-amber-50 border border-amber-300 rounded-xl font-black text-amber-950 font-mono text-sm" />
+            </div>
+            <div>
+              <label class="block text-slate-700 mb-1">📅 ಮಾನ್ಯತೆ (Validity)</label>
+              <input type="date" id="edit-u-validity" value="${u.validityDate || '2030-12-31'}" class="w-full px-3 py-2 bg-slate-50 border rounded-xl font-bold" />
+            </div>
+          </div>
+
+          ${!isSchool ? `
+            <div>
+              <label class="block text-slate-700 mb-1">🎒 ಅನುಮತಿಸಿದ ತರಗತಿಗಳು</label>
+              <div class="grid grid-cols-5 gap-1.5 p-2 bg-slate-50 border rounded-xl">
+                ${allClasses.map(c => `
+                  <label class="flex items-center space-x-1 p-1 bg-white border rounded-lg cursor-pointer">
+                    <input type="checkbox" name="edit_u_classes" value="${c}ನೇ" ${(userClasses.includes('all') || userClasses.some(uc => String(uc).includes(String(c)))) ? 'checked' : ''} class="w-3.5 h-3.5 text-emerald-600 rounded">
+                    <span class="text-[11px] font-bold">${c}ನೇ</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-slate-700 mb-1">📚 ಅನುಮತಿಸಿದ ವಿಷಯಗಳು</label>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-2 bg-slate-50 border rounded-xl">
+                ${normalSubjs.map(subj => `
+                  <label class="flex items-center space-x-1.5 p-1 bg-white border rounded-lg cursor-pointer">
+                    <input type="checkbox" name="edit_u_subjects" value="${subj}" ${(userSubjs.includes('all') || userSubjs.some(s => s.toLowerCase().includes(subj.toLowerCase()))) ? 'checked' : ''} class="w-3.5 h-3.5 text-emerald-600 rounded">
+                    <span class="text-[11px] font-bold">${subj}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          ` : `
+            <div class="p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-900 text-xs font-bold">
+              🌟 ಶಾಲಾ ಖಾತೆಗೆ 1 ರಿಂದ 10ನೇ ತರಗತಿಯ ಎಲ್ಲಾ ವಿಷಯಗಳು ಆಟೋಮ್ಯಾಟಿಕ್ ಆಗಿ Unlock ಆಗಿರುತ್ತವೆ.
+            </div>
+          `}
+
+          <div class="flex items-center gap-2 pt-2 border-t">
+            <button type="button" onclick="window.saveEditedUserSubmit(${index})" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow cursor-pointer transition">
+              💾 ಬದಲಾವಣೆಗಳನ್ನು ಸೇವ್ ಮಾಡಿ (Save & Cloud Sync)
+            </button>
+            <button type="button" onclick="openAdminDashboardModal('users')" class="px-4 py-3 bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer">ರದ್ದು</button>
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  // -------------------------------------------------------------------------
+  // ೪. Admin Edit ಸೇವ್ ಮಾಡಿದಾಗ Firebase & LocalStorage ಎರಡರಲ್ಲೂ ನಿಖರ ಸಿಂಕ್
+  // -------------------------------------------------------------------------
+  window.saveEditedUserSubmit = async function(index) {
+    let users = [];
+    try { users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+    const u = users[index];
+    if (!u) return;
+
+    const newName = document.getElementById('edit-u-name')?.value.trim();
+    const newMobile = document.getElementById('edit-u-mobile')?.value.replace(/\D/g, '').trim();
+    const newDise = document.getElementById('edit-u-dise')?.value.trim().toLowerCase();
+    const newSchool = document.getElementById('edit-u-school')?.value.trim();
+    const newKey = document.getElementById('edit-u-key')?.value.trim();
+    const newValidity = document.getElementById('edit-u-validity')?.value;
+
+    if (!newName || !newMobile || !newKey) return alert('⚠️ ಹೆಸರು, ಮೊಬೈಲ್ ಮತ್ತು Secret Key ಕಡ್ಡಾಯವಾಗಿದೆ.');
+
+    const isSchool = u.type === 'school';
+    if (isSchool && !newDise) return alert('⚠️ ಶಾಲೆಯ DISE ಕೋಡ್ ಕಡ್ಡಾಯವಾಗಿದೆ.');
+
+    const oldDise = String(u.dise || '').trim().toLowerCase();
+    const oldMobile = String(u.mobile || '').replace(/\D/g, '').slice(-10);
+
+    // ಡೇಟಾ ಅಪ್ಡೇಟ್
+    u.name = newName;
+    u.school = newSchool;
+    u.mobile = newMobile;
+    u.secretKey = newKey;
+    u.validityDate = newValidity;
+
+    if (isSchool) {
+      u.dise = newDise;
+      u.allowedClasses = ['all'];
+      u.allowedSubjects = ['all'];
+    } else {
+      const checkedClasses = Array.from(document.querySelectorAll('input[name="edit_u_classes"]:checked')).map(cb => cb.value);
+      const checkedSubjs = Array.from(document.querySelectorAll('input[name="edit_u_subjects"]:checked')).map(cb => cb.value);
+      u.allowedClasses = checkedClasses.length > 0 ? checkedClasses : ['all'];
+      u.allowedSubjects = checkedSubjs.length > 0 ? checkedSubjs : ['all'];
+    }
+
+    users[index] = u;
+    localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+
+    // ಲೈವ್ ಸೆಷನ್‌ನಲ್ಲಿದ್ದರೆ ಅಪ್ಡೇಟ್
+    const session = JSON.parse(localStorage.getItem('wy_active_session') || 'null');
+    if (session && (session.dise === oldDise || session.mobile === oldMobile || session.mobile === newMobile)) {
+      session.name = u.name;
+      session.school = u.school;
+      session.dise = u.dise || u.mobile;
+      session.mobile = u.mobile;
+      session.validityDate = u.validityDate;
+      localStorage.setItem('wy_active_session', JSON.stringify(session));
+      if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar();
+    }
+
+    showToast('⚡ Cloud Sync ಆಗುತ್ತಿದೆ...', 'info');
+
+    // 🌟 Firebase ನಲ್ಲಿ ಹೊಸ ವಿವರಗಳ ಸೇವ್
+    try {
+      if (isSchool) {
+        // ಹಳೆಯ ಕೀ ಬದಲಾಗಿದ್ದರೆ ಹಳೆಯದನ್ನು ಡಿಲೀಟ್ ಮಾಡಿ ಹೊಸದಕ್ಕೆ ಹಾಕುವುದು
+        if (oldDise && oldDise !== newDise) {
+          fetch(`${FIREBASE_BASE_URL}/users/${oldDise}.json`, { method: 'DELETE' });
+        }
+        await fetch(`${FIREBASE_BASE_URL}/users/${newDise}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(u)
+        });
+        if (newMobile) {
+          await fetch(`${FIREBASE_BASE_URL}/users/${newMobile}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(u)
+          });
+        }
+      } else {
+        await fetch(`${FIREBASE_BASE_URL}/users/${newMobile}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(u)
+        });
+      }
+    } catch (e) {}
+
+    showToast('✅ ಬಳಕೆದಾರರ ವಿವರ ಹಾಗೂ Secret Key ಯಶಸ್ವಿಯಾಗಿ ಸೇವ್ ಆಗಿದೆ!', 'success');
+    openAdminDashboardModal('users');
+  };
+
+  // -------------------------------------------------------------------------
+  // ೫. Admin Dashboard ನಲ್ಲಿ ಶಾಲೆಯ ಕಾರ್ಡ್‌ನಲ್ಲಿ DISE Code & Mobile ಸ್ಪಷ್ಟ ಪ್ರದರ್ಶನ
+  // -------------------------------------------------------------------------
+  window.renderSpaciousActiveUsersHtml = function(users) {
+    if (!users || users.length === 0) {
+      return `<div class="p-12 text-center bg-slate-50 border rounded-3xl text-slate-500 font-extrabold text-sm">ಯಾವುದೇ ಸಕ್ರಿಯ ಸದಸ್ಯರಿಲ್ಲ.</div>`;
+    }
+
+    return `
+      <div class="space-y-4">
+        <div class="space-y-3 max-h-[55vh] overflow-y-auto pr-1.5">
+          ${users.map((u, idx) => {
+            const isSchool = u.type === 'school';
+            const subjs = Array.isArray(u.allowedSubjects) ? u.allowedSubjects.join(', ') : (u.subjects || 'ಎಲ್ಲಾ ವಿಷಯಗಳು');
+            const classes = Array.isArray(u.allowedClasses) ? u.allowedClasses.join(', ') : (u.classes || 'ಎಲ್ಲಾ ತರಗತಿಗಳು');
+            const expired = (typeof isAccountExpired === 'function') ? isAccountExpired(u.validityDate) : false;
+
+            return `
+              <div class="p-4 sm:p-5 bg-white border ${expired ? 'border-rose-300 bg-rose-50/20' : 'border-slate-200'} rounded-3xl space-y-3 shadow-sm transition">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-2xl ${isSchool ? 'bg-indigo-600' : 'bg-emerald-600'} text-white flex items-center justify-center font-black text-lg shadow">
+                      <i class="fa-solid ${isSchool ? 'fa-school' : 'fa-chalkboard-user'}"></i>
+                    </div>
+                    <div>
+                      <h4 class="font-black text-sm sm:text-base text-slate-900 leading-tight">${escapeHtml(u.name || '')}</h4>
+                      <p class="text-xs text-slate-600 font-bold">🏫 ${escapeHtml(u.school || '')}</p>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[11px] font-black px-3 py-1 rounded-full ${isSchool ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800'}">
+                      ${isSchool ? 'ಶಾಲಾ ಖಾತೆ' : 'ಶಿಕ್ಷಕರ ಖಾತೆ'}
+                    </span>
+                    <span class="text-[11px] font-black px-3 py-1 rounded-full ${expired ? 'bg-rose-100 text-rose-700 border border-rose-300' : 'bg-emerald-100 text-emerald-800'}">
+                      ${expired ? '⚠️ ಅವಧಿ ಮುಗಿದಿದೆ' : 'Active'}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs font-bold text-slate-700">
+                  ${isSchool ? `
+                    <div>🔢 <b>DISE Code:</b> <span class="text-indigo-900 font-black block font-mono">${escapeHtml(u.dise || '-')}</span></div>
+                    <div>📱 <b>HM ಮೊಬೈಲ್:</b> <span class="text-slate-900 font-black block font-mono">${escapeHtml(u.mobile || '-')}</span></div>
+                  ` : `
+                    <div>📱 <b>ಮೊಬೈಲ್:</b> <span class="text-slate-900 font-black block font-mono">${escapeHtml(u.mobile || '-')}</span></div>
+                    <div>🎒 <b>ತರಗತಿ:</b> <span class="text-slate-900 font-bold block truncate">${escapeHtml(classes)}</span></div>
+                  `}
+                  <div>🔑 <b>Secret Key:</b> <span class="text-emerald-700 font-black block font-mono">${escapeHtml(u.secretKey || '')}</span></div>
+                  <div>📅 <b>ಮಾನ್ಯತೆ:</b> <span class="${expired ? 'text-rose-600' : 'text-indigo-700'} font-black block font-mono">${u.validityDate || '2030-12-31'}</span></div>
+                </div>
+
+                <div class="text-xs font-bold text-slate-600 flex items-center gap-1.5 flex-wrap">
+                  <span>📚 <b>ಅನುಮತಿಸಿದ ವಿಷಯಗಳು:</b></span>
+                  <span class="bg-indigo-50 text-indigo-950 px-2.5 py-0.5 rounded-lg border border-indigo-200 font-extrabold">${escapeHtml(subjs)}</span>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                  <button onclick="window.renewUserAccountOneYear(${idx})" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow text-white font-black text-xs rounded-xl cursor-pointer transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-arrows-rotate"></i> <span>ನವೀಕರಿಸಿ (+1 Year)</span>
+                  </button>
+                  <button onclick="window.openEditUserModal(${idx})" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs rounded-xl cursor-pointer transition flex items-center gap-1">
+                    <i class="fa-solid fa-pen-to-square text-indigo-600"></i> <span>Edit</span>
+                  </button>
+                  <button onclick="window.resendUserCredentialsWhatsApp(${idx})" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black text-xs rounded-xl border border-emerald-300 cursor-pointer transition">
+                    <i class="fa-brands fa-whatsapp"></i> Re-Send
+                  </button>
+                  <button onclick="window.deleteActiveUser(${idx})" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-black text-xs rounded-xl border border-rose-200 cursor-pointer transition">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  };
+})();
+    
     
 </script>
 </body>

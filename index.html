@@ -25495,6 +25495,168 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
   // ತಕ್ಷಣವೇ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ನವೀಕರಣ
   if (typeof renderUltraModernDashboard === 'function') renderUltraModernDashboard();
 })();
+
+
+
+
+/* =====================================================================
+   🖨️ PRINT BORDER FIX  —  ಕೊನೆಯ </script> ತಕ್ಷಣ ಮೇಲೆ paste ಮಾಡಿ
+   ಸಮಸ್ಯೆ 1: ಮೊದಲ page ಖಾಲಿ  → config/dashboard ಭಾಗಗಳು print ನಲ್ಲಿ ಜಾಗ ಆಕ್ರಮಿಸುತ್ತಿದ್ದವು
+   ಸಮಸ್ಯೆ 2: ಮೇಲೆ/ಕೆಳಗೆ border ಇಲ್ಲ → ಒಂದೇ ಬಾಕ್ಸ್ ಹಲವು page ಗೆ ಹರಿದಾಗ ಬ್ರೌಸರ್ ಮೇಲಿನ/ಕೆಳಗಿನ ಗೆರೆ ಹಾಕುವುದಿಲ್ಲ
+   ಪರಿಹಾರ: ಪ್ರತಿ page ನಲ್ಲಿಯೂ ಪುನರಾವರ್ತನೆ ಆಗುವ position:fixed ಚೌಕಟ್ಟು (frame)
+   ===================================================================== */
+(function installPerfectPrintBorder() {
+  if (window.__perfectPrintBorderInstalled) return;
+  window.__perfectPrintBorderInstalled = true;
+
+  var BORDER_PX = '2.5px';
+
+  // 1️⃣ ಪ್ರತಿ page ನಲ್ಲಿ ಬರುವ ಚೌಕಟ್ಟು
+  var frame = document.getElementById('print-page-frame');
+  if (!frame) {
+    frame = document.createElement('div');
+    frame.id = 'print-page-frame';
+    document.body.appendChild(frame);
+  }
+
+  // 2️⃣ ಎಲ್ಲಾ ಹಳೆಯ print CSS ಗಳನ್ನು ಮೀರಿಸುವ CSS
+  var styleEl = document.getElementById('perfect-print-border-style');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'perfect-print-border-style';
+  }
+  styleEl.textContent = `
+    #print-page-frame { display: none; }
+
+    @media print {
+      @page { size: A4 portrait; margin: 7mm 8mm !important; }
+
+      html, body {
+        height: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      /* ಮೊದಲ page ಖಾಲಿ ಆಗದಂತೆ — print ಗೆ ಬೇಡದ ಭಾಗಗಳು ಸಂಪೂರ್ಣ ಮಾಯ */
+      .print-hide, header, #view-dashboard, .no-print, .btn-live-q-edit,
+      button, #toast-container { display: none !important; }
+
+      /* print ಆಗುವ ಭಾಗದ ದಾರಿ (ancestors) ಸಾಮಾನ್ಯ flow ನಲ್ಲಿ */
+      body * { visibility: visible !important; }
+      .print-path, #print-area {
+        display: block !important;
+        position: static !important;
+        float: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        overflow: visible !important;
+        transform: none !important;
+      }
+
+      /* ✅ ಪ್ರತಿ page ನಲ್ಲಿಯೂ ಮೇಲೆ-ಕೆಳಗೆ-ಅಕ್ಕಪಕ್ಕ ಪೂರ್ಣ border */
+      #print-page-frame {
+        display: block !important;
+        position: fixed !important;
+        top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+        border: ${BORDER_PX} solid #000 !important;
+        box-sizing: border-box !important;
+        background: transparent !important;
+        pointer-events: none !important;
+        z-index: 2147483647 !important;
+      }
+
+      /* sheet ಗೆ ತನ್ನದೇ border ಬೇಡ (frame ಇದೆ) — ಎತ್ತರ ನಿರ್ಬಂಧಗಳು ತೆಗೆಯಿರಿ */
+      .a4-board-sheet, .nk-board-sheet, .omr-sheet-container,
+      .a4-board-sheet.sheet-mode-20m, .a4-board-sheet.sheet-nalikali-mode {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 3.5mm 5mm !important;
+        box-sizing: border-box !important;
+        background: transparent !important;
+        overflow: visible !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+        page-break-after: auto !important;
+        break-after: auto !important;
+        page-break-before: auto !important;
+        break-before: auto !important;
+        -webkit-box-decoration-break: clone !important;
+        box-decoration-break: clone !important;
+      }
+      /* ಒಂದಕ್ಕಿಂತ ಹೆಚ್ಚು sheet ಇದ್ದರೆ ಪ್ರತಿಯೊಂದೂ ಹೊಸ page ನಲ್ಲಿ ಪ್ರಾರಂಭ */
+      .a4-board-sheet:not(:first-child), .nk-board-sheet:not(:first-child),
+      .omr-sheet-container:not(:first-child) {
+        page-break-before: always !important;
+        break-before: page !important;
+      }
+
+      .q-indivisible-block { page-break-inside: avoid !important; break-inside: avoid !important; }
+      table, th, td { border-color: #000 !important; }
+    }
+  `;
+
+  // 3️⃣ print ಗೆ ಮುನ್ನ: ಬೇಡದ ಭಾಗಗಳನ್ನು ಗುರುತಿಸಿ ಮರೆಮಾಡಿ
+  function preparePrint() {
+    cleanupPrint();
+    document.head.appendChild(styleEl); // ಯಾವಾಗಲೂ ಕೊನೆಯಲ್ಲಿ → ಹೆಚ್ಚಿನ ಆದ್ಯತೆ
+    var target = document.getElementById('print-area');
+    if (!target) return;
+    var node = target;
+    while (node && node !== document.body) {
+      var parent = node.parentElement;
+      if (!parent) break;
+      node.classList.add('print-path');
+      Array.prototype.forEach.call(parent.children, function (sib) {
+        if (sib !== node && sib.id !== 'print-page-frame') sib.classList.add('print-hide');
+      });
+      node = parent;
+    }
+    // body ನ ನೇರ ಮಕ್ಕಳಲ್ಲಿ frame ಹೊರತು ಬೇರೆಲ್ಲಾ (modal, banner ಇತ್ಯಾದಿ) ಮರೆಮಾಡಿ
+    Array.prototype.forEach.call(document.body.children, function (el) {
+      if (el.id === 'print-page-frame' || el.classList.contains('print-path')) return;
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') return;
+      el.classList.add('print-hide');
+    });
+  }
+
+  function cleanupPrint() {
+    Array.prototype.forEach.call(document.querySelectorAll('.print-hide, .print-path'), function (el) {
+      el.classList.remove('print-hide');
+      el.classList.remove('print-path');
+    });
+  }
+
+  window.addEventListener('beforeprint', preparePrint);
+  window.addEventListener('afterprint', cleanupPrint);
+
+  // Print / Export PDF ಬಟನ್ ಕೂಡ ಇದೇ ಹಾದಿ ಬಳಸುತ್ತದೆ
+  window.exportCurrentTabToPDF = function () { window.print(); };
+
+  document.head.appendChild(styleEl);
+})();
+
     
     
 </script>

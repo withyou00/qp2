@@ -25707,6 +25707,69 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
   document.head.appendChild(styleEl);
 })();
 
+
+
+
+
+// =========================================================================
+
+// =========================================================================
+(function () {
+  var prevFormatter = window.formatQuestionTextForDisplay;
+  if (typeof prevFormatter !== 'function') return;
+
+  function isMathSubject() {
+    var s = (document.getElementById('cfg-subject') || {}).value || '';
+    return s.indexOf('ಗಣಿತ') !== -1 || s.toLowerCase().indexOf('math') !== -1;
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function fracHtml(n, d) {
+    return '<span class="inline-flex flex-col text-center align-middle mx-1 font-serif leading-none">' +
+           '<span class="border-b border-black pb-0.5">' + esc(n.trim()) + '</span>' +
+           '<span class="pt-0.5">' + esc(d.trim()) + '</span></span>';
+  }
+
+  function sqrtHtml(v) {
+    return '<span class="inline-flex items-center align-middle mx-1 font-serif">√' +
+           '<span class="border-t border-black px-1">' + esc(v) + '</span></span>';
+  }
+
+  window.formatQuestionTextForDisplay = function (rawText, isTrueFalse) {
+    if (!rawText) return '';
+    var text = String(rawText);
+    var store = [];
+    function hold(html) {
+      store.push(html);
+      return '\uE000' + (store.length - 1) + '\uE001';
+    }
+
+    // ೧. \frac{a}{b}
+    text = text.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, function (m, n, d) { return hold(fracHtml(n, d)); });
+
+    // ೨. ವರ್ಗಮೂಲ
+    text = text.replace(/\\sqrt\{([^{}]+)\}|√\[([^\[\]]+)\]|√\(([^()]+)\)|√([0-9a-zA-Zθ.]+)/g,
+      function (m, a, b, c, d) { return hold(sqrtHtml(a || b || c || d || '')); });
+
+    // ೩. ಭಿನ್ನರಾಶಿ a/b (ಗಣಿತ ವಿಷಯಕ್ಕೆ ಮಾತ್ರ)
+    if (isMathSubject()) {
+      // (a+b)/(c+d)
+      text = text.replace(/\(([^()\/]+)\)\s*\/\s*\(([^()\/]+)\)/g, function (m, n, d) { return hold(fracHtml(n, d)); });
+      // 847/10000, 12.5/10, 3/A  (ದಿನಾಂಕ 12/05/2026 ಅಥವಾ URL ಗೆ ಅನ್ವಯಿಸುವುದಿಲ್ಲ)
+      text = text.replace(/(?<![\w.\/:])([0-9]+(?:\.[0-9]+)?|[A-Zθ]+)\s*\/\s*([0-9]+(?:\.[0-9]+)?|[A-Zθ]+)(?![\w\/])/g,
+        function (m, n, d) { return hold(fracHtml(n, d)); });
+    }
+
+    // ೪. ಹಿಂದಿನ ಫಾರ್ಮ್ಯಾಟರ್ ಚಲಾಯಿಸಿ (ಲೇಔಟ್ ಲಾಜಿಕ್ ಸರಿಯಾದ ಸರಳ ಪಠ್ಯದ ಮೇಲೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ)
+    var out = prevFormatter(text, isTrueFalse);
+
+    // ೫. ಪ್ಲೇಸ್‌ಹೋಲ್ಡರ್ ಬದಲು ನಿಜವಾದ ಭಿನ್ನರಾಶಿ HTML ಮರುಸ್ಥಾಪನೆ
+    return String(out).replace(/\uE000(\d+)\uE001/g, function (m, i) { return store[+i] || ''; });
+  };
+})();
     
     
 </script>

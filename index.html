@@ -24018,6 +24018,240 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
   setTimeout(window.refreshTopNavSavedPapersButton, 300);
   setTimeout(window.refreshTopNavSavedPapersButton, 1000);
 })();
+
+
+
+
+
+    // =========================================================================
+// 🚫 100% STRICT DOUBLE-REGISTRATION BLOCKER (ALREADY REGISTERED CHECK)
+// (ಶಿಕ್ಷಕರು ಹಾಗೂ ಶಾಲೆಗಳಿಗೆ ಡಬಲ್ ರಿಜಿಸ್ಟ್ರೇಷನ್ ತಡೆಗಟ್ಟುವ ವ್ಯವಸ್ಥೆ)
+// =========================================================================
+
+(function installStrictDoubleRegistrationBlocker() {
+  const FIREBASE_BASE_URL = "https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+  // ೧. ಶಿಕ್ಷಕರ ನೋಂದಣಿ ಪರಿಶೀಲನೆ (Teacher Registration Check)
+  window.handleTeacherSignUpSubmit = async function() {
+    const name = document.getElementById('t-reg-name')?.value.trim();
+    const school = document.getElementById('t-reg-school')?.value.trim();
+    const mobile = document.getElementById('t-reg-mobile')?.value.replace(/\D/g, '').trim();
+    const selectedClasses = Array.from(document.querySelectorAll('input[name="t_reg_class"]:checked')).map(c => c.value);
+    const selectedSubjs = Array.from(document.querySelectorAll('input[name="t_reg_subj"]:checked')).map(s => s.value);
+
+    // ಕಡ್ಡಾಯ ವಿವರಗಳ ಪರಿಶೀಲನೆ
+    if (!name || !school || mobile.length !== 10 || selectedClasses.length === 0 || selectedSubjs.length === 0) {
+      return alert('⚠️ ದಯವಿಟ್ಟು ಎಲ್ಲಾ ವಿವರಗಳನ್ನು ಭರ್ತಿ ಮಾಡಿ ಕನಿಷ್ಠ 1 ತರಗತಿ ಹಾಗೂ 1 ವಿಷಯ ಆಯ್ಕೆಮಾಡಿ.');
+    }
+
+    const cleanPhone = mobile.slice(-10);
+    showToast('🔍 ನೋಂದಣಿ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+    // 🌟 ಹಂತ ೧: LocalStorage ನಲ್ಲಿ ಈಗಾಗಲೇ ಇದ್ದಾರೆಯೇ ಎಂದು ತಕ್ಷಣ ಪರಿಶೀಲನೆ
+    let localUsers = [];
+    try { localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+    
+    const existingActiveUser = localUsers.find(u => u && String(u.mobile || u.phone || '').replace(/\D/g, '').slice(-10) === cleanPhone);
+    if (existingActiveUser) {
+      alert(
+        `⚠️ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (${cleanPhone}) ಈಗಾಗಲೇ ನೋಂದಾಯಿತವಾಗಿದೆ (Already Registered)!\n\n` +
+        `ದಯವಿಟ್ಟು ನಿಮ್ಮ Secret Key ಬಳಸಿ ಲಾಗಿನ್ (Login) ಮಾಡಿಕೊಳ್ಳಿ.\n` +
+        `Secret Key ಮರೆತುಹೋಗಿದ್ದರೆ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`
+      );
+      if (typeof switchTeacherTab === 'function') switchTeacherTab('login');
+      const logInp = document.getElementById('t-login-mobile');
+      if (logInp) logInp.value = cleanPhone;
+      return;
+    }
+
+    // ಬಾಕಿ ಇರುವ ಕೋರಿಕೆಗಳಲ್ಲಿ (Pending Requests) ಪರಿಶೀಲನೆ
+    let pendingReqs = [];
+    try { pendingReqs = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]'); } catch (e) {}
+    const existingPending = pendingReqs.find(r => r && String(r.mobile || '').replace(/\D/g, '').slice(-10) === cleanPhone && r.status === 'pending');
+    if (existingPending) {
+      alert(
+        `⚠️ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (${cleanPhone}) ಯಿಂದ ಈಗಾಗಲೇ ನೋಂದಣಿ ಕೋರಿಕೆ ಸಲ್ಲಿಸಲಾಗಿದೆ (Pending Approval)!\n\n` +
+        `ದಯವಿಟ್ಟು Admin ಅನುಮೋದನೆಗಾಗಿ ಕಾಯಿರಿ ಅಥವಾ Secret Key ಗಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`
+      );
+      if (typeof switchTeacherTab === 'function') switchTeacherTab('login');
+      return;
+    }
+
+    // 🌟 ಹಂತ ೨: Firebase Cloud ನಲ್ಲೂ ಪರಿಶೀಲನೆ (Duplicate ತಡೆಗಟ್ಟಲು)
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const res = await fetch(`${FIREBASE_BASE_URL}/users/${cleanPhone}.json?t=${Date.now()}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const cloudUser = await res.json();
+        if (cloudUser && (cloudUser.secretKey || cloudUser.key || cloudUser.mobile)) {
+          // ಕ್ಲೌಡ್‌ನಲ್ಲಿ ಸಿಕ್ಕರೆ ಸ್ಥಳೀಯವಾಗಿ ಸೇವ್ ಮಾಡಿ ತಡೆಯುವುದು
+          localUsers.unshift(cloudUser);
+          localStorage.setItem('wy_admin_users_db', JSON.stringify(localUsers));
+
+          alert(
+            `⚠️ ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ (${cleanPhone}) ಈಗಾಗಲೇ ನೋಂದಾಯಿತವಾಗಿದೆ (Already Registered)!\n\n` +
+            `ದಯವಿಟ್ಟು ನಿಮ್ಮ Secret Key ಬಳಸಿ ಲಾಗಿನ್ (Login) ಮಾಡಿಕೊಳ್ಳಿ.`
+          );
+          if (typeof switchTeacherTab === 'function') switchTeacherTab('login');
+          const logInp = document.getElementById('t-login-mobile');
+          if (logInp) logInp.value = cleanPhone;
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // 🌟 ನೋಂದಣಿ ಆಗಿಲ್ಲದಿದ್ದರೆ ಮಾತ್ರ ಹೊಸ ರಿಜಿಸ್ಟ್ರೇಷನ್ ಮುಂದುವರಿಕೆ
+    const reqId = Date.now();
+    const requestData = {
+      id: reqId,
+      type: 'teacher',
+      name: name,
+      school: school,
+      mobile: cleanPhone,
+      classes: selectedClasses.join(', '),
+      subjects: selectedSubjs.join(', '),
+      date: new Date().toLocaleDateString('kn-IN'),
+      status: 'pending'
+    };
+
+    try {
+      fetch(`${FIREBASE_BASE_URL}/requests/${reqId}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+      });
+    } catch (e) {}
+
+    pendingReqs.unshift(requestData);
+    localStorage.setItem('wy_admin_requests', JSON.stringify(pendingReqs));
+
+    const msg = `*ನಮಸ್ಕಾರ, With You QP Generator ಶಿಕ್ಷಕರ ಹೊಸ ನೋಂದಣಿ:*\n\n` +
+                `👤 *ಹೆಸರು:* ${name}\n` +
+                `🏫 *ಶಾಲೆ:* ${school}\n` +
+                `📱 *ಮೊಬೈಲ್:* ${cleanPhone}\n` +
+                `🎒 *ತರಗತಿಗಳು:* ${selectedClasses.join(', ')}\n` +
+                `📚 *ವಿಷಯಗಳು:* ${selectedSubjs.join(', ')}\n\n` +
+                `ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ ನನ್ನ ಲಾಗಿನ್ Secret Key ಕಳುಹಿಸಿಕೊಡಿ.`;
+
+    window.open(`https://wa.me/919902090911?text=${encodeURIComponent(msg)}`, '_blank');
+    if (typeof closeAuthModal === 'function') closeAuthModal();
+    showToast('✅ ನೋಂದಣಿ ಕೋರಿಕೆ ಯಶಸ್ವಿಯಾಗಿ ಸಲ್ಲಿಕೆಯಾಗಿದೆ!', 'success');
+  };
+
+  // ೨. ಶಾಲಾ ನೋಂದಣಿ ಪರಿಶೀಲನೆ (School Registration Check)
+  window.handleSchoolSignUpSubmit = async function() {
+    const hmName = document.getElementById('s-reg-hm')?.value.trim();
+    const schoolName = document.getElementById('s-reg-name')?.value.trim();
+    const dise = document.getElementById('s-reg-dise')?.value.trim().toLowerCase();
+    const mobile = document.getElementById('s-reg-mobile')?.value.replace(/\D/g, '').trim();
+
+    if (!hmName || !schoolName || !dise || mobile.length !== 10) {
+      return alert('⚠️ ದಯವಿಟ್ಟು ಎಲ್ಲಾ ವಿವರಗಳನ್ನು ಸರಿಯಾಗಿ ಭರ್ತಿ ಮಾಡಿ (11 ಅಂಕಿಗಳ DISE ಮತ್ತು 10 ಅಂಕಿಗಳ ಮೊಬೈಲ್).');
+    }
+
+    const cleanPhone = mobile.slice(-10);
+    showToast('🔍 ಶಾಲಾ ವಿವರ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
+
+    // 🌟 LocalStorage ನಲ್ಲಿ DISE ಕೋಡ್ ಅಥವಾ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಈಗಾಗಲೇ ಇದೆಯೇ ಎಂದು ಪರಿಶೀಲನೆ
+    let localUsers = [];
+    try { localUsers = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]'); } catch (e) {}
+
+    const existingSchool = localUsers.find(u => {
+      if (!u) return false;
+      const uDise = String(u.dise || '').trim().toLowerCase();
+      const uMobile = String(u.mobile || '').replace(/\D/g, '').slice(-10);
+      return uDise === dise || uMobile === cleanPhone;
+    });
+
+    if (existingSchool) {
+      alert(
+        `⚠️ ಈ ಶಾಲೆ (DISE: ${dise}) ಅಥವಾ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಈಗಾಗಲೇ ನೋಂದಾಯಿತವಾಗಿದೆ (Already Registered)!\n\n` +
+        `ದಯವಿಟ್ಟು ಶಾಲಾ Secret Key ಬಳಸಿ ಲಾಗಿನ್ (Login) ಮಾಡಿಕೊಳ್ಳಿ.\n` +
+        `Secret Key ಗಾಗಿ Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`
+      );
+      if (typeof switchSchoolTab === 'function') switchSchoolTab('login');
+      const diseInp = document.getElementById('s-login-dise');
+      if (diseInp) diseInp.value = dise;
+      return;
+    }
+
+    // ಬಾಕಿ ಇರುವ ಕೋರಿಕೆಗಳಲ್ಲಿ ಪರಿಶೀಲನೆ
+    let pendingReqs = [];
+    try { pendingReqs = JSON.parse(localStorage.getItem('wy_admin_requests') || '[]'); } catch (e) {}
+    const existingReq = pendingReqs.find(r => r && (String(r.dise || '').toLowerCase() === dise || String(r.mobile || '').slice(-10) === cleanPhone));
+    if (existingReq) {
+      alert(
+        `⚠️ ಈ ಶಾಲೆಯ (DISE: ${dise}) ನೋಂದಣಿ ಕೋರಿಕೆಯು ಈಗಾಗಲೇ ಸಲ್ಲಿಕೆಯಾಗಿದ್ದು, ಅನುಮೋದನೆ ಬಾಕಿಯಿದೆ (Pending Approval)!\n\n` +
+        `ದಯವಿಟ್ಟು Admin ಸಂಪರ್ಕಿಸಿ: 9902090911.`
+      );
+      if (typeof switchSchoolTab === 'function') switchSchoolTab('login');
+      return;
+    }
+
+    // 🌟 Firebase Cloud ನಲ್ಲೂ ಪರಿಶೀಲನೆ
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const res = await fetch(`${FIREBASE_BASE_URL}/users/${dise}.json?t=${Date.now()}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const cloudSchool = await res.json();
+        if (cloudSchool && (cloudSchool.secretKey || cloudSchool.key || cloudSchool.dise)) {
+          localUsers.unshift(cloudSchool);
+          localStorage.setItem('wy_admin_users_db', JSON.stringify(localUsers));
+
+          alert(
+            `⚠️ ಈ ಶಾಲೆ (DISE: ${dise}) ಈಗಾಗಲೇ ನೋಂದಾಯಿತವಾಗಿದೆ (Already Registered)!\n\n` +
+            `ದಯವಿಟ್ಟು ಶಾಲಾ Secret Key ಬಳಸಿ ಲಾಗಿನ್ ಆಗಿ.`
+          );
+          if (typeof switchSchoolTab === 'function') switchSchoolTab('login');
+          const diseInp = document.getElementById('s-login-dise');
+          if (diseInp) diseInp.value = dise;
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // ನೋಂದಣಿ ಕೋರಿಕೆ ಸೇವ್
+    const reqId = Date.now();
+    const requestData = {
+      id: reqId,
+      type: 'school',
+      name: hmName,
+      school: schoolName,
+      dise: dise,
+      mobile: cleanPhone,
+      date: new Date().toLocaleDateString('kn-IN'),
+      status: 'pending'
+    };
+
+    try {
+      fetch(`${FIREBASE_BASE_URL}/requests/${reqId}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData)
+      });
+    } catch (e) {}
+
+    pendingReqs.unshift(requestData);
+    localStorage.setItem('wy_admin_requests', JSON.stringify(pendingReqs));
+
+    const msg = `*ನಮಸ್ಕಾರ, With You QP Generator ಶಾಲಾ ವಾರ್ಷಿಕ ನೋಂದಣಿ:*\n\n` +
+                `🏫 *ಶಾಲೆ:* ${schoolName}\n` +
+                `🔢 *DISE:* ${dise}\n` +
+                `👔 *HM:* ${hmName}\n` +
+                `📱 *ಮೊಬೈಲ್:* ${cleanPhone}\n\n` +
+                `ದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ ಶಾಲೆಯ Secret Key ಕಳುಹಿಸಿಕೊಡಿ.`;
+
+    window.open(`https://wa.me/919902090911?text=${encodeURIComponent(msg)}`, '_blank');
+    if (typeof closeAuthModal === 'function') closeAuthModal();
+    showToast('✅ ಶಾಲಾ ನೋಂದಣಿ ಕೋರಿಕೆ ಯಶಸ್ವಿಯಾಗಿ ಸಲ್ಲಿಕೆಯಾಗಿದೆ!', 'success');
+  };
+})();
  
     
 </script>

@@ -53567,7 +53567,169 @@ function omrDetectCore(gray, W, H, totalQ, opts) {
 
     
 
+// =========================================================================
+// 👑 THE ONE & ONLY FINAL MASTER GMAT (38 TOPICS) & SAT GITHUB LOADER
+// (ಇದು ಹಿಂದಿನ ಎಲ್ಲಾ ಹಳೆಯ ಲೋಡರ್‌ಗಳನ್ನು ಸಂಪೂರ್ಣವಾಗಿ ಓವರ್‌ರೈಟ್ ಮಾಡಿ ಸರಿಪಡಿಸುತ್ತದೆ)
+// =========================================================================
+window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part) {
+  appState.activeSubjectQuestions = [];
+  if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
 
+  var gradeStr = String(grade).replace(/\D/g, '') || '8';
+  var rawSubjLower = String(rawSubject || '').toLowerCase();
+  var subjectKey = (typeof getNormalizedSubjectKey === 'function') ? getNormalizedSubjectKey(rawSubject) : '';
+
+  var isGMAT = rawSubjLower.includes('gmat') || rawSubjLower.includes('ಬೌದ್ಧಿಕ') || (subjectKey === 'nmms_gmat');
+  var isSAT = (rawSubjLower.includes('sat') || rawSubjLower.includes('ಶೈಕ್ಷಣಿಕ') || (subjectKey === 'nmms_sat')) && !isGMAT;
+  var isMorarji = rawSubjLower.includes('ಮೊರಾರ್ಜಿ') || rawSubjLower.includes('ಕಿತ್ತೂರು');
+  var isAdarsha = rawSubjLower.includes('ಆದರ್ಶ');
+
+  showToast(`🌐 ${rawSubject} ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ...`, 'info');
+
+  try {
+    var loadedList = [];
+
+    // -----------------------------------------------------------------------
+    // ೧. NMMS GMAT: 38 ಟಾಪಿಕ್‌ಗಳಿರುವ nmms_gmat.json ಲೋಡ್ ಮಾಡುವುದು
+    // -----------------------------------------------------------------------
+    if (isGMAT) {
+      var gmatPaths = [
+        `kannada_medium/nmms_gmat.json`,
+        `kannada_medium/class_${gradeStr}/nmms_gmat.json`,
+        `class_${gradeStr}/nmms_gmat.json`,
+        `nmms_gmat.json`
+      ];
+
+      for (var gp = 0; gp < gmatPaths.length; gp++) {
+        var gUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(gmatPaths[gp])}?t=${Date.now()}`;
+        try {
+          var gRes = await fetch(gUrl);
+          if (gRes.ok) {
+            var gData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await gRes.text()) : [];
+            if (Array.isArray(gData) && gData.length > 0) {
+              loadedList = gData;
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+      // 🌟 ಮುಖ್ಯ: ಇಲ್ಲಿ q.chapter ಅನ್ನು ನಾವು ಬದಲಾಯಿಸುವುದಿಲ್ಲ! 
+      // ನಿಮ್ಮ JSON ನಲ್ಲಿ ನೀವು ಬರೆಯುವ 38 ಟಾಪಿಕ್ ಹೆಸರುಗಳು ಹಾಗೆಯೇ ಉಳಿಯುತ್ತವೆ.
+    }
+    // -----------------------------------------------------------------------
+    // ೨. NMMS SAT: ಎಲ್ಲಾ ೮ ವಿಷಯಗಳ ಫೈಲ್‌ಗಳು
+    // -----------------------------------------------------------------------
+    else if (isSAT) {
+      var satFiles = [
+        'nmms_physics.json', 'nmms_chemistry.json', 'nmms_biology.json',
+        'nmms_history.json', 'nmms_geography.json', 'nmms_civics.json',
+        'nmms_maths.json', 'nmms_sat.json'
+      ];
+
+      for (var sf = 0; sf < satFiles.length; sf++) {
+        var sFile = satFiles[sf];
+        var sPaths = [
+          `kannada_medium/${sFile}`,
+          `kannada_medium/class_${gradeStr}/${sFile}`,
+          `class_${gradeStr}/${sFile}`,
+          `${sFile}`
+        ];
+
+        for (var sp = 0; sp < sPaths.length; sp++) {
+          var sUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(sPaths[sp])}?t=${Date.now()}`;
+          try {
+            var sRes = await fetch(sUrl);
+            if (sRes.ok) {
+              var sData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await sRes.text()) : [];
+              if (Array.isArray(sData) && sData.length > 0) {
+                loadedList.push(...sData);
+                break;
+              }
+            }
+          } catch(e) {}
+        }
+      }
+    }
+    // -----------------------------------------------------------------------
+    // ೩. ಮೊರಾರ್ಜಿ / ಆದರ್ಶ ವಿದ್ಯಾಲಯ
+    // -----------------------------------------------------------------------
+    else if (isMorarji || isAdarsha) {
+      var compFile = isMorarji ? 'morarji_entrance.json' : 'adarsha_entrance.json';
+      var compPaths = [`kannada_medium/${compFile}`, `class_${gradeStr}/${compFile}`, `${compFile}`];
+
+      for (var cp = 0; cp < compPaths.length; cp++) {
+        var cUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(compPaths[cp])}?t=${Date.now()}`;
+        try {
+          var cRes = await fetch(cUrl);
+          if (cRes.ok) {
+            var cData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await cRes.text()) : [];
+            if (Array.isArray(cData) && cData.length > 0) {
+              loadedList = cData;
+              break;
+            }
+          }
+        } catch(e) {}
+      }
+    }
+    // -----------------------------------------------------------------------
+    // ೪. ಸಾಮಾನ್ಯ ಶಾಲಾ ವಿಷಯಗಳು (ಕನ್ನಡ, ಸಮಾಜ, ವಿಜ್ಞಾನ, ಗಣಿತ ಭಾಗ ೧ & ೨)
+    // -----------------------------------------------------------------------
+    else {
+      var targetFiles = [];
+      if (part === 'part1') targetFiles = [`${subjectKey}_part1.json`, `${subjectKey}_part_1.json`, `${subjectKey}.json`];
+      else if (part === 'part2') targetFiles = [`${subjectKey}_part2.json`, `${subjectKey}_part_2.json`, `${subjectKey}.json`];
+      else targetFiles = [`${subjectKey}_part1.json`, `${subjectKey}_part2.json`, `${subjectKey}_part_1.json`, `${subjectKey}_part_2.json`, `${subjectKey}.json`];
+
+      for (var tf = 0; tf < targetFiles.length; tf++) {
+        var fileName = targetFiles[tf];
+        var pathsToTry = [
+          `kannada_medium/class_${gradeStr}/${fileName}`,
+          `kannada_medium/${fileName}`,
+          `class_${gradeStr}/${fileName}`,
+          `${fileName}`
+        ];
+
+        for (var p = 0; p < pathsToTry.length; p++) {
+          var rawUrl = `https://raw.githubusercontent.com/withyou00/withyouqbank/main/${encodeURI(pathsToTry[p])}?t=${Date.now()}`;
+          try {
+            var res = await fetch(rawUrl);
+            if (res.ok) {
+              var data = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await res.text()) : [];
+              if (Array.isArray(data) && data.length > 0) {
+                loadedList.push(...data);
+                break;
+              }
+            }
+          } catch(e) {}
+        }
+        if (loadedList.length > 0 && part !== 'all') break;
+      }
+    }
+
+    // ಫಲಿತಾಂಶವನ್ನು UI ಗೆ ಕಳುಹಿಸುವುದು
+    if (loadedList.length > 0) {
+      var seenIds = new Set();
+      appState.activeSubjectQuestions = loadedList.filter(function(q) {
+        if (!q) return false;
+        var uid = (q._src || '') + '_' + (q.id || q.q);
+        if (seenIds.has(uid)) return false;
+        seenIds.add(uid);
+        return true;
+      });
+
+      // 🌟 Step 2 ರಲ್ಲಿ ಎಲ್ಲಾ ಟಾಪಿಕ್‌ಗಳ ಚೆಕ್‌ಬಾಕ್ಸ್ ಮೂಡುತ್ತವೆ
+      renderChapterCheckboxes();
+      if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats();
+      showToast(`⚡ ಒಟ್ಟು ${appState.activeSubjectQuestions.length} ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗಿವೆ!`, 'success');
+    } else {
+      appState.activeSubjectQuestions = [];
+      renderChapterCheckboxes();
+      showToast(`⚠️ GitHub ನಲ್ಲಿ '${rawSubject}' ಸಂಬಂಧಿಸಿದ ಪ್ರಶ್ನೆಗಳು ಸಿಗಲಿಲ್ಲ.`, 'error');
+    }
+  } catch (err) {
+    console.error("Load error:", err);
+  }
+};
     
     
 </script>

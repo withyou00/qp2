@@ -25968,7 +25968,820 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
 })();
 
           
+
+
+
+    /* =====================================================================
+   🛠️ FIX 1: OMR ಸ್ಕ್ಯಾನ್ ನಿಖರತೆ   |   FIX 2: ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು (10, FIFO, ಪೂರ್ತಿ ಮರುತೆರೆಯುವಿಕೆ)
+   ➜ ಕೊನೆಯ </script> ತಕ್ಷಣ ಮೇಲೆ paste ಮಾಡಿ
+   ===================================================================== */
+(function installOMRScannerFix() {
+  if (window.__omrScannerFixV2) return;
+  window.__omrScannerFixV2 = true;
+
+/* OMR core: ಚಿತ್ರದಲ್ಲಿ ವೃತ್ತಗಳನ್ನು (bubbles) ಪತ್ತೆಹಚ್ಚಿ ಗುರುತಿಸಿದ್ದನ್ನು ಮಾತ್ರ ಓದುತ್ತದೆ */
+function omrDetectCore(gray, W, H, totalQ, opts) {
+  opts = opts || {};
+  var RATIO = opts.ratio || 0.80, DIFF = opts.diff || 18, DILATE = opts.dilate || 1;
+  var N = W * H, i, x, y;
+
+  // ---- 1. ಅಡಾಪ್ಟಿವ್ threshold (ನೆರಳು/ಅಸಮ ಬೆಳಕಿಗೆ ತಡೆ) ----
+  var integ = new Float64Array((W + 1) * (H + 1));
+  for (y = 0; y < H; y++) {
+    var rs = 0;
+    for (x = 0; x < W; x++) {
+      rs += gray[y * W + x];
+      integ[(y + 1) * (W + 1) + (x + 1)] = integ[y * (W + 1) + (x + 1)] + rs;
+    }
+  }
+  var win = Math.max(25, Math.round(W / 12)) | 1, half = win >> 1;
+  var meanImg = new Float32Array(N);
+  var bin = new Uint8Array(N);
+  for (y = 0; y < H; y++) {
+    var y0 = Math.max(0, y - half), y1 = Math.min(H - 1, y + half);
+    for (x = 0; x < W; x++) {
+      var x0 = Math.max(0, x - half), x1 = Math.min(W - 1, x + half);
+      var sum = integ[(y1 + 1) * (W + 1) + (x1 + 1)] - integ[y0 * (W + 1) + (x1 + 1)] -
+                integ[(y1 + 1) * (W + 1) + x0] + integ[y0 * (W + 1) + x0];
+      var m = sum / ((x1 - x0 + 1) * (y1 - y0 + 1));
+      i = y * W + x;
+      meanImg[i] = m;
+      var g = gray[i];
+      bin[i] = (g < m * RATIO && (m - g) > DIFF) ? 1 : 0;
+    }
+  }
+
+  // ---- 2. dilation (ಸಣ್ಣ ಬಿರುಕುಗಳಿರುವ ವೃತ್ತ ಮುಚ್ಚಲು) ----
+  var dil = bin;
+  for (var dpass = 0; dpass < DILATE; dpass++) {
+    var nd = new Uint8Array(N);
+    for (y = 1; y < H - 1; y++) {
+      for (x = 1; x < W - 1; x++) {
+        i = y * W + x;
+        if (dil[i] || dil[i - 1] || dil[i + 1] || dil[i - W] || dil[i + W] ||
+            dil[i - W - 1] || dil[i - W + 1] || dil[i + W - 1] || dil[i + W + 1]) nd[i] = 1;
+      }
+    }
+    dil = nd;
+  }
+
+  // ---- 3. Connected components ----
+  var labels = new Int32Array(N);
+  var comps = [];
+  var stack = new Int32Array(N);
+  for (i = 0; i < N; i++) {
+    if (!dil[i] || labels[i]) continue;
+    var id = comps.length + 1;
+    var sp = 0; stack[sp++] = i; labels[i] = id;
+    var minx = W, maxx = 0, miny = H, maxy = 0, cnt = 0;
+    while (sp > 0) {
+      var p = stack[--sp];
+      var py = (p / W) | 0, px = p - py * W;
+      cnt++;
+      if (px < minx) minx = px; if (px > maxx) maxx = px;
+      if (py < miny) miny = py; if (py > maxy) maxy = py;
+      for (var dy = -1; dy <= 1; dy++) {
+        var ny = py + dy; if (ny < 0 || ny >= H) continue;
+        for (var dx = -1; dx <= 1; dx++) {
+          var nx = px + dx; if (nx < 0 || nx >= W) continue;
+          var q = ny * W + nx;
+          if (dil[q] && !labels[q]) { labels[q] = id; stack[sp++] = q; }
+        }
+      }
+    }
+    comps.push({ minx: minx, maxx: maxx, miny: miny, maxy: maxy, cnt: cnt,
+                 w: maxx - minx + 1, h: maxy - miny + 1 });
+  }
+
+  // ---- 4. ವೃತ್ತದ ಗಾತ್ರ d ಅಂದಾಜು (ಅತಿ ಹೆಚ್ಚು ಬರುವ ಚೌಕಾಕಾರದ ಗಾತ್ರ) ----
+  var lo = Math.max(8, W * 0.014), hi = W * 0.06;
+  var cand = comps.filter(function (c) {
+    var asp = c.w / c.h;
+    return c.w >= lo && c.w <= hi && c.h >= lo && c.h <= hi && asp > 0.75 && asp < 1.33;
+  });
+  if (cand.length < 12) return { ok: false, reason: 'ವೃತ್ತಗಳು ಪತ್ತೆಯಾಗಿಲ್ಲ', found: cand.length };
+  var hist = {};
+  cand.forEach(function (c) { var s = Math.round(Math.max(c.w, c.h)); hist[s] = (hist[s] || 0) + 1; });
+  var bestS = 0, bestScore = -1;
+  Object.keys(hist).forEach(function (k) {
+    k = +k;
+    var score = (hist[k] || 0) * 1.0 + (hist[k - 1] || 0) * 0.8 + (hist[k + 1] || 0) * 0.8 +
+                (hist[k - 2] || 0) * 0.4 + (hist[k + 2] || 0) * 0.4;
+    if (score > bestScore) { bestScore = score; bestS = k; }
+  });
+  var d = bestS;
+
+  // ---- 5. ವೃತ್ತ (ಚೌಕ ಅಲ್ಲ) ಆಗಿರುವ ಘಟಕಗಳು ಮಾತ್ರ ----
+  function cornerDark(c) {
+    var cs = Math.max(2, Math.round(d * 0.2)), dark = 0;
+    var corners = [[c.minx, c.miny], [c.maxx - cs + 1, c.miny], [c.minx, c.maxy - cs + 1], [c.maxx - cs + 1, c.maxy - cs + 1]];
+    corners.forEach(function (cr) {
+      var n = 0, t = 0;
+      for (var yy = cr[1]; yy < cr[1] + cs; yy++) for (var xx = cr[0]; xx < cr[0] + cs; xx++) {
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        t++; if (bin[yy * W + xx]) n++;
+      }
+      if (t && n / t > 0.55) dark++;
+    });
+    return dark;
+  }
+  var bubbles = [], squares = [];
+  cand.forEach(function (c) {
+    var sz = Math.max(c.w, c.h);
+    if (sz < d * 0.8 || sz > d * 1.25) return;
+    if (cornerDark(c) >= 3) { squares.push({ cx: (c.minx + c.maxx) / 2, cy: (c.miny + c.maxy) / 2 }); return; } // ಚೌಕ (ಹೆಸರಿನ ಪೆಟ್ಟಿಗೆ ಇತ್ಯಾದಿ)
+    bubbles.push({ cx: (c.minx + c.maxx) / 2, cy: (c.miny + c.maxy) / 2, r: sz / 2 });
+  });
+  if (bubbles.length < 12) return { ok: false, reason: 'ವೃತ್ತಗಳು ಸಾಕಷ್ಟು ಪತ್ತೆಯಾಗಿಲ್ಲ', found: bubbles.length, d: d };
+
+  // ---- 6. ಹಾಳೆಯ ಓರೆ (rotation) ಅಂದಾಜು ----
+  var angles = [];
+  bubbles.forEach(function (b) {
+    var best = null, bd = 1e9;
+    bubbles.forEach(function (o) {
+      if (o === b) return;
+      var dx = o.cx - b.cx, dy = o.cy - b.cy;
+      if (dx > d * 0.9 && dx < d * 2.6 && Math.abs(dy) < d * 0.7 && dx < bd) { bd = dx; best = o; }
+    });
+    if (best) angles.push(Math.atan2(best.cy - b.cy, best.cx - b.cx));
+  });
+  angles.sort(function (a, b) { return a - b; });
+  var theta = angles.length ? angles[(angles.length / 2) | 0] : 0;
+  var cs_ = Math.cos(theta), sn_ = Math.sin(theta);
+  bubbles.forEach(function (b) {
+    b.x = b.cx * cs_ + b.cy * sn_;
+    b.y = -b.cx * sn_ + b.cy * cs_;
+  });
+
+  squares.forEach(function (q) { q.y = -q.cx * sn_ + q.cy * cs_; });
+  // ---- 7. ಸಹಾಯಕ ಫಂಕ್ಷನ್‌ಗಳು ----
+  function clusterBy(list, key, gap) {
+    var s = list.slice().sort(function (a, b) { return a[key] - b[key]; });
+    var groups = [], cur = [];
+    s.forEach(function (it, idx) {
+      if (idx > 0 && it[key] - s[idx - 1][key] > gap) { groups.push(cur); cur = []; }
+      cur.push(it);
+    });
+    if (cur.length) groups.push(cur);
+    return groups;
+  }
+  function mean(a, k) { var t = 0; a.forEach(function (o) { t += o[k]; }); return t / a.length; }
+  function median(arr) { var s = arr.slice().sort(function (a, b) { return a - b; }); return s[(s.length / 2) | 0]; }
+
+  // ---- 8. ಕಾಲಮ್‌ಗಳು: 16 ಲಂಬ ಸಾಲುಗಳು (4 ಬ್ಲಾಕ್ × A,B,C,D) ----
+  var numBlocks = 4;
+  var colsAll = clusterBy(bubbles, 'x', d * 0.45);
+  var maxCnt = 0; colsAll.forEach(function (g) { if (g.length > maxCnt) maxCnt = g.length; });
+  var colsG = colsAll.filter(function (g) { return g.length >= maxCnt * 0.5; });
+  if (colsG.length !== numBlocks * 4) {
+    return { ok: false, reason: 'ಕಾಲಮ್‌ಗಳ ಸಂಖ್ಯೆ ಹೊಂದಿಕೆಯಾಗಿಲ್ಲ', cols: colsG.length, expected: numBlocks * 4, d: d, found: bubbles.length };
+  }
+  colsG.sort(function (a, b) { return mean(a, 'x') - mean(b, 'x'); });
+
+  // ಪ್ರತಿ ಕಾಲಮ್‌ನಲ್ಲಿ ನೇರ ರೇಖೆಗೆ ಹೊಂದದ (ಸಂಖ್ಯೆ/ಅಕ್ಷರ) ಅನಗತ್ಯ ಘಟಕಗಳನ್ನು ತೆಗೆಯುವುದು
+  var grid = [];
+  var colFit = [];
+  colsG.forEach(function (g, gi) {
+    var pts = g.slice(), slope = 0, icpt = 0;
+    for (var it = 0; it < 4; it++) {
+      var n = pts.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
+      pts.forEach(function (p) { sx += p.y; sy += p.x; sxx += p.y * p.y; sxy += p.y * p.x; });
+      var den = n * sxx - sx * sx;
+      slope = den ? (n * sxy - sx * sy) / den : 0;
+      icpt = (sy - slope * sx) / n;
+      var kept = pts.filter(function (p) { return Math.abs(p.x - (icpt + slope * p.y)) <= d * 0.45; });
+      if (kept.length === pts.length) break;
+      pts = kept;
+    }
+    colFit[gi] = { a: icpt, s: slope };
+    pts.forEach(function (p) { p.block = (gi / 4) | 0; p.opt = gi % 4; grid.push(p); });
+  });
+
+  // ---- 9. ಪ್ರತಿ ಬ್ಲಾಕ್‌ನ ಸಾಲು → ಪ್ರಶ್ನೆ ಸಂಖ್ಯೆ ----
+  var perCol = Math.ceil(totalQ / 4);
+  var blockInfo = [];
+  for (var b = 0; b < numBlocks; b++) {
+    var blk = grid.filter(function (o) { return o.block === b; });
+    var rows = clusterBy(blk, 'y', d * 0.8).filter(function (r) { return r.length >= 3; });
+    var ys = rows.map(function (r) { return mean(r, 'y'); });
+    var gaps = [];
+    for (i = 1; i < ys.length; i++) gaps.push(ys[i] - ys[i - 1]);
+    var lp = gaps.length ? median(gaps) : d * 1.4;
+    while (rows.length > 1 && (ys[1] - ys[0]) > lp * 1.6) { rows.shift(); ys.shift(); }
+    while (rows.length > 1 && (ys[ys.length - 1] - ys[ys.length - 2]) > lp * 1.6) { rows.pop(); ys.pop(); }
+    blockInfo.push({ rows: rows, ys: ys, lp: lp, expected: Math.max(0, Math.min(perCol, totalQ - b * perCol)) });
+  }
+  // ಪೂರ್ಣ ಬ್ಲಾಕ್‌ಗಳ ಮೇಲಿನ/ಕೆಳಗಿನ ಸಾಲಿನ ಮಧ್ಯಮ ಸ್ಥಾನ (ಕಾಣೆಯಾದ ಸಾಲು ಎಲ್ಲಿದೆ ಎಂದು ಪತ್ತೆಹಚ್ಚಲು)
+  var tops = [], bots = [];
+  blockInfo.forEach(function (bi) {
+    if (bi.rows.length === bi.expected && bi.expected === perCol) { tops.push(bi.ys[0]); bots.push(bi.ys[bi.ys.length - 1]); }
+  });
+  var refTop = tops.length ? median(tops) : null;
+  var refBot = bots.length ? median(bots) : null;
+
+  var qMap = {}, problems = [];
+  var ambiguous = false;
+  blockInfo.forEach(function (bi, b) {
+    var offset = 0;
+    if (bi.rows.length < bi.expected) {
+      if (refTop === null) { ambiguous = true; }
+      else {
+        var missing = bi.expected - bi.rows.length;
+        var topOK = Math.abs(bi.ys[0] - refTop) <= bi.lp * 0.4;
+        var botOK = (b < numBlocks - 1) ? (Math.abs(bi.ys[bi.ys.length - 1] - refBot) <= bi.lp * 0.4) : false;
+        if (topOK) offset = 0;                       // ಕೆಳಗಿನ ಸಾಲುಗಳು ಕಾಣೆ
+        else if (botOK) offset = missing;            // ಮೇಲಿನ ಸಾಲುಗಳು ಕಾಣೆ
+        else {
+          offset = Math.round((bi.ys[0] - refTop) / bi.lp);
+          if (offset < 0 || offset > missing || Math.abs((bi.ys[0] - refTop) / bi.lp - offset) > 0.3) ambiguous = true;
+        }
+      }
+    }
+    var idxList = [];
+    var idx = offset;
+    bi.rows.forEach(function (r, ri) {
+      if (ri > 0) idx += Math.max(1, Math.round((bi.ys[ri] - bi.ys[ri - 1]) / bi.lp));
+      idxList.push(idx);
+    });
+    // idx → y ರೇಖೀಯ ಹೊಂದಾಣಿಕೆ
+    var n = idxList.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
+    idxList.forEach(function (v, k) { sx += v; sy += bi.ys[k]; sxx += v * v; sxy += v * bi.ys[k]; });
+    var den = n * sxx - sx * sx;
+    var c1 = den ? (n * sxy - sx * sy) / den : bi.lp;
+    var c0 = (sy - c1 * sx) / n;
+    bi.rows.forEach(function (r, ri) {
+      var ix = idxList[ri];
+      if (ix >= bi.expected) { problems.push('block' + b + ' row' + ix); return; }
+      var qn = b * perCol + ix + 1;
+      if (!qMap[qn]) qMap[qn] = [null, null, null, null];
+      r.forEach(function (bb) { qMap[qn][bb.opt] = bb; });
+    });
+    // ಕಾಣೆಯಾದ ವೃತ್ತಗಳ ಸ್ಥಾನ ಅಂದಾಜು (ಜಾಲರಿ ಪೂರ್ಣಗೊಳಿಸುವಿಕೆ)
+    for (var ix2 = 0; ix2 < bi.expected; ix2++) {
+      var qn2 = b * perCol + ix2 + 1;
+      if (!qMap[qn2]) qMap[qn2] = [null, null, null, null];
+      for (var o = 0; o < 4; o++) {
+        if (qMap[qn2][o]) continue;
+        var yy = c0 + c1 * ix2;
+        var cf = colFit[b * 4 + o];
+        var xx = cf.a + cf.s * yy;
+        qMap[qn2][o] = {
+          est: true, r: d / 2, x: xx, y: yy,
+          cx: xx * cs_ - yy * sn_, cy: xx * sn_ + yy * cs_
+        };
+      }
+    }
+  });
+  if (problems.length || ambiguous) return { ok: false, reason: 'ಸಾಲುಗಳ ಸ್ಥಾನ ಖಚಿತವಾಗಿಲ್ಲ', problems: problems.slice(0, 5), d: d };
+
+  var detectedBubbles = 0;
+  Object.keys(qMap).forEach(function (k) { qMap[k].forEach(function (bb) { if (bb && !bb.est) detectedBubbles++; }); });
+  var coverage = detectedBubbles / (totalQ * 4);
+  if (coverage < 0.8) return { ok: false, reason: 'ಹಾಳೆ ಸ್ಪಷ್ಟವಾಗಿ ಕಾಣುತ್ತಿಲ್ಲ', coverage: coverage, d: d };
+
+  // ---- 10. ಪ್ರತಿ ವೃತ್ತದ ಒಳಗಿನ ಕಪ್ಪುತನ (ink score) ----
+  function inkScore(bb) {
+    var rr = Math.max(2, bb.r * 0.62), t = 0, s = 0;
+    var x0 = Math.floor(bb.cx - rr), x1 = Math.ceil(bb.cx + rr), y0 = Math.floor(bb.cy - rr), y1 = Math.ceil(bb.cy + rr);
+    for (var yy = y0; yy <= y1; yy++) for (var xx = x0; xx <= x1; xx++) {
+      if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+      var ddx = xx - bb.cx, ddy = yy - bb.cy;
+      if (ddx * ddx + ddy * ddy > rr * rr) continue;
+      var ii = yy * W + xx;
+      var bg = Math.max(meanImg[ii], 1);
+      s += Math.max(0, 1 - gray[ii] / bg); t++;
+    }
+    return t ? s / t : 0;
+  }
+  var allScores = [];
+  Object.keys(qMap).forEach(function (k) {
+    qMap[k].forEach(function (bb) { bb.ink = inkScore(bb); allScores.push(bb.ink); });
+  });
+  var gy0 = 1e9, gy1 = -1e9, gx0 = 1e9, gx1 = -1e9;
+  Object.keys(qMap).forEach(function (k) {
+    qMap[k].forEach(function (p) {
+      if (p.y < gy0) gy0 = p.y; if (p.y > gy1) gy1 = p.y;
+      if (p.x < gx0) gx0 = p.x; if (p.x > gx1) gx1 = p.x;
+    });
+  });
+  var sorted = Array.prototype.slice.call(gray, 0, N).filter(function (v, k) { return k % 7 === 0; }).sort(function (a, b) { return a - b; });
+  var paperLevel = sorted[(sorted.length * 0.7) | 0];
+  function darkFrac(yc) {
+    var t = 0, k = 0, y0s = yc - d * 0.5, y1s = yc + d * 0.5;
+    for (var yy2 = y0s; yy2 <= y1s; yy2 += 2) for (var xx2 = gx0; xx2 <= gx1; xx2 += 3) {
+      var rx = xx2 * cs_ - yy2 * sn_, ry = xx2 * sn_ + yy2 * cs_;
+      var px2 = Math.round(rx), py2 = Math.round(ry);
+      if (px2 < 0 || py2 < 0 || px2 >= W || py2 >= H) continue;
+      k++; if (gray[py2 * W + px2] < paperLevel * 0.45) t++;
+    }
+    return k ? t / k : 0;
+  }
+  var edgePitch = (gy1 - gy0) / Math.max(1, perCol - 1);
+  var barAbove = Math.max(darkFrac(gy0 - edgePitch * 0.75), darkFrac(gy0 - edgePitch * 1.0));
+  var barBelow = Math.max(darkFrac(gy1 + edgePitch * 0.75), darkFrac(gy1 + edgePitch * 1.0));
+  var sqAbove = barAbove, sqBelow = barBelow;
+  var baseline = median(allScores);
+  var thr = Math.max(0.28, baseline + 0.14);
+
+  var answers = {}, detail = {};
+  var letters = ['A', 'B', 'C', 'D'];
+  for (var qn3 = 1; qn3 <= totalQ; qn3++) {
+    var row = qMap[qn3];
+    if (!row) { answers[qn3] = 'BLANK'; continue; }
+    var maxInk = 0;
+    row.forEach(function (bb) { if (bb.ink > maxInk) maxInk = bb.ink; });
+    var marked = [];
+    row.forEach(function (bb, oi) { if (bb.ink >= thr && bb.ink >= maxInk * 0.55) marked.push(oi); });
+    if (marked.length === 0) answers[qn3] = 'BLANK';
+    else if (marked.length === 1) answers[qn3] = letters[marked[0]];
+    else answers[qn3] = 'MULTI';
+    detail[qn3] = row.map(function (bb) { return +bb.ink.toFixed(2); });
+  }
+  return { ok: true, upsideDown: (barBelow > barAbove + 0.2), sqAbove: +barAbove.toFixed(2), sqBelow: +barBelow.toFixed(2), answers: answers, detail: detail, d: d, theta: theta, baseline: baseline, thr: thr, coverage: coverage };
+}
+
+
+  // ======================= DOM ಭಾಗ: ಚಿತ್ರವನ್ನು ಓದಿ ಫಲಿತಾಂಶ ತೋರಿಸುವುದು =======================
+  function toGrayFromCanvas(canvas, maxSide) {
+    var w = canvas.width, h = canvas.height;
+    var scale = Math.min(1, maxSide / Math.max(w, h));
+    var src = canvas, tw = w, th = h;
+    if (scale < 1) {
+      tw = Math.max(1, Math.round(w * scale)); th = Math.max(1, Math.round(h * scale));
+      var tmp = document.createElement('canvas');
+      tmp.width = tw; tmp.height = th;
+      tmp.getContext('2d').drawImage(canvas, 0, 0, tw, th);
+      src = tmp;
+    }
+    var data = src.getContext('2d').getImageData(0, 0, tw, th).data;
+    var gray = new Uint8Array(tw * th);
+    for (var i = 0, j = 0; i < data.length; i += 4, j++) {
+      gray[j] = (data[i] * 299 + data[i + 1] * 587 + data[i + 2] * 114) / 1000;
+    }
+    return { gray: gray, W: tw, H: th };
+  }
+  function rot180(g) { var o = new Uint8Array(g.length), n = g.length; for (var i = 0; i < n; i++) o[n - 1 - i] = g[i]; return o; }
+  function rot90cw(g, W, H) { var o = new Uint8Array(g.length); for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) o[x * H + (H - 1 - y)] = g[y * W + x]; return { gray: o, W: H, H: W }; }
+  function rot90ccw(g, W, H) { var o = new Uint8Array(g.length); for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) o[(W - 1 - x) * H + y] = g[y * W + x]; return { gray: o, W: H, H: W }; }
+
+  function scanOMRImage(img, totalQ) {
+    var bases = [img];
+    if (img.W > img.H * 1.1) { bases = [rot90cw(img.gray, img.W, img.H), rot90ccw(img.gray, img.W, img.H)]; }
+    var optsList = [{}, { ratio: 0.88, diff: 12, dilate: 1 }];
+    var last = { ok: false, reason: 'ಹಾಳೆ ಪತ್ತೆಯಾಗಿಲ್ಲ' };
+    for (var b = 0; b < bases.length; b++) {
+      var base = bases[b];
+      for (var o = 0; o < optsList.length; o++) {
+        var r = omrDetectCore(base.gray, base.W, base.H, totalQ, optsList[o]);
+        if (r.ok && !r.upsideDown) return r;
+        if (r.ok && r.upsideDown) {
+          var rf = omrDetectCore(rot180(base.gray), base.W, base.H, totalQ, optsList[o]);
+          if (rf.ok) return rf;
+        }
+        if (!r.ok) {
+          var r2 = omrDetectCore(rot180(base.gray), base.W, base.H, totalQ, optsList[o]);
+          if (r2.ok && !r2.upsideDown) return r2;
+          last = r;
+        }
+      }
+    }
+    return last;
+  }
+
+  function setText(id, v) { var el = document.getElementById(id); if (el) el.innerText = v; }
+
+  function showScanFailure(totalQ, reason) {
+    try { playScannerAudioBeep(false); } catch (e) {}
+    setText('omr-res-score', '0');
+    setText('omr-res-grade', '❌ ನಿಖರವಾಗಿ ಓದಲಾಗಲಿಲ್ಲ');
+    setText('omr-cnt-correct', '0'); setText('omr-cnt-wrong', '0'); setText('omr-cnt-blank', String(totalQ));
+    var badge = document.getElementById('omr-scan-badge');
+    if (badge) { badge.className = 'text-[10px] bg-rose-100 text-rose-800 font-black px-2 py-0.5 rounded-full'; badge.innerText = '❌ ಮತ್ತೆ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ'; }
+    var saveBtn = document.getElementById('btn-save-omr-record'); if (saveBtn) saveBtn.disabled = true;
+    omrScannerState.currentResult = null;
+    if (typeof showToast === 'function') {
+      showToast('⚠️ OMR ಹಾಳೆಯನ್ನು ನಿಖರವಾಗಿ ಓದಲಾಗಲಿಲ್ಲ (' + (reason || '') + '). ಹಾಳೆ ಪೂರ್ತಿ ಕಾಣುವಂತೆ, ನೇರವಾಗಿ, ಸಾಕಷ್ಟು ಬೆಳಕಿನಲ್ಲಿ, ಫೋಕಸ್ ಆಗಿ ಮತ್ತೊಮ್ಮೆ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.', 'error');
+    }
+  }
+
+  window.processOMRCanvasImage = function (canvas) {
+    var keyMap = omrScannerState.correctAnswersMap || {};
+    var totalQ = Object.keys(keyMap).length;
+    if (!canvas || !canvas.width || !canvas.height || totalQ < 4) { showScanFailure(totalQ || 0, 'ಕೀ ಉತ್ತರಗಳು ಇಲ್ಲ'); return; }
+
+    var img;
+    try { img = toGrayFromCanvas(canvas, 1500); } catch (e) { showScanFailure(totalQ, 'ಚಿತ್ರ ಓದಲಾಗಲಿಲ್ಲ'); return; }
+
+    var res;
+    try { res = scanOMRImage(img, totalQ); } catch (err) { console.error('OMR scan error', err); res = { ok: false, reason: 'ದೋಷ' }; }
+    window.__lastOMRScan = res;
+    if (!res.ok) { showScanFailure(totalQ, res.reason); return; }
+
+    var correctCount = 0, wrongCount = 0, blankCount = 0, multiCount = 0;
+    var student = {};
+    for (var q = 1; q <= totalQ; q++) {
+      var a = res.answers[q] || 'BLANK';
+      student[q] = a;
+      if (a === 'BLANK') blankCount++;                       // ಗುರುತಿಸದ್ದು: ಬಿಟ್ಟಿರುವ
+      else if (a === 'MULTI') { wrongCount++; multiCount++; } // ಡಬಲ್ ಗುರುತು: ತಪ್ಪು
+      else if (a === (keyMap[q] || 'A')) correctCount++;
+      else wrongCount++;
+    }
+    var percentage = Math.round((correctCount / totalQ) * 100);
+    var grade;
+    if (percentage >= 85) grade = 'A+ (ಅತ್ಯುತ್ತಮ)';
+    else if (percentage >= 70) grade = 'A (ಉತ್ತಮ)';
+    else if (percentage >= 50) grade = 'B+ (ಸಾಧಾರಣ)';
+    else if (percentage >= 35) grade = 'B (ತೇರ್ಗಡೆ)';
+    else grade = 'C (ಕಲಿಕಾ ಕೊರತೆ)';
+
+    setText('omr-res-score', String(correctCount));
+    setText('omr-res-grade', percentage + '% - ' + grade);
+    setText('omr-cnt-correct', String(correctCount));
+    setText('omr-cnt-wrong', String(wrongCount));
+    setText('omr-cnt-blank', String(blankCount));
+    var badge = document.getElementById('omr-scan-badge');
+    if (badge) {
+      badge.className = 'text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-full';
+      badge.innerText = '✓ ನೈಜ OMR ಮೌಲ್ಯಮಾಪನ ಪೂರ್ಣಗೊಂಡಿದೆ' + (multiCount ? ' (ಡಬಲ್ ಗುರುತು: ' + multiCount + ')' : '');
+    }
+    try { playScannerAudioBeep(true); } catch (e) {}
+
+    omrScannerState.currentResult = {
+      totalQ: totalQ, score: correctCount, percentage: percentage, grade: grade,
+      set: (typeof appState !== 'undefined' && appState.currentExamSet) || 'A',
+      detectedAnswers: student, multiMarked: multiCount
+    };
+    var saveBtn = document.getElementById('btn-save-omr-record'); if (saveBtn) saveBtn.disabled = false;
+    if (typeof showToast === 'function') {
+      showToast('⚡ OMR ಮೌಲ್ಯಮಾಪನ: ' + correctCount + ' ಸರಿ, ' + wrongCount + ' ತಪ್ಪು, ' + blankCount + ' ಬಿಟ್ಟಿರುವ' + (multiCount ? ' (ಡಬಲ್ ಗುರುತು ' + multiCount + ' → ತಪ್ಪು)' : ''), 'success');
+    }
+  };
+  try { processOMRCanvasImage = window.processOMRCanvasImage; } catch (e) {}
+
+})();
+
+/* =====================================================================
   
+   ===================================================================== */
+(function installSavedPapersV2() {
+  if (window.__savedPapersV2) return;
+  window.__savedPapersV2 = true;
+
+  var INDEX_KEY = 'wy_local_saved_papers_master';
+  var LEGACY_PREFIX = 'wy_local_saved_papers_';
+  var BLOB_PREFIX = 'wy_paper_blob_';
+  var MAX_PAPERS = 10;
+  var DB_NAME = 'wy_papers_db', STORE = 'papers';
+
+  var memBlobs = {};      // IndexedDB/localStorage ಎರಡೂ ವಿಫಲವಾದರೆ (ಈ session ಗೆ ಮಾತ್ರ)
+  var idx = [];           // ಚಿಕ್ಕ ಪಟ್ಟಿ (metadata)
+  var dbPromise = null;
+
+  // ---------------- IndexedDB ----------------
+  function openDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise(function (resolve, reject) {
+      try {
+        if (!window.indexedDB) return reject(new Error('IndexedDB ಇಲ್ಲ'));
+        var rq = indexedDB.open(DB_NAME, 1);
+        rq.onupgradeneeded = function () { if (!rq.result.objectStoreNames.contains(STORE)) rq.result.createObjectStore(STORE, { keyPath: 'id' }); };
+        rq.onsuccess = function () { resolve(rq.result); };
+        rq.onerror = function () { reject(rq.error); };
+        rq.onblocked = function () { reject(new Error('blocked')); };
+      } catch (e) { reject(e); }
+    });
+    return dbPromise;
+  }
+  function idbRun(mode, fn) {
+    return openDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(STORE, mode), st = tx.objectStore(STORE), rq = fn(st);
+        tx.oncomplete = function () { resolve(rq && rq.result); };
+        tx.onerror = tx.onabort = function () { reject(tx.error || new Error('IDB tx')); };
+      });
+    });
+  }
+  function putBlob(rec) {
+    return idbRun('readwrite', function (st) { return st.put(rec); }).then(function () { return 'idb'; }).catch(function () {
+      try { localStorage.setItem(BLOB_PREFIX + rec.id, JSON.stringify(rec)); return 'ls'; }
+      catch (e) { memBlobs[rec.id] = rec; return 'mem'; }
+    });
+  }
+  function getBlob(id) {
+    return idbRun('readonly', function (st) { return st.get(id); }).then(function (rec) {
+      if (rec) return rec;
+      throw new Error('not in idb');
+    }).catch(function () {
+      try { var s = localStorage.getItem(BLOB_PREFIX + id); if (s) return JSON.parse(s); } catch (e) {}
+      return memBlobs[id] || null;
+    });
+  }
+  function delBlob(id) {
+    delete memBlobs[id];
+    try { localStorage.removeItem(BLOB_PREFIX + id); } catch (e) {}
+    return idbRun('readwrite', function (st) { return st.delete(id); }).catch(function () {});
+  }
+  function clearBlobs() {
+    memBlobs = {};
+    try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf(BLOB_PREFIX) === 0) localStorage.removeItem(k); }); } catch (e) {}
+    return idbRun('readwrite', function (st) { return st.clear(); }).catch(function () {});
+  }
+
+  // ---------------- ಚಿಕ್ಕ ಪಟ್ಟಿ (localStorage) ----------------
+  function purgeLegacyKeys() {
+    try {
+      Object.keys(localStorage).forEach(function (k) {
+        if (k.indexOf(LEGACY_PREFIX) === 0 && k !== INDEX_KEY) localStorage.removeItem(k);
+      });
+    } catch (e) {}
+  }
+  function readIndexLS() {
+    try { var a = JSON.parse(localStorage.getItem(INDEX_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+  }
+  function writeIndexLS() {
+    var s = JSON.stringify(idx);
+    try { localStorage.setItem(INDEX_KEY, s); return true; }
+    catch (e) {
+      purgeLegacyKeys();
+      try { localStorage.setItem(INDEX_KEY, s); return true; } catch (e2) { return false; }
+    }
+  }
+  function persistIndex() {
+    writeIndexLS();
+    // ಪ್ರತಿಯಾಗಿ IndexedDB ನಲ್ಲಿಯೂ (localStorage ತುಂಬಿದ್ದರೂ ಪಟ್ಟಿ ಉಳಿಯಲು)
+    idbRun('readwrite', function (st) { return st.put({ id: '__index__', list: idx, ts: Date.now() }); }).catch(function () {});
+  }
+
+  window.getSavedPapersListFromStorage = function () { return idx.slice(); };
+
+  function refreshUI() {
+    try { if (typeof window.refreshTopNavSavedPapersButton === 'function') window.refreshTopNavSavedPapersButton(); } catch (e) {}
+  }
+
+  // ---------------- ಹಳೆಯ ಡೇಟಾ ವರ್ಗಾವಣೆ (ಸಂಗ್ರಹ ಖಾಲಿ ಮಾಡಲು) ----------------
+  function migrateLegacy() {
+    idx = readIndexLS();
+    // (ಅ) ಬೇರೆ ಹಳೆಯ keys ನಲ್ಲಿರುವ ಪತ್ರಿಕೆಗಳು (ಪಟ್ಟಿ ಖಾಲಿ ಇದ್ದರೆ ಮಾತ್ರ)
+    var legacyRecs = [];
+    try {
+      Object.keys(localStorage).forEach(function (k) {
+        if (k.indexOf(LEGACY_PREFIX) === 0 && k !== INDEX_KEY) {
+          try { var arr = JSON.parse(localStorage.getItem(k) || '[]'); if (Array.isArray(arr)) legacyRecs = legacyRecs.concat(arr); } catch (e) {}
+        }
+      });
+    } catch (e) {}
+    var seen = {};
+    idx.forEach(function (m) { seen[m.id] = true; });
+    legacyRecs.forEach(function (r) { if (r && r.id && !seen[r.id] && r.questionsSnapshot) { idx.push(r); seen[r.id] = true; } });
+    idx.sort(function (a, b) { return (b.id || 0) - (a.id || 0); });
+
+    var heavy = idx.filter(function (m) { return m.questionsSnapshot; });
+    var tasks = heavy.map(function (m) {
+      var rec = { id: m.id, legacy: true, questionsSnapshot: m.questionsSnapshot, headerHtml: m.headerHtml || '' };
+      return putBlob(rec).then(function (where) { return { m: m, where: where }; });
+    });
+    Promise.all(tasks).then(function (rs) {
+      rs.forEach(function (x) {
+        if (x.where === 'idb' || x.where === 'ls') {
+          x.m.legacy = true; delete x.m.questionsSnapshot; delete x.m.headerHtml;
+        }
+      });
+      // ಹತ್ತಕ್ಕಿಂತ ಹೆಚ್ಚಿದ್ದರೆ ಹಳೆಯದನ್ನು ತೆಗೆಯಿರಿ
+      while (idx.length > MAX_PAPERS) { var old = idx.pop(); delBlob(old.id); }
+      purgeLegacyKeys();
+      persistIndex();
+      refreshUI();
+    });
+    // localStorage ಖಾಲಿ ಇದ್ದು IndexedDB ನಲ್ಲಿ ಪಟ್ಟಿ ಇದ್ದರೆ ಮರುಪಡೆಯಿರಿ
+    if (!idx.length) {
+      getBlob('__index__').then(function (rec) {
+        if (rec && Array.isArray(rec.list) && rec.list.length && !idx.length) { idx = rec.list; writeIndexLS(); refreshUI(); }
+      }).catch(function () {});
+    }
+  }
+
+  // ---------------- ಸ್ನ್ಯಾಪ್‌ಶಾಟ್ ತೆಗೆಯುವುದು ----------------
+  function clone(o) { try { return JSON.parse(JSON.stringify(o)); } catch (e) { return null; } }
+
+  function hashStr(s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return String(h); }
+
+  function captureCfg() {
+    var cfg = {};
+    document.querySelectorAll('[id^="cfg-"]').forEach(function (el) {
+      if (el.type === 'checkbox' || el.type === 'radio') cfg[el.id] = { checked: !!el.checked };
+      else if (typeof el.value !== 'undefined') cfg[el.id] = { value: el.value };
+    });
+    return cfg;
+  }
+  function captureHtml() {
+    var out = {};
+    document.querySelectorAll('[id^="rendered-"]').forEach(function (el) {
+      if (el.id === 'rendered-quiz-panel') return;
+      out[el.id] = el.innerHTML;
+    });
+    return out;
+  }
+  function val(id, d) { var e = document.getElementById(id); return (e && e.value) ? e.value : d; }
+
+  function buildRecord() {
+    var q = (appState.activeGeneratedQuestions || []);
+    if (!q.length) return null;
+    var grade = val('cfg-class', '8'), subj = val('cfg-subject', 'ವಿಷಯ');
+    var marks = q.reduce(function (s, x) { return s + (typeof getExactQuestionMarks === 'function' ? getExactQuestionMarks(x) : (parseInt(x.marks) || 1)); }, 0);
+    var id = Date.now();
+    var now = new Date();
+    var set = appState.currentExamSet || 'A';
+    var sig = hashStr(q.map(function (x) { return (x.q || '') + '|' + (x.ans || ''); }).join('~') + '#' + set);
+    var meta = {
+      id: id, sig: sig,
+      savedAt: now.toLocaleDateString('kn-IN', { month: 'short', day: 'numeric' }) + ' ' + now.toLocaleTimeString('kn-IN', { hour: '2-digit', minute: '2-digit' }),
+      title: grade + 'ನೇ ತರಗತಿ ' + subj,
+      subject: subj, grade: grade,
+      examType: val('cfg-exam-type', 'ಪರೀಕ್ಷೆ'), examDate: val('cfg-exam-date', '2026-27'),
+      totalMarks: marks, questionsCount: q.length, set: set
+    };
+    var rec = {
+      id: id, v: 2,
+      cfg: captureCfg(), html: captureHtml(),
+      active: clone(q),
+      base: clone(appState.baseGeneratedQuestions && appState.baseGeneratedQuestions.length ? appState.baseGeneratedQuestions : q),
+      set: set
+    };
+    return { meta: meta, rec: rec };
+  }
+
+  function saveCurrentPaper() {
+    var built = buildRecord();
+    if (!built) return Promise.resolve(false);
+    return putBlob(built.rec).then(function (where) {
+      // ಅದೇ ಪತ್ರಿಕೆ ಮತ್ತೆ ಬಂದರೆ ಹಳೆಯ ನಕಲು ಬದಲಿಸಿ
+      var removed = [];
+      idx = idx.filter(function (m) { if (m.sig && m.sig === built.meta.sig) { removed.push(m.id); return false; } return true; });
+      removed.forEach(delBlob);
+      idx.unshift(built.meta);
+      while (idx.length > MAX_PAPERS) { var old = idx.pop(); delBlob(old.id); }   // FIFO
+      persistIndex();
+      refreshUI();
+      if (typeof showToast === 'function') {
+        showToast('💾 ಪತ್ರಿಕೆ ಉಳಿಸಲಾಗಿದೆ! (' + idx.length + '/' + MAX_PAPERS + ')' + (where === 'mem' ? ' — ⚠️ ಸಂಗ್ರಹ ತುಂಬಿದೆ, ಈ ಅವಧಿಗೆ ಮಾತ್ರ' : ''), where === 'mem' ? 'info' : 'success');
+      }
+      return true;
+    });
+  }
+  window.saveCurrentPaperToLibrary = saveCurrentPaper;
+
+  // ---------------- ಜನರೇಟ್ ಆದಾಗ ಆಟೋ-ಸೇವ್ (ಸಮಯದ ಊಹೆ ಇಲ್ಲದೆ — DOM ಬದಲಾವಣೆ ನೋಡಿ) ----------------
+  var pending = false, pendingSince = 0, refQ = null, refHtml = '', debTimer = null, fbTimer = null, observer = null;
+
+  function paperEl() { return document.getElementById('rendered-paper'); }
+
+  function trySave() {
+    if (!pending) return;
+    if (Date.now() - pendingSince > 40000) { pending = false; return; }
+    var q = appState.activeGeneratedQuestions || [];
+    var p = paperEl();
+    var changed = (q !== refQ) || (p && p.innerHTML !== refHtml);
+    if (!q.length || !p || !p.children.length || !changed) return;
+    pending = false;
+    saveCurrentPaper().catch(function (e) { console.warn('Paper save error', e); });
+  }
+  function onMutation() {
+    if (!pending) return;
+    clearTimeout(debTimer);
+    debTimer = setTimeout(trySave, 1300);
+  }
+  function ensureObserver() {
+    if (observer) return;
+    var target = document.getElementById('output-section') || document.getElementById('print-area') || document.body;
+    try {
+      observer = new MutationObserver(onMutation);
+      observer.observe(target, { childList: true, subtree: true });
+    } catch (e) { observer = null; }
+  }
+  function armSave() {
+    pending = true; pendingSince = Date.now();
+    refQ = appState.activeGeneratedQuestions;
+    var p = paperEl(); refHtml = p ? p.innerHTML : '';
+    ensureObserver();
+    clearTimeout(fbTimer);
+    fbTimer = setTimeout(trySave, 4500);       // DOM ಬದಲಾವಣೆ ಕಾಣದಿದ್ದರೂ ಒಂದು ಬಾರಿ ಪ್ರಯತ್ನ
+    setTimeout(trySave, 12000);
+  }
+
+  var prevGen = window.generateExamPackageFromBank;
+  window.generateExamPackageFromBank = function () {
+    armSave();
+    try {
+      return (typeof prevGen === 'function') ? prevGen.apply(this, arguments) : undefined;
+    } catch (e) { pending = false; throw e; }
+  };
+
+  // ಹಳೆಯ save ಕೋಡ್‌ಗಳು ಸಂಗ್ರಹ ತುಂಬಿಸುತ್ತಿದ್ದವು — ಅವುಗಳನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸುವುದು
+  window.autoSaveGeneratedPaperToLocalStorage = function () {};
+  window.savePaperToLocalStorageEngine = function () {};
+  window.updateSavedHistoryButtonBadge = function () { refreshUI(); };
+
+  // ---------------- ತೆರೆಯುವುದು ----------------
+  function restoreCfg(cfg) {
+    Object.keys(cfg || {}).forEach(function (id) {
+      var el = document.getElementById(id), c = cfg[id];
+      if (!el || !c) return;
+      try {
+        if ('checked' in c) el.checked = c.checked;
+        else if ('value' in c) el.value = c.value;
+      } catch (e) {}
+    });
+  }
+  function highlightSet(set) {
+    ['A', 'B', 'C', 'D'].forEach(function (s) {
+      var btn = document.getElementById('btn-set-' + s);
+      if (btn) btn.className = (s === set)
+        ? 'px-3.5 py-1.5 rounded-xl font-black text-xs bg-slate-900 text-white shadow-md border border-slate-900 cursor-pointer'
+        : 'px-3.5 py-1.5 rounded-xl font-black text-xs bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 cursor-pointer';
+    });
+  }
+  function showOutput() {
+    try { if (typeof closeAuthModal === 'function') closeAuthModal(); } catch (e) {}
+    var dash = document.getElementById('view-dashboard'); if (dash) dash.classList.add('hidden');
+    var gen = document.getElementById('view-generator'); if (gen) gen.classList.remove('hidden');
+    var out = document.getElementById('output-section');
+    if (out) {
+      out.classList.remove('hidden');
+      try { if (typeof switchOutputTab === 'function') switchOutputTab('paper'); } catch (e) {}
+      try { out.scrollIntoView({ behavior: 'smooth' }); } catch (e) {}
+    }
+  }
+
+  window.loadSavedPaperDirectly = function (index) {
+    var meta = idx[index];
+    if (!meta) return;
+    pending = false; // ಬೇರೆ ಪತ್ರಿಕೆ ತೆರೆಯುವಾಗ ಆಟೋ-ಸೇವ್ ಪ್ರಚೋದನೆ ಆಗಬಾರದು
+
+    getBlob(meta.id).then(function (rec) {
+      if (!rec) {
+        if (typeof showToast === 'function') showToast('⚠️ ಈ ಪತ್ರಿಕೆಯ ಡೇಟಾ ಸಿಗಲಿಲ್ಲ (ಬ್ರೌಸರ್ ಡೇಟಾ ಅಳಿಸಿರಬಹುದು).', 'error');
+        return;
+      }
+      if (rec.legacy || !rec.html) {
+        // ಹಳೆಯ ಮಾದರಿಯ ಉಳಿಕೆ (ಪ್ರಶ್ನೆಗಳು ಮಾತ್ರ)
+        appState.activeGeneratedQuestions = clone(rec.questionsSnapshot || meta.questionsSnapshot || []);
+        appState.baseGeneratedQuestions = clone(appState.activeGeneratedQuestions);
+        if (typeof renderFullExamPaperWithCustomHeader === 'function') renderFullExamPaperWithCustomHeader(rec.headerHtml || meta.headerHtml || '');
+        showOutput();
+        if (typeof showToast === 'function') showToast('📂 "' + meta.title + '" ತೆರೆಯಲಾಗಿದೆ (ಹಳೆಯ ಉಳಿಕೆ)', 'success');
+        return;
+      }
+
+      // ಸ್ಥಿತಿ ಮರುಸ್ಥಾಪನೆ
+      appState.baseGeneratedQuestions = clone(rec.base) || [];
+      appState.activeGeneratedQuestions = clone(rec.active) || [];
+      appState.currentExamSet = rec.set || 'A';
+      restoreCfg(rec.cfg);
+
+      try { if (typeof ensureOMRTabAndElementsExist === 'function') ensureOMRTabAndElementsExist(); } catch (e) {}
+      Object.keys(rec.html).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = rec.html[id];
+      });
+      highlightSet(appState.currentExamSet);
+      showOutput();
+      if (typeof showToast === 'function') showToast('📂 "' + meta.title + '" ಪತ್ರಿಕೆ (ಉತ್ತರ ಪತ್ರಿಕೆ, ನೀಲನಕ್ಷೆ, OMR, SET ಸಹಿತ) ತೆರೆಯಲಾಗಿದೆ!', 'success');
+    }).catch(function (e) {
+      console.warn('Open saved paper error', e);
+      if (typeof showToast === 'function') showToast('⚠️ ಪತ್ರಿಕೆ ತೆರೆಯಲಾಗಲಿಲ್ಲ.', 'error');
+    });
+  };
+
+  // ---------------- ಡಿಲೀಟ್ ----------------
+  window.deleteSingleSavedPaper = function (index) {
+    var m = idx[index];
+    if (!m) return;
+    idx.splice(index, 1);
+    delBlob(m.id);
+    persistIndex();
+    refreshUI();
+    try { if (typeof window.openSavedPapersHistoryModal === 'function') window.openSavedPapersHistoryModal(); } catch (e) {}
+    if (typeof showToast === 'function') showToast('🗑️ ಪತ್ರಿಕೆಯನ್ನು ಡಿಲೀಟ್ ಮಾಡಲಾಗಿದೆ.', 'info');
+  };
+  window.clearAllSavedPapersHistory = function () {
+    if (!confirm('ಉಳಿಸಿದ ಎಲ್ಲಾ ಪತ್ರಿಕೆಗಳನ್ನು ಸಂಪೂರ್ಣವಾಗಿ ತೆರವುಗೊಳಿಸಲು ಖಚಿತವೇ?')) return;
+    idx = [];
+    clearBlobs();
+    persistIndex();
+    refreshUI();
+    try { if (typeof window.openSavedPapersHistoryModal === 'function') window.openSavedPapersHistoryModal(); } catch (e) {}
+    if (typeof showToast === 'function') showToast('🧹 ಎಲ್ಲಾ ಪತ್ರಿಕೆಗಳನ್ನು ಕ್ಲಿಯರ್ ಮಾಡಲಾಗಿದೆ.', 'info');
+  };
+
+  // ---------------- ಪ್ರಾರಂಭ ----------------
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  migrateLegacy();
+  setTimeout(refreshUI, 300);
+  setTimeout(refreshUI, 1200);
+})();
+
+    
 </script>
 </body>
 </html>

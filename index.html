@@ -8781,8 +8781,11 @@ window.generateExamPackageFromBank = function() {
   // ಮೊದಲು ಕೇವಲ ಹೊಸ ಪ್ರಶ್ನೆಗಳಿಂದಲೇ ಪತ್ರಿಕೆ ರಚಿಸಲು ಪ್ರಯತ್ನಿಸುವುದು
   if (freshUnusedPool.length >= targetTotalQuestions) {
     chosen = solveStrictExactExamMath(freshUnusedPool, targetTotalMarks, targetTotalQuestions, selectedTypes);
-    if (chosen && chosen.length === targetTotalQuestions) {
+    var freshMarks = (chosen || []).reduce(function(a, b) { return a + getExactQuestionMarks(b); }, 0);
+    if (chosen && chosen.length === targetTotalQuestions && freshMarks === targetTotalMarks) {
       isFreshSetUsed = true;
+    } else {
+      chosen = []; // ಹೊಸ ಪ್ರಶ್ನೆಗಳಿಂದ ನಿಖರ ಅಂಕ ಸಾಧ್ಯವಾಗದಿದ್ದರೆ ಪೂರ್ಣ ಬ್ಯಾಂಕ್ ಬಳಸುವುದು
     }
   }
 
@@ -8816,7 +8819,9 @@ window.generateExamPackageFromBank = function() {
     outSec.scrollIntoView({ behavior: 'smooth' });
   }
 
-  if (isFreshSetUsed) {
+  if (chosen.length !== targetTotalQuestions || actualMarks !== targetTotalMarks) {
+    showToast(`⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲಿ ${targetTotalMarks} ಅಂಕ / ${targetTotalQuestions} ಪ್ರಶ್ನೆಗಳ ನಿಖರ ಸಂಯೋಜನೆ ಸಾಧ್ಯವಿಲ್ಲ. ಹತ್ತಿರದ ${chosen.length} ಪ್ರಶ್ನೆಗಳು & ${actualMarks} ಅಂಕಗಳ ಪತ್ರಿಕೆ ರಚಿಸಲಾಗಿದೆ. ಹೆಚ್ಚು ಪಾಠಗಳು/ಪ್ರಶ್ನೆ ಪ್ರಕಾರಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ.`, 'error');
+  } else if (isFreshSetUsed) {
     showToast(`⚡ ಯಶಸ್ವಿ: 100% ಸಂಪೂರ್ಣ ಹೊಸ ಪ್ರಶ್ನೆಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ! (${chosen.length} ಪ್ರಶ್ನೆಗಳು)`, 'success');
   } else {
     showToast(`⚡ ಯಶಸ್ವಿ: ${chosen.length} ಪ್ರಶ್ನೆಗಳು & ${actualMarks} ಅಂಕಗಳ ಪತ್ರಿಕೆ ಸಿದ್ಧವಾಗಿದೆ!`, 'success');
@@ -23289,30 +23294,26 @@ window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part)
   }
 };
 
-// ೬. 🌟 ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳಿಗೆ ಆದ್ಯತೆ + 100% ನಿಖರ ಅಂಕ & ಪ್ರಶ್ನೆ ಸಂಖ್ಯೆ (Exact Marks + Diagram Priority Solver)
-// ಹಿಂದಿನ ಆವೃತ್ತಿ ಕೇವಲ ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆಯನ್ನು ಮಾತ್ರ ನೋಡುತ್ತಿತ್ತು, ಅಂಕಗಳನ್ನು ಕಡೆಗಣಿಸುತ್ತಿತ್ತು.
-// ಈಗ: (೧) NMMS/SAT/GMAT/ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (ಎಲ್ಲವೂ 1 ಅಂಕ) → ಮೊದಲಿನಂತೆಯೇ ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳು ಮೊದಲು.
-//      (೨) ಸಾಮಾನ್ಯ ವಿಷಯಗಳು → ನೀವು ಕೊಟ್ಟ ಅಂಕ ಮತ್ತು ಪ್ರಶ್ನೆ ಸಂಖ್ಯೆ ನಿಖರವಾಗಿ ಹೊಂದುವಂತೆ ಆಯ್ಕೆ (ಚಿತ್ರವಿರುವವು ಆದ್ಯತೆಯಲ್ಲಿ).
+// ೬. 🌟 ನಿಖರ ಅಂಕ + ನಿಖರ ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ + ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳಿಗೆ ಆದ್ಯತೆ (FIXED MASTER SOLVER)
+// (ಹಿಂದಿನ ಆವೃತ್ತಿ ಕೇವಲ ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆಯನ್ನು ಮಾತ್ರ ನೋಡುತ್ತಿತ್ತು, ಅಂಕಗಳನ್ನು ಕಡೆಗಣಿಸುತ್ತಿತ್ತು)
 window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selectedTypes) {
+  window.__wyLastSolveInfo = { exact: false, marks: 0, count: 0 };
   if (!pool || pool.length === 0) return [];
-  selectedTypes = selectedTypes || [];
+
   targetMarks = parseInt(targetMarks) || 0;
   targetCount = parseInt(targetCount) || 0;
 
-  var hasImg = function(q) {
-    try { return (typeof extractUniversalImage === 'function') ? !!extractUniversalImage(q) : !!(q && (q.image || q.img)); }
-    catch (e) { return false; }
-  };
-  var isMatchQ = function(q) {
-    try { return (typeof isMatchQuestion === 'function') ? !!isMatchQuestion(q) : false; } catch (e) { return false; }
-  };
-  var marksOf = function(q) {
-    var m = (typeof getExactQuestionMarks === 'function') ? getExactQuestionMarks(q) : (parseInt(q && q.marks) || 1);
-    m = parseInt(m) || 1;
-    return Math.max(1, Math.min(5, m));
+  var markOf = function(q) {
+    return (typeof getExactQuestionMarks === 'function') ? getExactQuestionMarks(q) : (parseInt(q.marks) || 1);
   };
   var typeOf = function(q) {
     return (typeof getCanonicalQuestionType === 'function') ? getCanonicalQuestionType(q) : 'vsa_1m';
+  };
+  var hasImg = function(q) {
+    try { return (typeof extractUniversalImage === 'function') && !!extractUniversalImage(q); } catch (e) { return false; }
+  };
+  var isMatch = function(q) {
+    try { return (typeof isMatchQuestion === 'function') && isMatchQuestion(q); } catch (e) { return false; }
   };
   var shuffle = function(arr) {
     var a = arr.slice();
@@ -23322,130 +23323,101 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
     }
     return a;
   };
-  // ಯಾದೃಚ್ಛಿಕ ಕ್ರಮ, ಆದರೆ ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳು ಮೊದಲು
-  var imgFirst = function(arr) {
-    var s = shuffle(arr);
-    return s.filter(hasImg).concat(s.filter(function(q) { return !hasImg(q); }));
+  // ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳು ಮೊದಲು, ನಂತರ ಉಳಿದವು (ಎರಡೂ ಯಾದೃಚ್ಛಿಕ ಕ್ರಮದಲ್ಲಿ)
+  var imageFirst = function(arr) {
+    var img = [], plain = [];
+    arr.forEach(function(q) { (hasImg(q) ? img : plain).push(q); });
+    return shuffle(img).concat(shuffle(plain));
   };
 
-  // -------------------------------------------------------------------
-  // (೧) ಎಲ್ಲಾ ಪ್ರಶ್ನೆಗಳೂ 1 ಅಂಕದವು (NMMS SAT / GMAT / ಮೊರಾರ್ಜಿ / ಆದರ್ಶ / ಕೇವಲ MCQ)
-  //     → ಮೊದಲಿನಂತೆಯೇ: ಚಿತ್ರವಿರುವ ಎಲ್ಲಾ ಪ್ರಶ್ನೆಗಳು ಮೊದಲು, ನಂತರ ಉಳಿದವು
-  // -------------------------------------------------------------------
-  var allOneMark = pool.every(function(q) { return marksOf(q) === 1; });
-  if (allOneMark) {
-    var withImg = pool.filter(hasImg);
-    var withoutImg = pool.filter(function(q) { return !hasImg(q); });
-    var result = withImg.slice();
-    var shuffledRest = shuffle(withoutImg);
-    for (var k = 0; k < shuffledRest.length && result.length < targetCount; k++) result.push(shuffledRest[k]);
-    var finalList = result.length > 0 ? result.slice(0, targetCount) : pool.slice(0, targetCount);
-    if (targetMarks && targetMarks !== finalList.length && typeof showToast === 'function') {
-      showToast('ℹ️ ಆಯ್ಕೆಮಾಡಿದ ಎಲ್ಲಾ ಪ್ರಶ್ನೆಗಳು 1 ಅಂಕದವು, ಆದ್ದರಿಂದ ಒಟ್ಟು ಅಂಕ = ' + finalList.length + '. (ಹೆಚ್ಚು ಅಂಕಕ್ಕೆ 2/3/4 ಅಂಕದ ಪ್ರಕಾರಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ)', 'info');
-    }
-    return finalList;
-  }
+  // ನಕಲು ಪ್ರಶ್ನೆಗಳನ್ನು ತೆಗೆಯುವುದು
+  var seen = new Set();
+  var uniquePool = pool.filter(function(q) {
+    if (!q || seen.has(q)) return false;
+    seen.add(q);
+    return true;
+  });
 
-  // -------------------------------------------------------------------
-  // (೨) ಸಾಮಾನ್ಯ ವಿಷಯಗಳು: ಅಂಕವಾರು ಬಕೆಟ್‌ಗಳು
-  // -------------------------------------------------------------------
+  // ಅಂಕವಾರು ಬಕೆಟ್‌ಗಳು (1M ... 5M)
   var buckets = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-  pool.forEach(function(q) { if (q) buckets[marksOf(q)].push(q); });
-  for (var bk = 1; bk <= 5; bk++) buckets[bk] = imgFirst(buckets[bk]);
+  uniquePool.forEach(function(q) {
+    var m = markOf(q);
+    if (m < 1) m = 1;
+    if (m > 5) m = 5;
+    buckets[m].push(q);
+  });
+  // 4M: ಒಂದು 'ಹೊಂದಿಸಿ ಬರೆಯಿರಿ' ಮೊದಲಿಗೆ, ಇತರ 4M ನಂತರ, ಉಳಿದ ಹೊಂದಿಸಿ ಬರೆಯಿರಿ ಕೊನೆಗೆ
+  var matches4 = imageFirst(buckets[4].filter(isMatch));
+  var others4 = buckets[4].filter(function(q) { return !isMatch(q); });
+  buckets[4] = matches4; // ತಾತ್ಕಾಲಿಕ — ಕೆಳಗೆ ವಿಧವಾರು ಆಯ್ಕೆಯಲ್ಲಿ ನಿರ್ವಹಣೆ
+  var n = { 1: buckets[1].length, 2: buckets[2].length, 3: buckets[3].length, 4: matches4.length + others4.length, 5: buckets[5].length };
 
-  // ಹೊಂದಿಸಿ ಬರೆಯಿರಿ: ಪತ್ರಿಕೆಯಲ್ಲಿ ಒಂದೇ ಒಂದು ಪ್ರದರ್ಶನವಾಗುವುದರಿಂದ ಗರಿಷ್ಠ 1
-  var matchItems = buckets[4].filter(isMatchQ);
-  var nonMatch4 = buckets[4].filter(function(q) { return !isMatchQ(q); });
-  var canUseMatch = matchItems.length > 0 && (selectedTypes.length === 0 || selectedTypes.indexOf('match') !== -1);
-  var cap = {
-    1: buckets[1].length,
-    2: buckets[2].length,
-    3: buckets[3].length,
-    4: nonMatch4.length + (canUseMatch ? 1 : 0),
-    5: buckets[5].length
-  };
+  // ೧. ಎಲ್ಲಾ ಸಾಧ್ಯ ಸಂಯೋಜನೆಗಳನ್ನು ಹುಡುಕುವುದು: c1+..+c5 = ಪ್ರಶ್ನೆಗಳು, 1c1+..+5c5 = ಅಂಕಗಳು
+  var count = Math.min(targetCount, uniquePool.length);
+  var available = [1, 2, 3, 4, 5].filter(function(m) { return n[m] > 0; });
+  var shareEach = available.length ? targetMarks / available.length : 0;
+  var bestDiff = Infinity;
+  var candidates = [];
 
-  // ನಿರ್ದಿಷ್ಟ ಅಂಕಕ್ಕೆ ಎಲ್ಲಾ ಸಾಧ್ಯ ಸಂಯೋಜನೆಗಳು (c1 + 2c2 + 3c3 + 4c4 + 5c5 = marks, c1+..+c5 = count)
-  var findSolutions = function(marks, count, limit) {
-    var sols = [];
-    var delta = marks - count; // = c2 + 2c3 + 3c4 + 4c5
-    if (delta < 0 || count <= 0) return sols;
-    for (var c5 = Math.min(cap[5], Math.floor(delta / 4)); c5 >= 0; c5--) {
-      var r5 = delta - 4 * c5;
-      for (var c4 = Math.min(cap[4], Math.floor(r5 / 3)); c4 >= 0; c4--) {
-        var r4 = r5 - 3 * c4;
-        for (var c3 = Math.min(cap[3], Math.floor(r4 / 2)); c3 >= 0; c3--) {
-          var c2 = r4 - 2 * c3;
-          if (c2 < 0 || c2 > cap[2]) continue;
-          var c1 = count - (c2 + c3 + c4 + c5);
-          if (c1 < 0 || c1 > cap[1]) continue;
-          sols.push({ 1: c1, 2: c2, 3: c3, 4: c4, 5: c5 });
-          if (sols.length >= limit) return sols;
-        }
+  for (var c5 = Math.min(n[5], count); c5 >= 0; c5--) {
+    for (var c4 = Math.min(n[4], count - c5); c4 >= 0; c4--) {
+      for (var c3 = Math.min(n[3], count - c5 - c4); c3 >= 0; c3--) {
+        var rest = count - c5 - c4 - c3;           // c1 + c2 = rest
+        var lo = Math.max(0, rest - n[1]);
+        var hi = Math.min(n[2], rest);
+        if (lo > hi) continue;
+        var base = 5 * c5 + 4 * c4 + 3 * c3 + rest; // ಅಂಕ = base + c2
+        var want = targetMarks - base;
+        var c2 = Math.max(lo, Math.min(hi, want));
+        var diff = Math.abs(want - c2);
+        if (diff > bestDiff) continue;
+        var c1 = rest - c2;
+        var cs = { 1: c1, 2: c2, 3: c3, 4: c4, 5: c5 };
+
+        // ವೈವಿಧ್ಯತೆ ಸ್ಕೋರ್: ಲಭ್ಯವಿರುವ ಪ್ರತಿಯೊಂದು ಅಂಕದ ವಿಭಾಗದಿಂದ ಪ್ರಶ್ನೆ + ಸಮತೋಲನ
+        var score = 0;
+        available.forEach(function(m) {
+          if (cs[m] > 0) score += 100;
+          if (targetMarks > 0) score -= 60 * Math.abs(cs[m] * m - shareEach) / targetMarks;
+        });
+        if (n[1] > 0 && c1 >= Math.min(6, n[1])) score += 40;   // ಸಾಕಷ್ಟು 1-ಅಂಕದ ಪ್ರಶ್ನೆಗಳು
+        if (matches4.length > 0 && c4 > 0) score += 30;          // ಹೊಂದಿಸಿ ಬರೆಯಿರಿ ಬೋನಸ್
+
+        if (diff < bestDiff) { bestDiff = diff; candidates = []; }
+        candidates.push({ cs: cs, score: score });
       }
     }
-    return sols;
-  };
-
-  // ವೈವಿಧ್ಯತೆ ಸ್ಕೋರ್: ಲಭ್ಯವಿರುವ ಎಲ್ಲಾ ಅಂಕದ ವಿಭಾಗಗಳು ಬರಬೇಕು + ಅಂಕಗಳು ಸಮತೋಲನವಾಗಿ ಹಂಚಿಕೆ
-  var scoreSol = function(s) {
-    var score = 0, present = 0, avail = 0;
-    for (var m = 1; m <= 5; m++) {
-      if (cap[m] > 0) avail++;
-      if (s[m] > 0) { present++; score += 100; }
-    }
-    if (canUseMatch && s[4] > 0) score += 150;
-    var share = targetMarks / Math.max(1, present);
-    var penalty = 0;
-    for (var m2 = 1; m2 <= 5; m2++) if (s[m2] > 0) penalty += Math.pow(s[m2] * m2 - share, 2);
-    score -= penalty / Math.max(1, targetMarks);
-    return score;
-  };
-
-  var achievedMarks = targetMarks;
-  var sols = findSolutions(targetMarks, targetCount, 20000);
-
-  // ನಿಖರ ಸಂಯೋಜನೆ ಸಿಗದಿದ್ದರೆ ಹತ್ತಿರದ ಅಂಕ (ಪ್ರಶ್ನೆ ಸಂಖ್ಯೆ ಬದಲಾಗುವುದಿಲ್ಲ)
-  if (sols.length === 0) {
-    for (var d = 1; d <= targetMarks + 5 * targetCount && sols.length === 0; d++) {
-      var lower = findSolutions(targetMarks - d, targetCount, 5000);
-      if (lower.length) { sols = lower; achievedMarks = targetMarks - d; break; }
-      var upper = findSolutions(targetMarks + d, targetCount, 5000);
-      if (upper.length) { sols = upper; achievedMarks = targetMarks + d; break; }
-    }
   }
 
-  if (sols.length === 0) {
-    alert('⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲಿ ' + targetCount + ' ಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ. ಹೆಚ್ಚಿನ ಪಾಠಗಳನ್ನು ಅಥವಾ ಪ್ರಕಾರಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ.');
+  if (candidates.length === 0) {
+    window.__wyLastSolveInfo = { exact: false, marks: 0, count: 0 };
     return [];
   }
 
-  sols.forEach(function(s) { s.score = scoreSol(s); });
-  sols.sort(function(a, b) { return b.score - a.score; });
-  // ಪ್ರತಿ ಬಾರಿ ಒಂದೇ ವಿನ್ಯಾಸ ಬರದಂತೆ ಉತ್ತಮ 3 ರಲ್ಲಿ ಒಂದು
-  var topN = sols.filter(function(s) { return s.score >= sols[0].score - 15; }).slice(0, 3);
-  var best = topN[Math.floor(Math.random() * topN.length)] || sols[0];
+  // ಉತ್ತಮ ಸ್ಕೋರ್‌ಗಳಲ್ಲಿ ಯಾದೃಚ್ಛಿಕ ಆಯ್ಕೆ (ಪ್ರತಿ ಬಾರಿ ಸ್ವಲ್ಪ ಬೇರೆ ಪತ್ರಿಕೆ)
+  candidates.sort(function(a, b) { return b.score - a.score; });
+  var topScore = candidates[0].score;
+  var top = candidates.filter(function(c) { return c.score >= topScore - 8; });
+  var best = top[Math.floor(Math.random() * top.length)].cs;
 
-  // ಪ್ರತಿ ಬಕೆಟ್‌ನಿಂದ ಪ್ರಕಾರವಾರು ಸರದಿಯಲ್ಲಿ ಆಯ್ಕೆ (MCQ, ಖಾಲಿ ಜಾಗ, ಸರಿ/ತಪ್ಪು... ಎಲ್ಲವೂ ಬರಲಿ)
-  var pickRoundRobin = function(list, n) {
-    if (n <= 0) return [];
-    var order = [], groups = {};
+  // ೨. ಪ್ರತಿ ಅಂಕದ ವಿಭಾಗದೊಳಗೆ ಪ್ರಶ್ನೆ ವಿಧಗಳನ್ನು ಸಮನಾಗಿ ಹಂಚುವುದು (MCQ, ಖಾಲಿ, ಸರಿ/ತಪ್ಪು ...)
+  var pickBalanced = function(list, k) {
+    if (k <= 0) return [];
+    var typeMap = new Map();
     list.forEach(function(q) {
       var t = typeOf(q);
-      if (!groups[t]) { groups[t] = []; order.push(t); }
-      groups[t].push(q);
+      if (!typeMap.has(t)) typeMap.set(t, []);
+      typeMap.get(t).push(q);
     });
-    // ಬಳಕೆದಾರರು Step 3 ರಲ್ಲಿ ಆಯ್ಕೆ ಮಾಡಿದ ಕ್ರಮಕ್ಕೆ ಆದ್ಯತೆ
-    order.sort(function(a, b) {
-      var ia = selectedTypes.indexOf(a), ib = selectedTypes.indexOf(b);
-      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-    });
-    var out = [], added = true;
-    while (out.length < n && added) {
-      added = false;
-      for (var i = 0; i < order.length && out.length < n; i++) {
-        var g = groups[order[i]];
-        if (g.length) { out.push(g.shift()); added = true; }
+    var order = Array.isArray(selectedTypes) ? selectedTypes.filter(function(t) { return typeMap.has(t); }) : [];
+    typeMap.forEach(function(_, t) { if (order.indexOf(t) === -1) order.push(t); });
+    var queues = order.map(function(t) { return imageFirst(typeMap.get(t)); });
+    var out = [];
+    var progressed = true;
+    while (out.length < k && progressed) {
+      progressed = false;
+      for (var i = 0; i < queues.length && out.length < k; i++) {
+        if (queues[i].length) { out.push(queues[i].shift()); progressed = true; }
       }
     }
     return out;
@@ -23453,27 +23425,28 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
 
   var chosen4 = [];
   if (best[4] > 0) {
-    if (canUseMatch) chosen4.push(matchItems[0]);
-    chosen4 = chosen4.concat(pickRoundRobin(nonMatch4, best[4] - chosen4.length));
+    var wantMatch = matches4.length > 0 && (!Array.isArray(selectedTypes) || selectedTypes.indexOf('match') !== -1);
+    if (wantMatch) chosen4.push(matches4[0]);
+    chosen4 = chosen4.concat(pickBalanced(others4, best[4] - chosen4.length));
+    if (chosen4.length < best[4]) {
+      chosen4 = chosen4.concat(matches4.filter(function(q) { return chosen4.indexOf(q) === -1; }).slice(0, best[4] - chosen4.length));
+    }
   }
 
-  var finalResult = []
-    .concat(pickRoundRobin(buckets[5], best[5]))
+  var result = []
+    .concat(pickBalanced(buckets[1], best[1]))
+    .concat(pickBalanced(buckets[2], best[2]))
+    .concat(pickBalanced(buckets[3], best[3]))
     .concat(chosen4)
-    .concat(pickRoundRobin(buckets[3], best[3]))
-    .concat(pickRoundRobin(buckets[2], best[2]))
-    .concat(pickRoundRobin(buckets[1], best[1]));
+    .concat(pickBalanced(buckets[5], best[5]));
 
-  var calc = finalResult.reduce(function(s, q) { return s + marksOf(q); }, 0);
-
-  if (achievedMarks !== targetMarks) {
-    var have = '1M:' + cap[1] + ', 2M:' + cap[2] + ', 3M:' + cap[3] + ', 4M:' + cap[4] + ', 5M:' + cap[5];
-    alert('⚠️ ಆಯ್ಕೆಮಾಡಿದ ಪಾಠ/ಪ್ರಕಾರಗಳಲ್ಲಿ ' + targetCount + ' ಪ್ರಶ್ನೆಗಳಿಂದ ನಿಖರ ' + targetMarks + ' ಅಂಕ ಸಾಧ್ಯವಿಲ್ಲ.\n' +
-      'ಹತ್ತಿರದ ' + calc + ' ಅಂಕಗಳ ಪತ್ರಿಕೆ ರಚಿಸಲಾಗಿದೆ.\n\nಲಭ್ಯ ಪ್ರಶ್ನೆಗಳು → ' + have +
-      '\nನಿಖರ ಅಂಕಕ್ಕಾಗಿ ಹೆಚ್ಚಿನ ಪಾಠಗಳನ್ನು / ಪ್ರಕಾರಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ ಅಥವಾ ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆ ಬದಲಿಸಿ.');
-  }
-
-  return finalResult;
+  var finalMarks = result.reduce(function(s, q) { return s + markOf(q); }, 0);
+  window.__wyLastSolveInfo = {
+    exact: (result.length === targetCount && finalMarks === targetMarks),
+    marks: finalMarks,
+    count: result.length
+  };
+  return result;
 };
 
 // ೭. 🌟 NMMS SAT ನಲ್ಲಿ ಬಯಾಲಜಿ, ಫಿಸಿಕ್ಸ್, ಕೆಮಿಸ್ಟ್ರಿ, ಮ್ಯಾಥ್ಸ್ ಚಿತ್ರಗಳನ್ನು ೧೦೦% ಪ್ರದರ್ಶಿಸುವ ಮಾಸ್ಟರ್ ರೆಂಡರರ್

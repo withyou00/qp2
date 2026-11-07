@@ -27275,9 +27275,22 @@ window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part)
 // ಚಿತ್ರಕ್ಕಾಗಿ "image": "https://..." ಅಥವಾ "image": "morarji/q1.png" (GitHub images ಫೋಲ್ಡರ್). ಆಯ್ಕೆಗಳ ಚಿತ್ರ: "img_a" ... "img_d".
 // =========================================================================
 window.WY_ENTRANCE_EXAMS = [
-  { name: "ಮೊರಾರ್ಜಿ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (Morarji Entrance)", classes: [6], files: ["morarji_entrance.json", "morarji.json"],
+  // ಮೊರಾರ್ಜಿ: ವಿಷಯವಾರು ಬೇರೆ ಬೇರೆ ಫೈಲ್‌ಗಳು (kannada_medium/class_6/ ನಲ್ಲಿ). ಹೊಸ ವಿಷಯದ ಫೈಲ್ ಸೇರಿಸಿದರೆ ಇಲ್ಲಿ ಹೆಸರು ಸೇರಿಸಿ.
+  //   ಸಿಗದ ಫೈಲ್‌ಗಳನ್ನು ತಾನಾಗಿಯೇ ಬಿಟ್ಟುಬಿಡುತ್ತದೆ (ಉದಾ: ಗಣಿತ, ಮಾನಸಿಕ ಸಾಮರ್ಥ್ಯ ಇನ್ನೂ ಹಾಕಿಲ್ಲದಿದ್ದರೆ ಸಮಸ್ಯೆ ಇಲ್ಲ)
+  { name: "ಮೊರಾರ್ಜಿ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (Morarji Entrance)", classes: [6],
+    files: [
+      { file: "morarji_kannada.json",     label: "ಕನ್ನಡ" },
+      { file: "morarji_english.json",     label: "ಇಂಗ್ಲಿಷ್ (English)" },
+      { file: "morarji_maths.json",       label: "ಗಣಿತ" },
+      { file: "morarji_mathematics.json", label: "ಗಣಿತ" },
+      { file: "morarji_science.json",     label: "ವಿಜ್ಞಾನ" },
+      { file: "morarji_social.json",      label: "ಸಮಾಜ ವಿಜ್ಞಾನ" },
+      { file: "morarji_mental.json",      label: "ಮಾನಸಿಕ ಸಾಮರ್ಥ್ಯ" },
+      { file: "morarji_entrance.json",    label: "" },
+      { file: "morarji.json",             label: "" }
+    ],
     examTitle: "ಮೊರಾರ್ಜಿ ದೇಸಾಯಿ ವಸತಿ ಶಾಲೆಗಳ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ 2026-27", marks: 100, questions: 100, enabled: true },
-  { name: "ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ (Adarsha Entrance)", classes: [6], files: ["adarsha_entrance.json", "adarsha.json"],
+  { name: "ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ (Adarsha Entrance)", classes: [6], files: ["adarsha_entrance.json", "adarsha.json", "adarsha_kannada.json", "adarsha_english.json", "adarsha_maths.json", "adarsha_science.json", "adarsha_social.json", "adarsha_mental.json"],
     examTitle: "ಆದರ್ಶ ವಿದ್ಯಾಲಯ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ 2026-27", marks: 100, questions: 100, enabled: true },
   { name: "ಕಿತ್ತೂರು ರಾಣಿ ಚೆನ್ನಮ್ಮ ವಸತಿ ಶಾಲೆ ಪ್ರವೇಶ (Kittur Entrance)", classes: [6], files: ["kittur_entrance.json"],
     examTitle: "ಕಿತ್ತೂರು ರಾಣಿ ಚೆನ್ನಮ್ಮ ವಸತಿ ಶಾಲೆ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ 2026-27", marks: 100, questions: 100, enabled: false },
@@ -27298,7 +27311,8 @@ window.WY_ENTRANCE_EXAMS = [
   }
   window.WY_findEntranceExam = findExam;
   function keyOf(exam) {
-    return String(exam.files[0] || exam.name).replace(/\.json$/i, '').replace(/[^\w]+/g, '_').toLowerCase();
+    var f0 = exam.files[0]; f0 = (f0 && typeof f0 === 'object') ? f0.file : f0;
+    return String(f0 || exam.name).replace(/\.json$/i, '').replace(/[^\w]+/g, '_').toLowerCase();
   }
 
   // ---------- ೧. ವಿಷಯ ಡ್ರಾಪ್‌ಡೌನ್: ಪಟ್ಟಿಯಲ್ಲಿರುವ ಪರೀಕ್ಷೆಗಳನ್ನು ತರಗತಿವಾರು ತೋರಿಸುವುದು ----------
@@ -27358,33 +27372,39 @@ window.WY_ENTRANCE_EXAMS = [
     if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes();
     if (typeof showToast === 'function') showToast('🌐 ' + ex.name + ' ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ...', 'info');
 
-    var all = [], seen = new Set(), found = [];
-    for (var f = 0; f < ex.files.length; f++) {
-      var file = ex.files[f];
-      var paths = ['kannada_medium/class_' + g + '/' + file, 'kannada_medium/' + file, 'class_' + g + '/' + file, file];
+    var fileSpecs = ex.files.map(function (f) { return (typeof f === 'string') ? { file: f, label: '' } : f; });
+    // ಎಲ್ಲಾ ಫೈಲ್‌ಗಳನ್ನು ಒಟ್ಟಿಗೆ (ವೇಗವಾಗಿ) ಲೋಡ್ ಮಾಡುವುದು
+    var perFile = await Promise.all(fileSpecs.map(async function (spec) {
+      var paths = ['kannada_medium/class_' + g + '/' + spec.file, 'kannada_medium/' + spec.file, 'class_' + g + '/' + spec.file, spec.file];
       for (var p = 0; p < paths.length; p++) {
         try {
           var res = await fetch(RAW + encodeURI(paths[p]) + '?t=' + Date.now());
           if (!res.ok) continue;
           var txt = await res.text();
           var data = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(txt) : JSON.parse(txt);
-          if (Array.isArray(data) && data.length) {
-            found.push(paths[p]);
-            data.forEach(function (q) {
-              if (!q || typeof q !== 'object') return;
-              q._src = file;
-              if (!q.chapter) q.chapter = q.subject || q.topic || q.section || 'ಸಾಮಾನ್ಯ ವಿಭಾಗ';
-              if (!q.type && q.a && q.b) q.type = 'mcq';
-              var k = file + '|' + (q.id != null ? q.id : '') + '|' + String(q.q || '').trim() + '|' + String(q.image || '');
-              if (seen.has(k)) return;
-              seen.add(k);
-              all.push(q);
-            });
-            break;
-          }
+          if (Array.isArray(data) && data.length) return { spec: spec, data: data };
+          if (data && Array.isArray(data.questions) && data.questions.length) return { spec: spec, data: data.questions };
         } catch (e) { /* ಮುಂದಿನ path */ }
       }
-    }
+      return { spec: spec, data: [] };
+    }));
+
+    var all = [], seen = new Set(), found = [];
+    perFile.forEach(function (r) {
+      if (!r.data.length) return;
+      found.push(r.spec.file);
+      r.data.forEach(function (q) {
+        if (!q || typeof q !== 'object') return;
+        q._src = r.spec.file;
+        if (!q.chapter) q.chapter = q.subject || q.topic || q.section || r.spec.label || 'ಸಾಮಾನ್ಯ ವಿಭಾಗ';
+        if (!q.type && q.a && q.b) q.type = 'mcq';
+        var k = r.spec.file + '|' + (q.id != null ? q.id : '') + '|' + String(q.q || '').trim() + '|' + String(q.image || '');
+        if (seen.has(k)) return;
+        seen.add(k);
+        all.push(q);
+      });
+    });
+    console.log('📂 ' + ex.name + ' — ಸಿಕ್ಕ ಫೈಲ್‌ಗಳು:', found);
 
     // ಬೇರೆ ವಿಷಯ ಆಯ್ಕೆ ಮಾಡಿದ್ದರೆ ಈ ಫಲಿತಾಂಶ ಕೈಬಿಡುವುದು
     var nowSubj = (document.getElementById('cfg-subject') || {}).value;
@@ -27396,9 +27416,9 @@ window.WY_ENTRANCE_EXAMS = [
 
     if (all.length) {
       var imgCount = all.filter(function (q) { try { return !!extractUniversalImage(q); } catch (e) { return false; } }).length;
-      showToast('⚡ ' + ex.name + ': ' + all.length + ' ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗಿವೆ (ಚಿತ್ರ ಇರುವವು: ' + imgCount + ')', 'success');
+      showToast('⚡ ' + ex.name + ': ' + found.length + ' ಫೈಲ್‌ಗಳಿಂದ ' + all.length + ' ಪ್ರಶ್ನೆಗಳು ಲೋಡ್ ಆಗಿವೆ (ಚಿತ್ರ ಇರುವವು: ' + imgCount + ')', 'success');
     } else {
-      showToast('⚠️ GitHub ನಲ್ಲಿ "kannada_medium/class_' + g + '/' + ex.files[0] + '" ಫೈಲ್ ಸಿಗಲಿಲ್ಲ.', 'error');
+      showToast('⚠️ GitHub ನ kannada_medium/class_' + g + '/ ನಲ್ಲಿ ಈ ಫೈಲ್‌ಗಳಲ್ಲಿ ಯಾವುದೂ ಸಿಗಲಿಲ್ಲ: ' + fileSpecs.map(function (x) { return x.file; }).join(', '), 'error');
     }
   };
 

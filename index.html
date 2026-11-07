@@ -53731,7 +53731,161 @@ window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part)
   }
 };
     
-    
+   
+
+
+// =========================================================================
+// 🎯 100% EXACT MARKS & EXACT QUESTIONS DIOPHANTINE MASTER SOLVER
+// (40 ಅಂಕಕ್ಕೆ ನಿಖರ 24 ಪ್ರಶ್ನೆಗಳು & ಚಿತ್ರಗಳಿಗೂ ಗ್ಯಾರಂಟಿ ಆದ್ಯತೆ)
+// =========================================================================
+window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selectedTypes) {
+  if (!pool || pool.length === 0) return [];
+
+  targetMarks = parseInt(targetMarks) || 40;
+  targetCount = parseInt(targetCount) || 24;
+
+  if (targetMarks < targetCount) {
+    alert("⚠️ ಒಟ್ಟು ಅಂಕಗಳು ಪ್ರಶ್ನೆಗಳ ಸಂಖ್ಯೆಗಿಂತ ಕಡಿಮೆಯಿರಲು ಸಾಧ್ಯವಿಲ್ಲ!");
+    return [];
+  }
+
+  // ೧. ಶಫಲ್ ಮತ್ತು ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳಿಗೆ ಮೊದಲ ಆದ್ಯತೆ
+  var shuffleAndPrioritizeDiagrams = function(arr) {
+    var withImg = [];
+    var noImg = [];
+    arr.forEach(function(q) {
+      var hasImg = (typeof extractUniversalImage === 'function' && extractUniversalImage(q)) || q.image || q.img;
+      if (hasImg) withImg.push(q);
+      else noImg.push(q);
+    });
+
+    var shuf = function(a) {
+      var copy = [...a];
+      for (var i = copy.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = copy[i]; copy[i] = copy[j]; copy[j] = temp;
+      }
+      return copy;
+    };
+
+    return [...shuf(withImg), ...shuf(noImg)];
+  };
+
+  // ೨. ಅಂಕವಾರು ಬಕೆಟ್‌ಗಳ ವಿಂಗಡಣೆ (1M, 2M, 3M, 4M, 5M)
+  var b5 = shuffleAndPrioritizeDiagrams(pool.filter(q => getExactQuestionMarks(q) === 5 && selectedTypes.includes(getCanonicalQuestionType(q))));
+  var b4 = shuffleAndPrioritizeDiagrams(pool.filter(q => getExactQuestionMarks(q) === 4 && selectedTypes.includes(getCanonicalQuestionType(q))));
+  var b3 = shuffleAndPrioritizeDiagrams(pool.filter(q => getExactQuestionMarks(q) === 3 && selectedTypes.includes(getCanonicalQuestionType(q))));
+  var b2 = shuffleAndPrioritizeDiagrams(pool.filter(q => getExactQuestionMarks(q) === 2 && selectedTypes.includes(getCanonicalQuestionType(q))));
+  var b1 = shuffleAndPrioritizeDiagrams(pool.filter(q => getExactQuestionMarks(q) === 1 && selectedTypes.includes(getCanonicalQuestionType(q))));
+
+  // ಹೊಂದಿಸಿ ಬರೆಯಿರಿ ಇದ್ದರೆ 4-ಅಂಕದ ಪಟ್ಟಿಯಲ್ಲಿ ಮೊದಲು ಬರಲಿ
+  b4.sort(function(a, b) {
+    return (isMatchQuestion(b) ? 1 : 0) - (isMatchQuestion(a) ? 1 : 0);
+  });
+
+  // ೩. NMMS / ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆ (ಉದಾ: 90 ಅಂಕಕ್ಕೆ 90 ಪ್ರಶ್ನೆಗಳು - ಎಲ್ಲವೂ 1 ಅಂಕ)
+  var delta = targetMarks - targetCount; // 40 - 24 = 16
+  if (delta === 0) {
+    if (b1.length >= targetCount) {
+      return b1.slice(0, targetCount);
+    }
+  }
+
+  // ೪. ಗಣಿತ ಸಮೀಕರಣ ಸಾಲ್ವರ್ (c1 + c2 + c3 + c4 + c5 = Q ಮತ್ತು c1 + 2c2 + 3c3 + 4c4 + 5c5 = M)
+  var validSolutions = [];
+  var max5 = Math.min(b5.length, Math.floor(delta / 4));
+
+  for (var c5 = max5; c5 >= 0; c5--) {
+    var rem5 = delta - (4 * c5);
+    var max4 = Math.min(b4.length, Math.floor(rem5 / 3));
+
+    for (var c4 = max4; c4 >= 0; c4--) {
+      var rem4 = rem5 - (3 * c4);
+      var max3 = Math.min(b3.length, Math.floor(rem4 / 2));
+
+      for (var c3 = max3; c3 >= 0; c3--) {
+        var c2 = rem4 - (2 * c3);
+
+        if (c2 >= 0 && c2 <= b2.length) {
+          var c1 = targetCount - (c2 + c3 + c4 + c5);
+
+          if (c1 >= 0 && c1 <= b1.length) {
+            // ಅತ್ಯುತ್ತಮ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಯ ಬ್ಯಾಲೆನ್ಸ್ ಸ್ಕೋರ್
+            var score = 0;
+            if (c1 >= 4) score += 100; // MCQ ಮತ್ತು 1 ಅಂಕದ ಪ್ರಶ್ನೆಗಳು
+            if (c2 >= 3) score += 90;  // 2 ಅಂಕದ ಪ್ರಶ್ನೆಗಳು
+            if (c3 >= 1) score += 80;  // 3 ಅಂಕದ ಪ್ರಶ್ನೆಗಳು
+            if (c4 >= 1) score += 90;  // 4 ಅಂಕದ ಪ್ರಶ್ನೆಗಳು
+            if (c4 > 0 && b4.some(isMatchQuestion)) score += 150; // ಹೊಂದಿಸಿ ಬರೆಯಿರಿ ಬೋನಸ್
+
+            validSolutions.push({ c1: c1, c2: c2, c3: c3, c4: c4, c5: c5, score: score });
+          }
+        }
+      }
+    }
+  }
+
+  // ೫. ನಿಖರ ಸಂಯೋಜನೆ ಸಿಕ್ಕಿದರೆ ಪ್ರಶ್ನೆಗಳನ್ನು ಜೋಡಿಸುವುದು
+  if (validSolutions.length > 0) {
+    validSolutions.sort((a, b) => b.score - a.score);
+    var best = validSolutions[0];
+
+    // 1-ಅಂಕದ ಪ್ರಶ್ನೆಗಳಲ್ಲಿ MCQ, Blanks, 1M ಎಲ್ಲವೂ ಸಮನಾಗಿ ಹಂಚಿಕೆ
+    var selected1MTypes = selectedTypes.filter(t => ['mcq', 'blanks', 'vsa_1m', 'true_false', 'analogy', 'odd_one_out'].includes(t));
+    var sub1MBuckets = {};
+    selected1MTypes.forEach(t => sub1MBuckets[t] = b1.filter(q => getCanonicalQuestionType(q) === t));
+
+    var chosenC1 = [];
+    var added = true;
+    while (chosenC1.length < best.c1 && added) {
+      added = false;
+      for (var t of selected1MTypes) {
+        if (chosenC1.length < best.c1 && sub1MBuckets[t] && sub1MBuckets[t].length > 0) {
+          var item = sub1MBuckets[t].shift();
+          if (!chosenC1.includes(item)) { chosenC1.push(item); added = true; }
+        }
+      }
+    }
+    if (chosenC1.length < best.c1) {
+      var remB1 = b1.filter(q => !chosenC1.includes(q));
+      chosenC1.push(...remB1.slice(0, best.c1 - chosenC1.length));
+    }
+
+    // 4-ಅಂಕದ ಪ್ರಶ್ನೆಗಳು (ಹೊಂದಿಸಿ ಬರೆಯಿರಿ ಇದ್ದರೆ ಖಚಿತವಾಗಿ ಸೇರ್ಪಡೆ)
+    var chosenC4 = [];
+    var matchItems = b4.filter(isMatchQuestion);
+    var nonMatchB4 = b4.filter(q => !isMatchQuestion(q));
+
+    if (matchItems.length > 0 && best.c4 > 0 && selectedTypes.includes('match')) {
+      chosenC4.push(matchItems[0]);
+    }
+    var needMore4 = best.c4 - chosenC4.length;
+    if (needMore4 > 0) chosenC4.push(...nonMatchB4.slice(0, needMore4));
+
+    var finalResult = [
+      ...b5.slice(0, best.c5),
+      ...chosenC4,
+      ...b3.slice(0, best.c3),
+      ...b2.slice(0, best.c2),
+      ...chosenC1
+    ];
+
+    // 🌟 ಅಂತಿಮ ನಿಖರತೆ ಪರಿಶೀಲನೆ (Exact Marks & Exact Questions Check)
+    var calculatedTotalMarks = finalResult.reduce((sum, q) => sum + getExactQuestionMarks(q), 0);
+    if (finalResult.length === targetCount && calculatedTotalMarks === targetMarks) {
+      return finalResult;
+    }
+  }
+
+  // ೬. ಒಂದು ವೇಳೆ ಆಯ್ಕೆ ಮಾಡಿದ ಕಡಿಮೆ ಪಾಠಗಳಲ್ಲಿ 40 ಅಂಕಕ್ಕೆ 24 ಪ್ರಶ್ನೆಗಳ ಸಮೀಕರಣ ಸಾಧ್ಯವಾಗದಿದ್ದರೆ:
+  alert(
+    `⚠️ ಗಣಿತ ಹೊಂದಾಣಿಕೆ ಸಾಧ್ಯವಾಗುತ್ತಿಲ್ಲ!\n\n` +
+    `ನೀವು ಆಯ್ಕೆಮಾಡಿದ ಪಾಠಗಳಲ್ಲಿ ${targetMarks} ಅಂಕಗಳಿಗೆ ನಿಖರವಾಗಿ ${targetCount} ಪ್ರಶ್ನೆಗಳ ಸಂಯೋಜನೆ ಲಭ್ಯವಿಲ್ಲ.\n\n` +
+    `ಪರಿಹಾರ: ದಯವಿಟ್ಟು Step 2 ರಲ್ಲಿ ಇನ್ನೂ ೧ ಅಥವಾ ೨ ಪಾಠಗಳನ್ನು ಹೆಚ್ಚುವರಿಯಾಗಿ ಆಯ್ಕೆಮಾಡಿ.`
+  );
+  return [];
+};
+ 
 </script>
 </body>
 </html>

@@ -23336,12 +23336,34 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
   // -------------------------------------------------------------------
   var allOneMark = pool.every(function(q) { return marksOf(q) === 1; });
   if (allOneMark) {
-    var withImg = shuffle(pool.filter(hasImg)); // ಚಿತ್ರ ಪ್ರಶ್ನೆಗಳು ಹೆಚ್ಚಿದ್ದರೆ ಪ್ರತಿ ಬಾರಿ ಬೇರೆ ಬೇರೆ ಬರಲಿ
-    var withoutImg = pool.filter(function(q) { return !hasImg(q); });
-    var result = withImg.slice();
-    var shuffledRest = shuffle(withoutImg);
-    for (var k = 0; k < shuffledRest.length && result.length < targetCount; k++) result.push(shuffledRest[k]);
-    var finalList = result.length > 0 ? result.slice(0, targetCount) : pool.slice(0, targetCount);
+    // 🌟 ಟಾಪಿಕ್‌ವಾರು (chapter) ಸಮಾನ ಹಂಚಿಕೆ: ಆಯ್ಕೆ ಮಾಡಿದ ಎಲ್ಲಾ ಟಾಪಿಕ್‌ಗಳಿಂದ ಸರದಿಯಲ್ಲಿ ಪ್ರಶ್ನೆಗಳು
+    //    ಪ್ರತಿ ಟಾಪಿಕ್‌ನೊಳಗೆ ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳು ಮೊದಲು. (38 ಟಾಪಿಕ್ ಸೇರಿಸಿದರೂ ತಾನಾಗಿಯೇ ಕೆಲಸ ಮಾಡುತ್ತದೆ)
+    var chapOrder = [], chapGroups = {};
+    pool.forEach(function(q) {
+      var ch = String((q && q.chapter) || 'ಸಾಮಾನ್ಯ ವಿಭಾಗ').trim();
+      if (!chapGroups[ch]) { chapGroups[ch] = []; chapOrder.push(ch); }
+      chapGroups[ch].push(q);
+    });
+    if (typeof getSerialSortNum === 'function') {
+      chapOrder.sort(function(x, y) { return (getSerialSortNum(x) || 0) - (getSerialSortNum(y) || 0); });
+    }
+    chapOrder.forEach(function(ch) { chapGroups[ch] = imgFirst(chapGroups[ch]); });
+
+    var picked = {};
+    chapOrder.forEach(function(ch) { picked[ch] = []; });
+    var total = 0, progress = true;
+    while (total < targetCount && progress) {
+      progress = false;
+      for (var ci = 0; ci < chapOrder.length && total < targetCount; ci++) {
+        var g = chapGroups[chapOrder[ci]];
+        if (g.length) { picked[chapOrder[ci]].push(g.shift()); total++; progress = true; }
+      }
+    }
+    // ಟಾಪಿಕ್ ಕ್ರಮದಲ್ಲೇ ಪತ್ರಿಕೆಯಲ್ಲಿ ವಿಭಾಗಗಳು ಬರುವಂತೆ ಜೋಡಣೆ
+    var finalList = [];
+    chapOrder.forEach(function(ch) { finalList = finalList.concat(picked[ch]); });
+    if (finalList.length === 0) finalList = pool.slice(0, targetCount);
+
     if (targetMarks && targetMarks !== finalList.length && typeof showToast === 'function') {
       showToast('ℹ️ ಆಯ್ಕೆಮಾಡಿದ ಎಲ್ಲಾ ಪ್ರಶ್ನೆಗಳು 1 ಅಂಕದವು, ಆದ್ದರಿಂದ ಒಟ್ಟು ಅಂಕ = ' + finalList.length + '. (ಹೆಚ್ಚು ಅಂಕಕ್ಕೆ 2/3/4 ಅಂಕದ ಪ್ರಕಾರಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ)', 'info');
     }

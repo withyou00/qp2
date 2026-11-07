@@ -18996,7 +18996,7 @@ window.renderDedicatedNMMSCompetitivePaper = function(allQuestions, actualMarks,
     // ಅಪ್ಡೇಟ್ ಆದ ಅಂತಿಮ ಯೂಸರ್ ಆಬ್ಜೆಕ್ಟ್
     const newUser = {
       ...req,
-      type: isSchool ? 'school' : 'teacher',
+      type: isSchool ? 'school' : ((req.type === 'competitive' || req.type === 'nmms') ? 'competitive' : 'teacher'),
       name: req.name || (isSchool ? 'ಮುಖ್ಯೋಪಾಧ್ಯಾಯರು' : 'ಶಿಕ್ಷಕರು'),
       school: req.school || 'ಸರ್ಕಾರಿ ಶಾಲೆ',
       dise: cleanDise,
@@ -22480,6 +22480,177 @@ function wyStrongKeyPart() {
   };
   window.logoutAdmin = window.logoutAnyUser;
   try { logoutAnyUser = window.logoutAnyUser; logoutAdmin = window.logoutAnyUser; } catch (e) {}
+})();
+
+
+// =========================================================================
+// 🔎 ADMIN: ಸದಸ್ಯರು ಮತ್ತು ಕೋರಿಕೆಗಳ ವಿಭಾಗವಾರು ಫಿಲ್ಟರ್ + ಹುಡುಕಾಟ
+// =========================================================================
+(function installAdminMemberFilters() {
+  var CATS = [
+    { k: 'all', label: 'ಎಲ್ಲಾ', icon: 'fa-users' },
+    { k: 'teacher', label: 'ಶಿಕ್ಷಕರು', icon: 'fa-chalkboard-user' },
+    { k: 'school', label: 'ಶಾಲೆಗಳು', icon: 'fa-school' },
+    { k: 'competitive', label: 'NMMS / ಪ್ರವೇಶ', icon: 'fa-trophy' }
+  ];
+  var userState = { cat: 'all', q: '', status: 'any' };
+  var reqState = { cat: 'all', q: '' };
+
+  function catOf(u) {
+    var c = 'teacher';
+    try { if (typeof window.getUserStrictPortalCategory === 'function') c = window.getUserStrictPortalCategory(u); } catch (e) {}
+    if (c !== 'school' && c !== 'competitive') c = (u && u.type === 'school') ? 'school' : ((u && (u.type === 'competitive' || u.type === 'nmms')) ? 'competitive' : 'teacher');
+    return c;
+  }
+  function daysLeft(d) {
+    var t = new Date(String(d || '') + 'T00:00:00'); if (isNaN(t)) return null;
+    var n = new Date(); n.setHours(0, 0, 0, 0); return Math.round((t - n) / 86400000);
+  }
+  function norm(s) { return String(s == null ? '' : s).toLowerCase(); }
+  function searchText(o) {
+    return norm([o.name, o.school, o.mobile, o.dise, o.secretKey, o.district, o.taluk,
+      Array.isArray(o.allowedSubjects) ? o.allowedSubjects.join(' ') : o.subjects,
+      Array.isArray(o.allowedClasses) ? o.allowedClasses.join(' ') : o.classes].join(' | '));
+  }
+  function chip(id, active, icon, label, count, onclick, tone) {
+    return '<button type="button" id="' + id + '" onclick="' + onclick + '" class="wy-chip px-3 py-1.5 rounded-xl text-[11px] font-black border cursor-pointer transition flex items-center gap-1 ' +
+      (active ? 'bg-slate-900 text-white border-slate-900 shadow' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100') + '" data-tone="' + (tone || '') + '">' +
+      '<i class="fa-solid ' + icon + '"></i> ' + label + ' <span class="ml-0.5 px-1.5 rounded-full ' + (active ? 'bg-white/20' : 'bg-slate-100') + '">' + count + '</span></button>';
+  }
+  function setChipActive(prefix, activeId) {
+    document.querySelectorAll('[id^="' + prefix + '"]').forEach(function (b) {
+      var on = b.id === activeId;
+      b.classList.toggle('bg-slate-900', on); b.classList.toggle('text-white', on); b.classList.toggle('border-slate-900', on); b.classList.toggle('shadow', on);
+      b.classList.toggle('bg-white', !on); b.classList.toggle('text-slate-700', !on); b.classList.toggle('border-slate-300', !on);
+    });
+  }
+
+  // ---------- ಸಕ್ರಿಯ ಸದಸ್ಯರು ----------
+  var prevUsers = window.renderSpaciousActiveUsersHtml;
+  function visibleUser(el) {
+    if (el.dataset.dup === '1') return false;
+    if (userState.cat !== 'all' && el.dataset.cat !== userState.cat) return false;
+    if (userState.status === 'expired' && el.dataset.exp !== '1') return false;
+    if (userState.status === 'soon' && el.dataset.soon !== '1') return false;
+    if (userState.q) {
+      var words = userState.q.split(/\s+/).filter(Boolean);
+      for (var i = 0; i < words.length; i++) if (el.dataset.q.indexOf(words[i]) === -1) return false;
+    }
+    return true;
+  }
+  window.wyApplyUserFilter = function () {
+    var list = document.getElementById('wy-users-list'); if (!list) return;
+    var shown = 0;
+    list.querySelectorAll('[data-cat]').forEach(function (el) { var v = visibleUser(el); el.style.display = v ? '' : 'none'; if (v) shown++; });
+    var empty = document.getElementById('wy-users-empty'); if (empty) empty.style.display = shown ? 'none' : '';
+    var cnt = document.getElementById('wy-users-shown'); if (cnt) cnt.textContent = shown;
+    setChipActive('wy-ucat-', 'wy-ucat-' + userState.cat);
+    setChipActive('wy-ust-', 'wy-ust-' + userState.status);
+  };
+  window.wySetUserCat = function (c) { userState.cat = c; window.wyApplyUserFilter(); };
+  window.wySetUserStatus = function (s) { userState.status = (userState.status === s ? 'any' : s); window.wyApplyUserFilter(); };
+  window.wySetUserSearch = function (v) { userState.q = norm(v).trim(); window.wyApplyUserFilter(); };
+
+  window.renderSpaciousActiveUsersHtml = function (users) {
+    var html = (typeof prevUsers === 'function') ? prevUsers.apply(this, arguments) : '';
+    if (!users || !users.length) return html;
+    var tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    var list = tpl.content.querySelector('.space-y-3');
+    if (!list || list.children.length !== users.length) return html; // ಅನಿರೀಕ್ಷಿತ ರಚನೆ: ಮೂಲದಂತೆಯೇ
+
+    var counts = { all: 0, teacher: 0, school: 0, competitive: 0 }, expired = 0, soon = 0, seen = {};
+    users.forEach(function (u, i) {
+      var card = list.children[i];
+      if (!u || !card) return;
+      var c = catOf(u), d = daysLeft(u.validityDate);
+      var dupKey = c + '|' + norm(u.dise) + '|' + norm(u.mobile) + '|' + norm(u.secretKey);
+      card.dataset.cat = c;
+      card.dataset.q = searchText(u);
+      card.dataset.exp = (d !== null && d < 0) ? '1' : '0';
+      card.dataset.soon = (d !== null && d >= 0 && d <= 30) ? '1' : '0';
+      if (seen[dupKey]) { card.dataset.dup = '1'; return; }   // ಶಾಲೆಗಳು DISE ಮತ್ತು ಮೊಬೈಲ್ ಎರಡರಲ್ಲೂ ಉಳಿದಿರುತ್ತವೆ — ಒಮ್ಮೆ ಮಾತ್ರ ತೋರಿಸು
+      seen[dupKey] = 1;
+      counts.all++; counts[c]++;
+      if (card.dataset.exp === '1') expired++;
+      if (card.dataset.soon === '1') soon++;
+      if (c === 'competitive') {   // NMMS ಖಾತೆಗೆ ಸರಿಯಾದ ಗುರುತು
+        card.querySelectorAll('span').forEach(function (sp) {
+          if (sp.textContent.trim() === 'ಶಿಕ್ಷಕರ ಖಾತೆ') { sp.textContent = 'NMMS / ಪ್ರವೇಶ ಖಾತೆ'; sp.className = sp.className.replace(/bg-emerald-100 text-emerald-800/, 'bg-amber-100 text-amber-900'); }
+        });
+        var ic = card.querySelector('.fa-chalkboard-user');
+        if (ic) { ic.classList.replace('fa-chalkboard-user', 'fa-trophy'); if (ic.parentNode) ic.parentNode.className = ic.parentNode.className.replace('bg-emerald-600', 'bg-amber-500'); }
+      }
+    });
+    list.querySelectorAll('[data-cat]').forEach(function (el) { el.style.display = visibleUser(el) ? '' : 'none'; });
+
+    var toolbar =
+      '<div class="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">' +
+        '<div class="relative"><i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>' +
+        '<input id="wy-users-search" type="search" value="' + (typeof escapeHtml === 'function' ? escapeHtml(userState.q) : '') + '" oninput="wySetUserSearch(this.value)" placeholder="ಹೆಸರು, ಶಾಲೆ, ಮೊಬೈಲ್, DISE ಅಥವಾ Key ಹುಡುಕಿ..." class="w-full pl-8 pr-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-indigo-500" /></div>' +
+        '<div class="flex flex-wrap gap-1.5">' +
+          CATS.map(function (c) { return chip('wy-ucat-' + c.k, userState.cat === c.k, c.icon, c.label, counts[c.k], "wySetUserCat('" + c.k + "')"); }).join('') +
+          '<span class="w-px bg-slate-300 mx-1"></span>' +
+          chip('wy-ust-expired', userState.status === 'expired', 'fa-circle-exclamation', 'ಅವಧಿ ಮುಗಿದವರು', expired, "wySetUserStatus('expired')") +
+          chip('wy-ust-soon', userState.status === 'soon', 'fa-hourglass-half', '30 ದಿನದಲ್ಲಿ ಮುಗಿಯುವವರು', soon, "wySetUserStatus('soon')") +
+        '</div>' +
+        '<div class="text-[11px] font-bold text-slate-500">ತೋರಿಸುತ್ತಿರುವುದು: <b id="wy-users-shown" class="text-slate-900">' + list.querySelectorAll('[data-cat]:not([data-dup="1"])').length + '</b></div>' +
+      '</div>';
+    var visibleNow = Array.from(list.querySelectorAll('[data-cat]')).filter(function (el) { return el.style.display !== 'none'; }).length;
+    toolbar = toolbar.replace(/(<b id="wy-users-shown"[^>]*>)\d+/, '$1' + visibleNow);
+    list.id = 'wy-users-list';
+    return toolbar + tpl.innerHTML + '<div id="wy-users-empty" style="display:' + (visibleNow ? 'none' : '') + '" class="p-8 text-center bg-slate-50 border rounded-2xl text-slate-500 font-bold text-xs">ಹೊಂದುವ ಸದಸ್ಯರು ಯಾರೂ ಇಲ್ಲ.</div>';
+  };
+  try { renderSpaciousActiveUsersHtml = window.renderSpaciousActiveUsersHtml; } catch (e) {}
+
+  // ---------- ಹೊಸ ಕೋರಿಕೆಗಳು ----------
+  var prevReqs = window.renderPendingRequestsListHtml;
+  function reqCat(r) { return r.type === 'school' ? 'school' : (r.type === 'competitive' || r.type === 'nmms' ? 'competitive' : 'teacher'); }
+  function visibleReq(el) {
+    if (reqState.cat !== 'all' && el.dataset.rcat !== reqState.cat) return false;
+    if (reqState.q) { var w = reqState.q.split(/\s+/).filter(Boolean); for (var i = 0; i < w.length; i++) if (el.dataset.q.indexOf(w[i]) === -1) return false; }
+    return true;
+  }
+  window.wyApplyReqFilter = function () {
+    var box = document.getElementById('wy-reqs-list'); if (!box) return;
+    var shown = 0;
+    box.querySelectorAll('[data-rcat]').forEach(function (el) { var v = visibleReq(el); el.style.display = v ? '' : 'none'; if (v) shown++; });
+    var e = document.getElementById('wy-reqs-empty'); if (e) e.style.display = shown ? 'none' : '';
+    setChipActive('wy-rcat-', 'wy-rcat-' + reqState.cat);
+  };
+  window.wySetReqCat = function (c) { reqState.cat = c; window.wyApplyReqFilter(); };
+  window.wySetReqSearch = function (v) { reqState.q = norm(v).trim(); window.wyApplyReqFilter(); };
+
+  window.renderPendingRequestsListHtml = function (requests) {
+    var html = (typeof prevReqs === 'function') ? prevReqs.apply(this, arguments) : '';
+    var pending = (requests || []).filter(function (r) { return r && r.status === 'pending'; });
+    if (!pending.length) return html;
+    var tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    var cards = Array.from(tpl.content.children).filter(function (n) { return n.nodeType === 1; });
+    if (cards.length !== pending.length) return html;
+    var counts = { all: pending.length, teacher: 0, school: 0, competitive: 0 };
+    pending.forEach(function (r, i) {
+      var c = reqCat(r), card = cards[i];
+      counts[c]++;
+      card.dataset.rcat = c;
+      card.dataset.q = searchText(r);
+      card.style.display = visibleReq(card) ? '' : 'none';
+      if (c === 'competitive') {
+        var b = card.querySelector('span');
+        if (b) { b.textContent = 'NMMS / ಪ್ರವೇಶ ಪರೀಕ್ಷೆ ನೋಂದಣಿ (₹100)'; b.className = b.className.replace(/bg-emerald-100 text-emerald-800/, 'bg-amber-100 text-amber-900'); }
+      }
+    });
+    var vis = cards.filter(function (c) { return c.style.display !== 'none'; }).length;
+    var toolbar =
+      '<div class="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">' +
+        '<input type="search" value="' + (typeof escapeHtml === 'function' ? escapeHtml(reqState.q) : '') + '" oninput="wySetReqSearch(this.value)" placeholder="ಕೋರಿಕೆಗಳಲ್ಲಿ ಹೆಸರು, ಶಾಲೆ, ಮೊಬೈಲ್ ಹುಡುಕಿ..." class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-indigo-500" />' +
+        '<div class="flex flex-wrap gap-1.5">' + CATS.map(function (c) { return chip('wy-rcat-' + c.k, reqState.cat === c.k, c.icon, c.label, counts[c.k], "wySetReqCat('" + c.k + "')"); }).join('') + '</div>' +
+      '</div>';
+    return toolbar + '<div id="wy-reqs-list" class="space-y-3">' + tpl.innerHTML + '</div>' +
+      '<div id="wy-reqs-empty" style="display:' + (vis ? 'none' : '') + '" class="p-8 text-center bg-slate-50 border rounded-2xl text-slate-500 font-bold text-xs">ಈ ವಿಭಾಗದಲ್ಲಿ ಕೋರಿಕೆಗಳಿಲ್ಲ.</div>';
+  };
+  try { renderPendingRequestsListHtml = window.renderPendingRequestsListHtml; } catch (e) {}
 })();
 
 </script>

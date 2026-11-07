@@ -4,6 +4,15 @@
   <meta name="referrer" content="no-referrer" />
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- 📱 Mobile App (PWA) -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#059669" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="With You QP" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
   <title>With You QP Generator - Official DSERT Master Pro 2026-27</title>
   
   <!-- Tailwind CSS CDN -->
@@ -22923,6 +22932,94 @@ function wyStrongKeyPart() {
       if (typeof showToast === 'function') showToast('🗑️ ಅಳಿಸಲಾಗಿದೆ', 'info');
     } catch (err) { alert('❌ ' + err.message); }
   };
+})();
+
+
+// =========================================================================
+// 📱 ಮೊಬೈಲ್ App ನಂತೆ Install (PWA)
+// =========================================================================
+(function installPWA() {
+  var isStandalone = function () {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  };
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var deferred = null;
+
+  // ಪುಟದ ಹೆಸರು index.html ಅಲ್ಲದಿದ್ದರೆ, App ತೆರೆದಾಗ ಇದೇ ಪುಟ ತೆರೆಯುವಂತೆ manifest ಹೊಂದಿಸುವುದು
+  try {
+    var last = location.pathname.split('/').pop();
+    if (last && !/^index\.html?$/i.test(last) && location.protocol.indexOf('http') === 0) {
+      var base = location.href.replace(/[?#].*$/, '');
+      var dir = base.replace(/[^\/]*$/, '');
+      var m = {
+        name: 'With You QP Generator', short_name: 'With You QP', lang: 'kn',
+        start_url: base + '?source=app', scope: dir, display: 'standalone',
+        background_color: '#f8fafc', theme_color: '#059669',
+        icons: [
+          { src: dir + 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: dir + 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: dir + 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+        ]
+      };
+      var link = document.querySelector('link[rel="manifest"]');
+      if (link) link.href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(m));
+    }
+  } catch (e) {}
+
+  // Service Worker (ಇಂಟರ್ನೆಟ್ ಇಲ್ಲದಾಗಲೂ ತೆರೆಯಲು)
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('SW register failed', e); });
+    });
+  }
+
+  function btn() { return document.getElementById('wy-install-btn'); }
+  function hideBtn() { var b = btn(); if (b) b.remove(); }
+  function dismissedRecently() {
+    try { var t = parseInt(localStorage.getItem('wy_install_dismissed') || '0'); return Date.now() - t < 3 * 86400000; } catch (e) { return false; }
+  }
+  function showBtn() {
+    if (isStandalone() || btn() || dismissedRecently()) return;
+    var wrap = document.createElement('div');
+    wrap.id = 'wy-install-btn';
+    wrap.className = 'no-print';
+    wrap.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9998;display:flex;align-items:center;gap:6px;background:#0f172a;color:#fff;padding:8px 10px 8px 12px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:12px;font-weight:800;max-width:calc(100vw - 24px)';
+    wrap.innerHTML =
+      '<img src="icon-192.png" alt="" style="width:28px;height:28px;border-radius:8px" onerror="this.style.display=\'none\'">' +
+      '<button type="button" id="wy-install-go" style="background:#10b981;color:#fff;border:0;border-radius:10px;padding:7px 12px;font-weight:900;font-size:12px;cursor:pointer">📲 App ಆಗಿ Install ಮಾಡಿ</button>' +
+      '<button type="button" id="wy-install-x" title="ಮುಚ್ಚಿ" style="background:transparent;color:#94a3b8;border:0;font-size:16px;font-weight:900;cursor:pointer;padding:0 4px">✕</button>';
+    document.body.appendChild(wrap);
+    document.getElementById('wy-install-go').onclick = window.wyInstallApp;
+    document.getElementById('wy-install-x').onclick = function () {
+      try { localStorage.setItem('wy_install_dismissed', String(Date.now())); } catch (e) {}
+      hideBtn();
+    };
+  }
+
+  window.wyInstallApp = async function () {
+    if (deferred) {
+      deferred.prompt();
+      try { var r = await deferred.userChoice; if (r && r.outcome === 'accepted') hideBtn(); } catch (e) {}
+      deferred = null;
+      return;
+    }
+    var msg = isIOS
+      ? '📲 iPhone / iPad ನಲ್ಲಿ Install ಮಾಡಲು:\n\n1. Safari ಯಲ್ಲಿ ಈ ವೆಬ್‌ಸೈಟ್ ತೆರೆಯಿರಿ\n2. ಕೆಳಗಿನ "Share" (⬆️) ಬಟನ್ ಒತ್ತಿ\n3. "Add to Home Screen" ಆಯ್ಕೆ ಮಾಡಿ\n4. "Add" ಒತ್ತಿ'
+      : '📲 Install ಮಾಡಲು:\n\nChrome ನ ಮೇಲಿನ ಬಲ ಮೂಲೆಯ ⋮ ಮೆನು ಒತ್ತಿ → "Install app" ಅಥವಾ "Add to Home screen" ಆಯ್ಕೆ ಮಾಡಿ.\n\n(ಈ ಆಯ್ಕೆ ಕಾಣದಿದ್ದರೆ ಪುಟವನ್ನು ಒಮ್ಮೆ refresh ಮಾಡಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.)';
+    alert(msg);
+  };
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferred = e;
+    showBtn();
+  });
+  window.addEventListener('appinstalled', function () {
+    hideBtn();
+    if (typeof showToast === 'function') showToast('🎉 With You QP App ಯಶಸ್ವಿಯಾಗಿ Install ಆಗಿದೆ! Home screen ನಲ್ಲಿ ನೋಡಿ.', 'success');
+  });
+  // iPhone ನಲ್ಲಿ beforeinstallprompt ಬರುವುದಿಲ್ಲ — ಸೂಚನೆಯ ಬಟನ್ ತೋರಿಸುವುದು
+  if (isIOS && !isStandalone()) setTimeout(showBtn, 2500);
 })();
 
 </script>

@@ -23336,7 +23336,7 @@ window.solveStrictExactExamMath = function(pool, targetMarks, targetCount, selec
   // -------------------------------------------------------------------
   var allOneMark = pool.every(function(q) { return marksOf(q) === 1; });
   if (allOneMark) {
-    var withImg = pool.filter(hasImg);
+    var withImg = shuffle(pool.filter(hasImg)); // ಚಿತ್ರ ಪ್ರಶ್ನೆಗಳು ಹೆಚ್ಚಿದ್ದರೆ ಪ್ರತಿ ಬಾರಿ ಬೇರೆ ಬೇರೆ ಬರಲಿ
     var withoutImg = pool.filter(function(q) { return !hasImg(q); });
     var result = withImg.slice();
     var shuffledRest = shuffle(withoutImg);
@@ -27008,6 +27008,7 @@ window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part)
           if (gRes.ok) {
             var gData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await gRes.text()) : [];
             if (Array.isArray(gData) && gData.length > 0) {
+              gData.forEach(function(q) { if (q && typeof q === 'object') q._src = 'nmms_gmat.json'; });
               loadedList = gData;
               break;
             }
@@ -27043,6 +27044,7 @@ window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part)
             if (sRes.ok) {
               var sData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await sRes.text()) : [];
               if (Array.isArray(sData) && sData.length > 0) {
+                sData.forEach(function(q) { if (q && typeof q === 'object') q._src = sFile; });
                 loadedList.push(...sData);
                 break;
               }
@@ -27065,6 +27067,7 @@ window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part)
           if (cRes.ok) {
             var cData = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await cRes.text()) : [];
             if (Array.isArray(cData) && cData.length > 0) {
+              cData.forEach(function(q) { if (q && typeof q === 'object') q._src = compFile; });
               loadedList = cData;
               break;
             }
@@ -27097,6 +27100,7 @@ window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part)
             if (res.ok) {
               var data = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(await res.text()) : [];
               if (Array.isArray(data) && data.length > 0) {
+                data.forEach(function(q) { if (q && typeof q === 'object') q._src = fileName; });
                 loadedList.push(...data);
                 break;
               }
@@ -27112,7 +27116,8 @@ window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part)
       var seenIds = new Set();
       appState.activeSubjectQuestions = loadedList.filter(function(q) {
         if (!q) return false;
-        var uid = (q._src || '') + '_' + (q.id || q.q);
+        // 🌟 ಫೈಲ್ + id + ಪ್ರಶ್ನೆ ಪಠ್ಯ: ಒಂದೇ id ಇರುವ ಬೇರೆ ಬೇರೆ ಪ್ರಶ್ನೆಗಳು ಇನ್ನು ಮುಂದೆ ಕಳೆದುಹೋಗುವುದಿಲ್ಲ
+        var uid = (q._src || '') + '|' + (q.id != null ? q.id : '') + '|' + String(q.q || '').trim() + '|' + String(q.image || q.img || '');
         if (seenIds.has(uid)) return false;
         seenIds.add(uid);
         return true;
@@ -27193,6 +27198,42 @@ window.loadQuestionsFromGitHub = async function(medium, grade, rawSubject, part)
     else next = src.replace(/\/s\d+(-c)?\//, '/w1000/').replace(/=s\d+(-c)?$/, '=w1000');
     if (next !== src) img.src = next;
   }, true);
+})();
+
+
+// =========================================================================
+// 🔁 ಪುನರಾವರ್ತನೆ ತಡೆ (Non-Repeat) ಸರಿಪಡಿಕೆ
+// ೧. ಒಂದೇ id ಇರುವ ಬೇರೆ ಪ್ರಶ್ನೆಗಳು ಒಂದಾಗಿ ಎಣಿಕೆಯಾಗಿ ಮಾಯವಾಗುತ್ತಿದ್ದವು → ಫೈಲ್+id+ಪಠ್ಯ ಆಧಾರಿತ ಕೀ
+// ೨. NMMS / ಪ್ರವೇಶ ಪರೀಕ್ಷೆಗಳಲ್ಲಿ ಚಿತ್ರವಿರುವ ಪ್ರಶ್ನೆಗಳನ್ನು "ಬಳಸಲಾಗಿದೆ" ಎಂದು ಗುರುತಿಸುವುದಿಲ್ಲ,
+//    ಹಾಗಾಗಿ ಮೊದಲ ಪತ್ರಿಕೆಯ ನಂತರವೂ ಚಿತ್ರ ಪ್ರಶ್ನೆಗಳು ಬರುತ್ತಲೇ ಇರುತ್ತವೆ.
+// =========================================================================
+(function installNonRepeatImageFix() {
+  var newKey = function (q) {
+    if (!q) return '';
+    var txt = String(q.q || '').trim().replace(/\s+/g, '_').substring(0, 60);
+    return (q._src || '') + '|' + (q.id != null ? String(q.id) : '') + '|' + txt;
+  };
+  window.getQuestionUniqueKey = newKey;
+  try { getQuestionUniqueKey = newKey; } catch (e) {}
+
+  var isCompetitiveSubject = function () {
+    var subj = String((document.getElementById('cfg-subject') || {}).value || '').toLowerCase();
+    return /nmms|sat|gmat|ಬೌದ್ಧಿಕ|ಶೈಕ್ಷಣಿಕ|ಮೊರಾರ್ಜಿ|ಕಿತ್ತೂರು|ಆದರ್ಶ/.test(subj);
+  };
+  var hasImage = function (q) {
+    try { return typeof extractUniversalImage === 'function' && !!extractUniversalImage(q); } catch (e) { return false; }
+  };
+
+  var prevRecord = window.recordQuestionsAsUsed;
+  if (typeof prevRecord === 'function') {
+    var newRecord = function (list) {
+      var toRecord = (list || []);
+      if (isCompetitiveSubject()) toRecord = toRecord.filter(function (q) { return !hasImage(q); });
+      return prevRecord(toRecord);
+    };
+    window.recordQuestionsAsUsed = newRecord;
+    try { recordQuestionsAsUsed = newRecord; } catch (e) {}
+  }
 })();
 
 </script>

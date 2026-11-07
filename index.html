@@ -22430,8 +22430,8 @@ function wyStrongKeyPart() {
   try { openAdminLoginModal = window.openAdminLoginModal; } catch (e) {}
 
   window.handleAdminLoginSubmit = async function () {
-    var email = (v('admin-email-inp') || '').trim();
-    var pass = (v('admin-pass-inp') || '').trim();
+    var email = (v('admin-email-inp') || '').trim().toLowerCase();
+    var pass = (v('admin-pass-inp') || '');
     if (!email || !pass) return alert('⚠️ ದಯವಿಟ್ಟು Admin Email ಮತ್ತು Password ನಮೂದಿಸಿ.');
     if (typeof showToast === 'function') showToast('🔒 ಭದ್ರತೆ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...', 'info');
     try {
@@ -22441,8 +22441,19 @@ function wyStrongKeyPart() {
       });
       var d = await r.json();
       if (!d.idToken) {
-        var msg = (d.error && d.error.message) || '';
-        return alert('❌ ಲಾಗಿನ್ ವಿಫಲ: ' + (/INVALID|PASSWORD|EMAIL_NOT_FOUND|CREDENTIAL/i.test(msg) ? 'Email ಅಥವಾ Password ತಪ್ಪಾಗಿದೆ.' : (/TOO_MANY/i.test(msg) ? 'ಹಲವು ಬಾರಿ ತಪ್ಪಾಗಿದೆ, ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಪ್ರಯತ್ನಿಸಿ.' : msg)));
+        var msg = String((d.error && d.error.message) || ('HTTP ' + r.status));
+        console.warn('Firebase admin login error:', d);
+        var why;
+        if (/PASSWORD_LOGIN_DISABLED|OPERATION_NOT_ALLOWED/i.test(msg)) why = 'Firebase ನಲ್ಲಿ Email/Password ಲಾಗಿನ್ ಇನ್ನೂ Enable ಆಗಿಲ್ಲ (Authentication → Sign-in method → Email/Password → Enable → Save).';
+        else if (/EMAIL_NOT_FOUND/i.test(msg)) why = 'ಈ Email Firebase Users ಪಟ್ಟಿಯಲ್ಲಿ ಇಲ್ಲ. Email ಸರಿಯಾಗಿ ಟೈಪ್ ಮಾಡಿದ್ದೀರಾ ನೋಡಿ.';
+        else if (/INVALID_PASSWORD/i.test(msg)) why = 'Password ತಪ್ಪಾಗಿದೆ.';
+        else if (/INVALID_LOGIN_CREDENTIALS|INVALID_CREDENTIAL/i.test(msg)) why = 'Email ಅಥವಾ Password ಹೊಂದುತ್ತಿಲ್ಲ.';
+        else if (/INVALID_EMAIL/i.test(msg)) why = 'Email ನ ರೂಪ ಸರಿಯಿಲ್ಲ.';
+        else if (/USER_DISABLED/i.test(msg)) why = 'ಈ Admin ಖಾತೆಯನ್ನು Firebase ನಲ್ಲಿ Disable ಮಾಡಲಾಗಿದೆ.';
+        else if (/TOO_MANY/i.test(msg)) why = 'ಹಲವು ಬಾರಿ ತಪ್ಪಾಗಿದೆ, 15–30 ನಿಮಿಷ ಬಿಟ್ಟು ಪ್ರಯತ್ನಿಸಿ.';
+        else if (/API_KEY|API key|blocked|referer|referrer|PERMISSION/i.test(msg)) why = 'Web API Key ಗೆ ನಿರ್ಬಂಧವಿದೆ (Google Cloud → Credentials → Browser key → API restrictions ನಲ್ಲಿ "Identity Toolkit API" ಇರಬೇಕು).';
+        else why = 'ಅಜ್ಞಾತ ದೋಷ.';
+        return alert('❌ Admin ಲಾಗಿನ್ ವಿಫಲ\n\n' + why + '\n\n(Firebase ಸಂದೇಶ: ' + msg + ')');
       }
       if (d.localId !== ADMIN_UID) return alert('❌ ಈ ಖಾತೆಗೆ Admin ಅನುಮತಿ ಇಲ್ಲ.');
       saveTok({ uid: d.localId, idToken: d.idToken, refreshToken: d.refreshToken, exp: Date.now() + parseInt(d.expiresIn || 3600) * 1000 });

@@ -23052,6 +23052,7 @@ function wyStrongKeyPart() {
   // ---------- ೧. ಮಾಧ್ಯಮ ಡ್ರಾಪ್‌ಡೌನ್‌ಗೆ ಹೊಸ ಆಯ್ಕೆ (1–5ನೇ ತರಗತಿಗೆ ಮಾತ್ರ) ----------
   function syncMediumOption() {
     var sel = document.getElementById('cfg-medium'); if (!sel) return;
+    setTimeout(function () { try { if (window.wySyncSchoolEnBox) window.wySyncSchoolEnBox(); } catch (e) {} }, 60);
     var g = gradeNum();
     var opt = sel.querySelector('option[value="' + BI + '"]');
     var allowed = g >= 1 && g <= 5;
@@ -23302,6 +23303,7 @@ function wyStrongKeyPart() {
   var LABELS = [
     [/^ವಿಷಯ\s*:/, 'Subject / ವಿಷಯ :'], [/^ತರಗತಿ\s*:/, 'Class / ತರಗತಿ :'], [/^ದಿನಾಂಕ\s*:/, 'Date / ದಿನಾಂಕ :'],
     [/^ಒಟ್ಟು ಅಂಕಗಳು\s*:/, 'Marks / ಒಟ್ಟು ಅಂಕಗಳು :'], [/^ಗರಿಷ್ಠ ಅಂಕಗಳು\s*:/, 'Max. Marks / ಗರಿಷ್ಠ ಅಂಕಗಳು :'],
+    [/^ಘಟಕದ ಹೆಸರು\s*:/, 'Unit / ಘಟಕದ ಹೆಸರು :'], [/^ಪಾಠದ ಹೆಸರು\s*:/, 'Lesson / ಪಾಠದ ಹೆಸರು :'],
     [/^ಸಮಯ\s*:/, 'Time / ಸಮಯ :'], [/^ಉತ್ತರ\s*:/, 'Answer / ಉತ್ತರ :'],
     [/^ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು\s*:/, 'Student Name / ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು :'], [/^ಹಾಜರಾತಿ ಸಂಖ್ಯೆ\s*:/, 'Roll No. / ಹಾಜರಾತಿ ಸಂಖ್ಯೆ :'],
     [/^ನೋಂದಣಿ ಸಂಖ್ಯೆ\s*:/, 'Reg. No. / ನೋಂದಣಿ ಸಂಖ್ಯೆ :'], [/^ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ\s*:/, 'Student Sign / ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ :'],
@@ -23321,7 +23323,135 @@ function wyStrongKeyPart() {
     pairs.sort(function (x, y) { return y[0].length - x[0].length; });
     return pairs;
   }
-  function bilingualizeDom(root) {
+
+  // ---------- ೬. ಶಾಲೆಯ ಹೆಸರು ಮತ್ತು ಪರೀಕ್ಷೆಯ ಹೆಸರು (ದ್ವಿಭಾಷೆ) ----------
+  var EXAM_EN = [
+    [/LBA\s*\(\s*ಘಟಕ ಪರೀಕ್ಷೆ\s*\)/, 'LBA (Unit Test)'],
+    [/([1-4೧-೪])\s*ನೇ\s*ರೂಪಣಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ\s*\(\s*(FA-\d)\s*\)/, function (m, n, fa) { return 'Formative Assessment-' + normDigits(n) + ' (' + fa + ')'; }],
+    [/ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ\s*-\s*([12೧೨])\s*\(\s*(SA-\d)\s*\)/, function (m, n, sa) { return 'Summative Assessment-' + normDigits(n) + ' (' + sa + ')'; }],
+    [/ಮೌಖಿಕ ಪರೀಕ್ಷೆ\s*\(\s*Oral Examination\s*\)/, 'Oral Examination'],
+    [/ಪೂರ್ವಸಿದ್ಧತಾ ಪರೀಕ್ಷೆ\s*\(\s*Preparatory Exam\s*\)/, 'Preparatory Examination'],
+    [/ಮಧ್ಯವಾರ್ಷಿಕ ಪರೀಕ್ಷೆ/, 'Mid-Term Examination'], [/ವಾರ್ಷಿಕ ಪರೀಕ್ಷೆ/, 'Annual Examination'],
+    [/ಘಟಕ ಪರೀಕ್ಷೆ/, 'Unit Test'], [/ಕಿರು ಪರೀಕ್ಷೆ/, 'Class Test'], [/ಸೇತುಬಂಧ ಪರೀಕ್ಷೆ/, 'Bridge Course Test']
+  ];
+  function examTitlePair(full) {
+    full = String(full || '').trim();
+    for (var i = 0; i < EXAM_EN.length; i++) {
+      var m = full.match(EXAM_EN[i][0]);
+      if (m) {
+        var en = full.replace(EXAM_EN[i][0], EXAM_EN[i][1]);
+        var kn = full.replace(/\s*\((Oral Examination|Preparatory Exam)\)/, '');
+        return { kn: kn, en: en, match: full };
+      }
+    }
+    return null;
+  }
+
+  var SCHOOL_WORDS = [
+    ['ಸ.ಮಾ.ಹಿ.ಪ್ರಾ.ಶಾಲೆ', 'GMHPS'], ['ಸ.ಹಿ.ಪ್ರಾ.ಶಾಲೆ', 'GHPS'], ['ಸ.ಕಿ.ಪ್ರಾ.ಶಾಲೆ', 'GLPS'], ['ಸ.ಪ್ರೌ.ಶಾಲೆ', 'GHS'],
+    ['ಸ.ಮಾ.ಹಿ.ಪ್ರಾ.ಶಾ', 'GMHPS'], ['ಸ.ಹಿ.ಪ್ರಾ.ಶಾ', 'GHPS'], ['ಸ.ಕಿ.ಪ್ರಾ.ಶಾ', 'GLPS'], ['ಸ.ಪ್ರೌ.ಶಾ', 'GHS'],
+    ['ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ', 'Higher Primary School'], ['ಕಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ', 'Lower Primary School'],
+    ['ಪ್ರಾಥಮಿಕ ಶಾಲೆ', 'Primary School'], ['ಪ್ರೌಢ ಶಾಲೆ', 'High School'], ['ಪ್ರೌಢಶಾಲೆ', 'High School'],
+    ['ಪಬ್ಲಿಕ್ ಸ್ಕೂಲ್', 'Public School'], ['ಮೊರಾರ್ಜಿ ದೇಸಾಯಿ', 'Morarji Desai'], ['ವಸತಿ ಶಾಲೆ', 'Residential School'],
+    ['ಸರ್ಕಾರಿ', 'Government'], ['ಸರಕಾರಿ', 'Government'], ['ಅನುದಾನಿತ', 'Aided'], ['ಖಾಸಗಿ', 'Private'], ['ಮಾದರಿ', 'Model'],
+    ['ಕನ್ನಡ', 'Kannada'], ['ಉರ್ದು', 'Urdu'], ['ಮರಾಠಿ', 'Marathi'], ['ಆಂಗ್ಲ', 'English'], ['ಹಿರಿಯ', 'Higher'], ['ಕಿರಿಯ', 'Lower'],
+    ['ಪ್ರಾಥಮಿಕ', 'Primary'], ['ಶಾಲೆ', 'School'], ['ಕರ್ನಾಟಕ', 'Karnataka'], ['ಪಬ್ಲಿಕ್', 'Public'], ['ಆದರ್ಶ', 'Adarsha'], ['ಕ್ಯಾಂಪ್', 'Camp']
+  ];
+  var KN_V = { 'ಅ': 'a', 'ಆ': 'a', 'ಇ': 'i', 'ಈ': 'ee', 'ಉ': 'u', 'ಊ': 'oo', 'ಋ': 'ru', 'ಎ': 'e', 'ಏ': 'e', 'ಐ': 'ai', 'ಒ': 'o', 'ಓ': 'o', 'ಔ': 'au' };
+  var KN_C = { 'ಕ': 'k', 'ಖ': 'kh', 'ಗ': 'g', 'ಘ': 'gh', 'ಙ': 'n', 'ಚ': 'ch', 'ಛ': 'chh', 'ಜ': 'j', 'ಝ': 'jh', 'ಞ': 'n', 'ಟ': 't', 'ಠ': 'th', 'ಡ': 'd', 'ಢ': 'dh', 'ಣ': 'n',
+    'ತ': 't', 'ಥ': 'th', 'ದ': 'd', 'ಧ': 'dh', 'ನ': 'n', 'ಪ': 'p', 'ಫ': 'ph', 'ಬ': 'b', 'ಭ': 'bh', 'ಮ': 'm', 'ಯ': 'y', 'ರ': 'r', 'ಲ': 'l', 'ವ': 'v', 'ಶ': 'sh', 'ಷ': 'sh', 'ಸ': 's', 'ಹ': 'h', 'ಳ': 'l', 'ಱ': 'r', 'ೞ': 'l', 'ಫ಼': 'f', 'ಜ಼': 'z' };
+  var KN_M = { 'ಾ': 'a', 'ಿ': 'i', 'ೀ': 'ee', 'ು': 'u', 'ೂ': 'oo', 'ೃ': 'ru', 'ೆ': 'e', 'ೇ': 'e', 'ೈ': 'ai', 'ೊ': 'o', 'ೋ': 'o', 'ೌ': 'au' };
+  function translit(word) {
+    var out = '', ch = Array.from(word);
+    for (var i = 0; i < ch.length; i++) {
+      var c = ch[i], nx = ch[i + 1];
+      if (KN_C[c]) {
+        out += KN_C[c];
+        if (nx === '್') { i++; continue; }
+        if (KN_M[nx]) { out += KN_M[nx]; i++; continue; }
+        out += 'a';
+      } else if (KN_V[c]) out += KN_V[c];
+      else if (c === 'ಂ') out += (ch[i + 1] && /[ಪಬಭಮ]/.test(ch[i + 1])) ? 'm' : 'n';
+      else if (c === 'ಃ') out += 'h';
+      else if (/[೦-೯]/.test(c)) out += normDigits(c);
+      else out += c;
+    }
+    out = out.replace(/(ga|ka|ra|la|na|ta|da)a\b/g, '$1');
+    return out.charAt(0).toUpperCase() + out.slice(1);
+  }
+  function suggestSchoolEn(kn) {
+    var s = ' ' + String(kn || '').trim() + ' ';
+    var tokens = [];
+    SCHOOL_WORDS.forEach(function (w) { s = s.split(w[0]).join(' \u0001' + tokens.push(w[1]) + '\u0002 '); });
+    return s.trim().split(/\s+/).map(function (w) {
+      var m = w.match(/^\u0001(\d+)\u0002$/);
+      if (m) return tokens[parseInt(m[1]) - 1];
+      return /[ಀ-೿]/.test(w) ? translit(w) : w;
+    }).join(' ').replace(/\s+([,\.])/g, '$1');
+  }
+  window.wySuggestSchoolEn = suggestSchoolEn;
+
+  function enMap() { try { return JSON.parse(localStorage.getItem('wy_school_name_en') || '{}'); } catch (e) { return {}; } }
+  function schoolKn() { return String((document.getElementById('cfg-school-name') || {}).value || '').trim(); }
+  function schoolEn() {
+    var inp = document.getElementById('cfg-school-name-en');
+    if (inp) return inp.value.trim();
+    var kn = schoolKn(); var m = enMap();
+    return (m[kn] != null) ? m[kn] : suggestSchoolEn(kn);
+  }
+  function syncSchoolEnBox() {
+    var kInp = document.getElementById('cfg-school-name'); if (!kInp) return;
+    var box = document.getElementById('wy-school-en-box');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'wy-school-en-box';
+      box.className = 'mt-2';
+      box.innerHTML = '<label class="block text-xs font-bold text-slate-700 mb-1">ಶಾಲೆಯ ಹೆಸರು (English) <span class="text-[10px] font-semibold text-indigo-600">— ದ್ವಿಭಾಷಾ ಪತ್ರಿಕೆಗೆ</span></label>' +
+        '<input type="text" id="cfg-school-name-en" class="' + kInp.className.replace(/bg-\S+|cursor-not-allowed|text-slate-500/g, '') + ' bg-indigo-50 border-indigo-300" placeholder="Government Kannada Higher Primary School" />';
+      var host = kInp.parentNode;
+      host.parentNode.insertBefore(box, host.nextSibling);
+      var en = box.querySelector('input');
+      en.addEventListener('input', function () {
+        var m = enMap(); m[schoolKn()] = en.value.trim();
+        try { localStorage.setItem('wy_school_name_en', JSON.stringify(m)); } catch (e) {}
+      });
+    }
+    var input = document.getElementById('cfg-school-name-en');
+    var kn = schoolKn(), map = enMap();
+    if (input.dataset.forKn !== kn) { input.value = (map[kn] != null) ? map[kn] : suggestSchoolEn(kn); input.dataset.forKn = kn; }
+    box.style.display = (mediumVal() === BI) ? '' : 'none';
+  }
+  window.wySyncSchoolEnBox = syncSchoolEnBox;
+  document.addEventListener('change', function (e) { if (e.target && /^cfg-(medium|class|school-name)$/.test(e.target.id)) setTimeout(syncSchoolEnBox, 50); }, true);
+  setTimeout(syncSchoolEnBox, 900);
+
+  function bilingualizeHeaderNode(t) {
+    var txt = t.nodeValue, trimmed = txt.trim();
+    var kn = schoolKn(), en = schoolEn();
+    if (kn && en && trimmed === kn && !sameText(kn, en)) {
+      t.nodeValue = txt.replace(kn, en);
+      var sp = document.createElement('span');
+      sp.className = 'wy-bi-kn';
+      sp.style.cssText = 'display:block;font-size:0.72em;font-weight:700;opacity:.9;margin-top:1px';
+      sp.textContent = kn;
+      t.parentNode && t.parentNode.insertBefore(sp, t.nextSibling);
+      return true;
+    }
+    var exam = (document.getElementById('cfg-exam-type') || {}).value || '';
+    var pair = examTitlePair(exam);
+    if (pair && trimmed.indexOf(pair.match) !== -1) {
+      t.nodeValue = txt.replace(pair.match, pair.en);
+      var sp2 = document.createElement('span');
+      sp2.className = 'wy-bi-kn';
+      sp2.style.cssText = 'display:block;font-size:0.85em;font-weight:700;opacity:.9';
+      sp2.textContent = trimmed.replace(pair.match, pair.kn);
+      t.parentNode && t.parentNode.insertBefore(sp2, t.nextSibling);
+      return true;
+    }
+    return false;
+  }
+
+  function bilingualizeDom(root, headerOnly) {
     if (!root || root.dataset.wyBi === '1') return;
     var pairs = headingPairs();
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
@@ -23330,10 +23460,12 @@ function wyStrongKeyPart() {
     nodes.forEach(function (t) {
       var txt = t.nodeValue, trimmed = txt.trim();
       if (!trimmed) return;
+      if (bilingualizeHeaderNode(t)) return;
       for (var i = 0; i < LABELS.length; i++) {
         var m = trimmed.match(LABELS[i][0]);
         if (m) { t.nodeValue = txt.replace(m[0], LABELS[i][1]); return; }
       }
+      if (headerOnly) return;
       for (var j = 0; j < pairs.length; j++) {
         var at = txt.indexOf(pairs[j][0]);
         if (at !== -1 && txt.indexOf(pairs[j][1]) === -1) {
@@ -23354,10 +23486,11 @@ function wyStrongKeyPart() {
   var prevRender = window.renderFullExamPaperWithCustomHeader;
   window.renderFullExamPaperWithCustomHeader = function () {
     var r = prevRender ? prevRender.apply(this, arguments) : undefined;
-    if (isBilingualActive()) {
+    if (mediumVal() === BI) {
+      var full = isBilingualActive();          // ಭಾಷಾ ವಿಷಯಗಳಲ್ಲಿ ಮೇಲ್ಭಾಗ (ಶಾಲೆ, ಪರೀಕ್ಷೆ, ವಿಷಯ…) ಮಾತ್ರ ದ್ವಿಭಾಷೆ
       ['rendered-paper', 'rendered-key'].forEach(function (id) {
         var el = document.getElementById(id);
-        if (el) { el.dataset.wyBi = ''; bilingualizeDom(el); }
+        if (el) { el.dataset.wyBi = ''; bilingualizeDom(el, !full); }
       });
     }
     return r;

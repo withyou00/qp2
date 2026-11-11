@@ -457,7 +457,7 @@
 
     function cleanItemNumbering(str) {
       if (!str) return '';
-      return String(str).replace(/^[\dIVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+      return String(str).replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim();
     }
 
     function getExactQuestionMarks(q) {
@@ -7940,7 +7940,7 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
 
   function cleanAllNumberingPrefixes(str) {
     if (!str) return '';
-    return String(str).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+    return String(str).replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim();
   }
 
   var renderedBlocks = [];
@@ -8649,7 +8649,7 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
 
   function cleanAllNumberingPrefixes(str) {
     if (!str) return '';
-    return String(str).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+    return String(str).replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim();
   }
 
   var renderedBlocks = [];
@@ -9361,7 +9361,7 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
 
   function cleanAllNumberingPrefixes(str) {
     if (!str) return '';
-    return String(str).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+    return String(str).replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim();
   }
 
   var renderedBlocks = [];
@@ -11079,7 +11079,7 @@ window.renderDedicatedNalikaliKeyAnswers = function(allQuestions, actualMarks, r
 
   function cleanPrefix(str) {
     if (!str) return '';
-    return String(str).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+    return String(str).replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim();
   }
 
   var sectionsHtml = [];
@@ -11207,7 +11207,7 @@ window.renderDedicatedNalikaliBlueprint = function(questions, totalMarks, subjec
 
   function cleanPrefix(str) {
     if (!str) return '';
-    return String(str).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+    return String(str).replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim();
   }
 
   // ಚಟುವಟಿಕೆವಾರು ಅಂಕಗಳ ಲೆಕ್ಕಾಚಾರ
@@ -12105,7 +12105,7 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
 
   function cleanAllNumberingPrefixes(str) {
     if (!str) return '';
-    return String(str).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+    return String(str).replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim();
   }
 
   var renderedBlocks = [];
@@ -12423,7 +12423,7 @@ function splitNaliKaliAnswersAccurately(ansStr) {
 
   function cleanNum(s) {
     if (!s) return '';
-    return String(s).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+    return String(s).replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim();
   }
 
   // ೧. ನಂಬರಿಂಗ್ ಮಾದರಿಯ ಮೂಲಕ ಸ್ಪ್ಲಿಟ್ ಮಾಡುವುದು (ಉದಾ: "೧. ಮರ, ೨. ಚಮಚ" ಅಥವಾ "೧. ಮರ ೨. ಚಮಚ")
@@ -12462,7 +12462,7 @@ window.renderDedicatedNalikaliKeyAnswers = function(allQuestions, actualMarks, r
 
   function cleanPrefix(str) {
     if (!str) return '';
-    return String(str).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+    return String(str).replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim();
   }
 
   var sectionsHtml = [];
@@ -12605,7 +12605,7 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
 
   function cleanAllNumberingPrefixes(str) {
     if (!str) return '';
-    return String(str).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+    return String(str).replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim();
   }
 
   var renderedBlocks = [];
@@ -12996,7 +12996,7 @@ window.renderDedicatedNalikaliWorksheet = function(allQuestions, actualMarks, ra
 
   function cleanAllNumberingPrefixes(str) {
     if (!str) return '';
-    return String(str).replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim();
+    return String(str).replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim();
   }
 
   var renderedBlocks = [];
@@ -16551,7 +16551,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         var kannadaNums = ['೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯', '೧೦', '೧೧', '೧೨', '೧೩', '೧೪', '೧೫'];
 
         function toKnNum(n) { var kn = ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯']; return String(n).replace(/\d/g, d => kn[d]); }
-        function cleanPrefix(str) { return String(str || '').replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:]|\(?[IVX]{1,4}[\.\)]|\([a-e]\)|[a-e]\))\s*/i, '').trim(); }
+        function cleanPrefix(str) { return String(str || '').replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:](?=\s|$)|\(?[IVXivx]{1,4}[\.\)](?=\s)|\([a-eA-E]\)|[a-eA-E][\.\)](?=\s))\s*/, '').trim(); }
 
         var renderedBlocks = [];
         var actIndex = 0;
@@ -23126,18 +23126,39 @@ function wyStrongKeyPart() {
 
   // ಉತ್ತರದ ಖಾಲಿ ಜಾಗ (__ / [___] / -> [ ]) ಎರಡು ಬಾರಿ ಬರದಂತೆ: "ಕನ್ನಡ / English ____"
   var TAIL_BLANK = /\s*(?:(?:➔|->|:)\s*)?(?:\[\s*_*\s*\]|_{2,})\s*$/;
-  function joinLine(kn, en) {
+  var MID_BLANK = /(\[\s*_*\s*\]|_{2,})/;
+  function joinLine(kn, en, mode) {
     kn = String(kn || '').trim(); en = String(en || '').trim();
     if (!en) return kn;
+    // 1–3ನೇ ತರಗತಿ: ಮಧ್ಯದಲ್ಲಿ ಖಾಲಿ ಜಾಗವಿದ್ದರೆ ಭಾಗ-ಭಾಗವಾಗಿ ಜೋಡಣೆ → "1 kg / 1 ಕೆ.ಜಿ. ____ 1700 g / 1700 ಗ್ರಾಂ" (ಒಂದೇ ಖಾಲಿ ಜಾಗ)
+    if (mode === 'inline') {
+      var mkr = /^\s*(\(?(?:[a-zA-Z]|[ivx]{1,4}|[0-9೦-೯]{1,2})[\.\)])\s+/;
+      var mkK = kn.match(mkr), mkE = en.match(mkr), lead = '';
+      var kb = kn, eb = en;
+      if (mkK && mkE && normDigits(mkK[1]).toLowerCase() === normDigits(mkE[1]).toLowerCase()) { lead = mkE[1] + ' '; kb = kn.slice(mkK[0].length); eb = en.slice(mkE[0].length); }
+      var ks = kb.split(MID_BLANK), es = eb.split(MID_BLANK);
+      if (ks.length > 1 && ks.length === es.length) {
+        var out = [];
+        for (var i = 0; i < ks.length; i++) {
+          if (i % 2 === 1) { out.push(es[i]); continue; }          // ಖಾಲಿ ಜಾಗ (ಒಮ್ಮೆ ಮಾತ್ರ)
+          var a = es[i].trim(), b = ks[i].trim();
+          out.push(!a && !b ? '' : (!b || sameText(a, b) ? a : (!a ? b : a + ' / ' + b)));
+        }
+        return lead + out.join(' ').replace(/\s+/g, ' ').trim();
+      }
+    }
     var tail = (kn.match(TAIL_BLANK) || [''])[0];
     var knCore = tail ? kn.slice(0, kn.length - tail.length).trim() : kn;
     var enCore = en.replace(TAIL_BLANK, '').trim();
-    if (!enCore || sameText(knCore, enCore)) return kn;
-    // a. / b. / 1. / (i) ರೀತಿಯ ಉಪ-ಪ್ರಶ್ನೆಗಳು: ಕನ್ನಡ ಮತ್ತು English ಪಕ್ಕಪಕ್ಕ ("/" ಇಲ್ಲದೆ)
+    if (!enCore) return kn;
+    if (sameText(knCore, enCore)) return en;                       // ಕೇವಲ ಅಂಕಿಗಳ ವ್ಯತ್ಯಾಸ: English ಸಾಲು ಮಾತ್ರ
+    // a. / b. / 1. / (i) ರೀತಿಯ ಉಪ-ಪ್ರಶ್ನೆಗಳು: English ಮೊದಲು, ಕನ್ನಡ ಪಕ್ಕದಲ್ಲಿ ("/" ಇಲ್ಲದೆ)
     var MK = /^\s*(\(?(?:[a-zA-Z]|[ivx]{1,4}|[0-9೦-೯]{1,2})[\.\)])\s+/;
     var mk = knCore.match(MK), me = enCore.match(MK);
-    if (mk && me && normDigits(mk[1]).toLowerCase() === normDigits(me[1]).toLowerCase()) return kn + '   ' + en;
-    return knCore + ' / ' + enCore + (tail ? ' ' + tail.trim() : '');
+    if (mk && me && normDigits(mk[1]).toLowerCase() === normDigits(me[1]).toLowerCase()) return en + '   ' + kn;
+    var etail = (en.match(TAIL_BLANK) || [''])[0];
+    var blank = (tail || etail).trim();
+    return enCore + ' / ' + knCore + (blank ? ' ' + blank : '');
   }
   function normDigits(x) { return String(x || '').replace(/[೦-೯]/g, function (d) { return String('೦೧೨೩೪೫೬೭೮೯'.indexOf(d)); }); }
   function sameText(a, b) { return normDigits(a).replace(/\s+/g, '').toLowerCase() === normDigits(b).replace(/\s+/g, '').toLowerCase(); }
@@ -23145,12 +23166,13 @@ function wyStrongKeyPart() {
 
   function joinText(kn, en, mode) {
     kn = String(kn == null ? '' : kn); en = String(en || '').trim();
-    if (!en || sameText(kn, en)) return kn;
+    if (!en) return kn;
+    if (sameText(kn, en)) return en;
     var kl = kn.split(/\n|<br\s*\/?>/i), el = en.split(/\n|<br\s*\/?>/i);
-    if (kl.length > 1 && kl.length === el.length) {                // ಹಲವು ಸಾಲಿನ ಚಟುವಟಿಕೆ: ಸಾಲು-ಸಾಲಾಗಿ ಜೋಡಣೆ
-      return kl.map(function (line, i) { return sameText(line, el[i]) ? line : joinLine(line, el[i]); }).join('\n');
+    if (kl.length > 1 && kl.length === el.length) {                // ಹಲವು ಸಾಲಿನ ಚಟುವಟಿಕೆ: ಸಾಲು-ಸಾಲಾಗಿ ಜೋಡಣೆ (English ಮೊದಲು)
+      return kl.map(function (line, i) { return sameText(line, el[i]) ? el[i] : joinLine(line, el[i], mode); }).join('\n');
     }
-    return mode === 'inline' ? joinLine(kn, en) : (kn.trim() + '\n' + en);
+    return mode === 'inline' ? joinLine(kn, en, 'inline') : (en + '\n' + kn.trim());   // English ಸಾಲು ಮೇಲೆ, ಕನ್ನಡ ಕೆಳಗೆ
   }
 
   function toBilingual(q, grade) {
@@ -23164,8 +23186,9 @@ function wyStrongKeyPart() {
     if (q.ans != null) {
       var ae = enOf(q, 'ans');
       if (ae) {
-        var pre = (String(q.ans).match(/^\s*\(?[A-Dಅಆಇಈ]\)\s*/) || [''])[0];
-        o.ans = sameText(stripOptPrefix(q.ans), stripOptPrefix(ae)) ? q.ans : (String(q.ans).trim() + ' / ' + (pre ? stripOptPrefix(ae) : ae));
+        var pre = (String(ae).match(/^\s*\(?[A-Dಅಆಇಈ]\)\s*/) || String(q.ans).match(/^\s*\(?[A-Dಅಆಇಈ]\)\s*/) || [''])[0];
+        o.ans = sameText(stripOptPrefix(q.ans), stripOptPrefix(ae)) ? ae
+          : ((pre ? pre.trim() + ' ' : '') + stripOptPrefix(ae) + ' / ' + stripOptPrefix(q.ans));
       }
     }
     var mpE = q.matchPairs_en || (q.en && q.en.matchPairs);
@@ -23277,12 +23300,12 @@ function wyStrongKeyPart() {
   // ---------- ೫. ಪತ್ರಿಕೆಯ ಶೀರ್ಷಿಕೆಗಳು / ಸೂಚನೆಗಳು ದ್ವಿಭಾಷೆಯಲ್ಲಿ ----------
   // [ಆರಂಭದ ಪದ, ಬದಲಿ] — ಪಠ್ಯದ ಆರಂಭದಲ್ಲಿ ಮಾತ್ರ ಬದಲಾಗುತ್ತದೆ (ಉಳಿದ ಭಾಗ ಹಾಗೆಯೇ)
   var LABELS = [
-    [/^ವಿಷಯ\s*:/, 'ವಿಷಯ / Subject :'], [/^ತರಗತಿ\s*:/, 'ತರಗತಿ / Class :'], [/^ದಿನಾಂಕ\s*:/, 'ದಿನಾಂಕ / Date :'],
-    [/^ಒಟ್ಟು ಅಂಕಗಳು\s*:/, 'ಒಟ್ಟು ಅಂಕಗಳು / Marks :'], [/^ಗರಿಷ್ಠ ಅಂಕಗಳು\s*:/, 'ಗರಿಷ್ಠ ಅಂಕಗಳು / Marks :'],
-    [/^ಸಮಯ\s*:/, 'ಸಮಯ / Time :'], [/^ಉತ್ತರ\s*:/, 'ಉತ್ತರ / Answer :'],
-    [/^ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು\s*:/, 'ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು / Student Name :'], [/^ಹಾಜರಾತಿ ಸಂಖ್ಯೆ\s*:/, 'ಹಾಜರಾತಿ ಸಂಖ್ಯೆ / Roll No. :'],
-    [/^ನೋಂದಣಿ ಸಂಖ್ಯೆ\s*:/, 'ನೋಂದಣಿ ಸಂಖ್ಯೆ / Reg. No. :'], [/^ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ\s*:/, 'ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ / Student Sign :'],
-    [/^ಶಿಕ್ಷಕರ ಸಹಿ\s*:/, 'ಶಿಕ್ಷಕರ ಸಹಿ / Teacher Sign :'], [/^ಗಳಿಸಿದ ಅಂಕ\s*:/, 'ಗಳಿಸಿದ ಅಂಕ / Score :']
+    [/^ವಿಷಯ\s*:/, 'Subject / ವಿಷಯ :'], [/^ತರಗತಿ\s*:/, 'Class / ತರಗತಿ :'], [/^ದಿನಾಂಕ\s*:/, 'Date / ದಿನಾಂಕ :'],
+    [/^ಒಟ್ಟು ಅಂಕಗಳು\s*:/, 'Marks / ಒಟ್ಟು ಅಂಕಗಳು :'], [/^ಗರಿಷ್ಠ ಅಂಕಗಳು\s*:/, 'Max. Marks / ಗರಿಷ್ಠ ಅಂಕಗಳು :'],
+    [/^ಸಮಯ\s*:/, 'Time / ಸಮಯ :'], [/^ಉತ್ತರ\s*:/, 'Answer / ಉತ್ತರ :'],
+    [/^ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು\s*:/, 'Student Name / ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು :'], [/^ಹಾಜರಾತಿ ಸಂಖ್ಯೆ\s*:/, 'Roll No. / ಹಾಜರಾತಿ ಸಂಖ್ಯೆ :'],
+    [/^ನೋಂದಣಿ ಸಂಖ್ಯೆ\s*:/, 'Reg. No. / ನೋಂದಣಿ ಸಂಖ್ಯೆ :'], [/^ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ\s*:/, 'Student Sign / ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ :'],
+    [/^ಶಿಕ್ಷಕರ ಸಹಿ\s*:/, 'Teacher Sign / ಶಿಕ್ಷಕರ ಸಹಿ :'], [/^ಗಳಿಸಿದ ಅಂಕ\s*:/, 'Score / ಗಳಿಸಿದ ಅಂಕ :']
   ];
   var EXTRA_HEADINGS = {
     'ಗೆರೆ ಎಳೆದು ಹೊಂದಿಸಿ ಬರೆಯಿರಿ:': 'Match by drawing lines:'
@@ -23295,6 +23318,7 @@ function wyStrongKeyPart() {
       }
     } catch (e) {}
     Object.keys(EXTRA_HEADINGS).forEach(function (k) { pairs.push([k, EXTRA_HEADINGS[k]]); });
+    pairs.sort(function (x, y) { return y[0].length - x[0].length; });
     return pairs;
   }
   function bilingualizeDom(root) {
@@ -23311,11 +23335,15 @@ function wyStrongKeyPart() {
         if (m) { t.nodeValue = txt.replace(m[0], LABELS[i][1]); return; }
       }
       for (var j = 0; j < pairs.length; j++) {
-        if (trimmed.indexOf(pairs[j][0]) !== -1 && txt.indexOf(pairs[j][1]) === -1) {
+        var at = txt.indexOf(pairs[j][0]);
+        if (at !== -1 && txt.indexOf(pairs[j][1]) === -1) {
+          // "I. ಕನ್ನಡ ಸೂಚನೆ" → "I. English instruction" (ಮೇಲೆ) + ಕನ್ನಡ ಸೂಚನೆ (ಕೆಳಗೆ)
+          var kanPart = txt.slice(at);
+          t.nodeValue = txt.slice(0, at) + pairs[j][1];
           var span = document.createElement('span');
-          span.className = 'wy-bi-en';
+          span.className = 'wy-bi-kn';
           span.style.cssText = 'display:block;font-weight:600;font-size:0.92em;opacity:.9';
-          span.textContent = pairs[j][1];
+          span.textContent = kanPart.trim();
           if (t.parentNode) t.parentNode.insertBefore(span, t.nextSibling);
           return;
         }

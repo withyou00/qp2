@@ -16551,7 +16551,7 @@ window.reShareQuizFromHistory = function(quizId, title) {
         var kannadaNums = ['೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯', '೧೦', '೧೧', '೧೨', '೧೩', '೧೪', '೧೫'];
 
         function toKnNum(n) { var kn = ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯']; return String(n).replace(/\d/g, d => kn[d]); }
-        function cleanPrefix(str) { return String(str || '').replace(/^[\d೦-೯IVXabcde\(\)]+[\.\)\-\:\s]+/gi, '').trim(); }
+        function cleanPrefix(str) { return String(str || '').replace(/^\s*(?:\(?[\d೦-೯]{1,2}[\.\)\:]|\(?[IVX]{1,4}[\.\)]|\([a-e]\)|[a-e]\))\s*/i, '').trim(); }
 
         var renderedBlocks = [];
         var actIndex = 0;
@@ -23020,6 +23020,308 @@ function wyStrongKeyPart() {
   });
   // iPhone ನಲ್ಲಿ beforeinstallprompt ಬರುವುದಿಲ್ಲ — ಸೂಚನೆಯ ಬಟನ್ ತೋರಿಸುವುದು
   if (isIOS && !isStandalone()) setTimeout(showBtn, 2500);
+})();
+
+
+// =========================================================================
+// 🌐 ದ್ವಿಭಾಷಾ ಮಾಧ್ಯಮ (ಕನ್ನಡ + English) — 1 ರಿಂದ 5ನೇ ತರಗತಿ
+// -------------------------------------------------------------------------
+// English ಪಠ್ಯ ಎರಡು ರೀತಿಯಲ್ಲಿ ಬರಬಹುದು (ಎರಡೂ ಕೆಲಸ ಮಾಡುತ್ತವೆ):
+//  (೧) ಅದೇ JSON ಪ್ರಶ್ನೆಯಲ್ಲಿ: "q_en", "a_en", "b_en", "c_en", "d_en", "ans_en"
+//      (ಅಥವಾ "en": { "q": "...", "a": "...", ... } )
+//  (೨) GitHub ನ english_medium/class_X/ ನಲ್ಲಿ ಅದೇ ಹೆಸರಿನ ಫೈಲ್, ಅದೇ "id" ಗಳೊಂದಿಗೆ
+// ಭಾಷಾ ವಿಷಯಗಳಿಗೆ (ಕನ್ನಡ, English, ಹಿಂದಿ) ಇದು ಅನ್ವಯಿಸುವುದಿಲ್ಲ.
+// =========================================================================
+(function installBilingualMedium() {
+  var BI = 'bilingual_medium';
+  var RAW_HOST = 'raw.githubusercontent.com';
+  var FIELDS = ['q', 'a', 'b', 'c', 'd', 'ans'];
+
+  function mediumVal() { return (document.getElementById('cfg-medium') || {}).value || 'kannada_medium'; }
+  function gradeNum() { return parseInt(String((document.getElementById('cfg-class') || {}).value || '').replace(/\D/g, '')) || 0; }
+  function isLanguageSubject(subj) {
+    var s = String(subj || '').toLowerCase();
+    return /english|ಕನ್ನಡ|kannada|ಹಿಂದಿ|hindi|ಸಂಸ್ಕೃತ|sanskrit|urdu|ಉರ್ದು/.test(s) && !/ಗಣಿತ|math|ಪರಿಸರ|evs|ವಿಜ್ಞಾನ|science/.test(s);
+  }
+  function isBilingualActive() {
+    var subj = (document.getElementById('cfg-subject') || {}).value || '';
+    return mediumVal() === BI && !isLanguageSubject(subj);
+  }
+  window.wyIsBilingualPaper = isBilingualActive;
+
+  // ---------- ೧. ಮಾಧ್ಯಮ ಡ್ರಾಪ್‌ಡೌನ್‌ಗೆ ಹೊಸ ಆಯ್ಕೆ (1–5ನೇ ತರಗತಿಗೆ ಮಾತ್ರ) ----------
+  function syncMediumOption() {
+    var sel = document.getElementById('cfg-medium'); if (!sel) return;
+    var g = gradeNum();
+    var opt = sel.querySelector('option[value="' + BI + '"]');
+    var allowed = g >= 1 && g <= 5;
+    if (allowed && !opt) {
+      opt = document.createElement('option');
+      opt.value = BI;
+      opt.textContent = 'ದ್ವಿಭಾಷಾ ಮಾಧ್ಯಮ (ಕನ್ನಡ + English)';
+      sel.appendChild(opt);
+    } else if (!allowed && opt) {
+      if (sel.value === BI) sel.value = 'kannada_medium';
+      opt.remove();
+    }
+  }
+  var prevMC = window.handleMediumOrClassChange;
+  window.handleMediumOrClassChange = function () {
+    syncMediumOption();
+    return (typeof prevMC === 'function') ? prevMC.apply(this, arguments) : undefined;
+  };
+  try { handleMediumOrClassChange = window.handleMediumOrClassChange; } catch (e) {}
+  document.addEventListener('change', function (e) { if (e.target && e.target.id === 'cfg-class') syncMediumOption(); }, true);
+  setTimeout(syncMediumOption, 500);
+
+  // ---------- ೨. ಲೋಡ್ ಆದ GitHub ಫೈಲ್‌ಗಳ ದಾಖಲೆ (english_medium ಪ್ರತಿ ಹುಡುಕಲು) ----------
+  var loadedFiles = [];
+  var prevFetch = window.fetch;
+  window.fetch = async function (input, init) {
+    var res = await prevFetch.apply(this, arguments);
+    try {
+      var url = (typeof input === 'string') ? input : (input && input.url) || '';
+      if (url.indexOf(RAW_HOST) !== -1 && /\/kannada_medium\/.+\.json(\?|$)/.test(url) && res && res.ok) {
+        var clean = url.replace(/\?.*$/, '');
+        if (loadedFiles.indexOf(clean) === -1) loadedFiles.push(clean);
+      }
+    } catch (e) {}
+    return res;
+  };
+
+  // ---------- ೩. English ಪಠ್ಯ ಜೋಡಣೆ ----------
+  function enOf(q, f) {
+    if (!q) return '';
+    var v = q[f + '_en'];
+    if ((v === undefined || v === '') && q.en && typeof q.en === 'object') v = q.en[f];
+    if ((v === undefined || v === '') && f === 'q') v = q.question_en || q.q_english;
+    return (v === undefined || v === null) ? '' : String(v).trim();
+  }
+  function hasEnglish(q) { return !!enOf(q, 'q') || (Array.isArray(q.matchPairs_en) && q.matchPairs_en.length) || (q.en && Array.isArray(q.en.matchPairs)); }
+
+  async function mergeFromEnglishFiles(questions) {
+    var files = loadedFiles.slice();
+    if (!files.length) return 0;
+    var byId = {};
+    questions.forEach(function (q) { if (q && q.id != null && !hasEnglish(q)) byId[String(q.id)] = q; });
+    if (!Object.keys(byId).length) return 0;
+    var merged = 0;
+    await Promise.all(files.map(async function (u) {
+      try {
+        var r = await prevFetch(u.replace('/kannada_medium/', '/english_medium/') + '?t=' + Date.now());
+        if (!r.ok) return;
+        var t = await r.text();
+        var arr = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(t) : JSON.parse(t);
+        (arr || []).forEach(function (e) {
+          var k = e && e.id != null ? byId[String(e.id)] : null;
+          if (!k) return;
+          FIELDS.forEach(function (f) { if (e[f] != null && String(e[f]).trim()) k[f + '_en'] = String(e[f]).trim(); });
+          if (Array.isArray(e.matchPairs)) k.matchPairs_en = e.matchPairs;
+          merged++;
+        });
+      } catch (e2) {}
+    }));
+    return merged;
+  }
+
+  // ಉತ್ತರದ ಖಾಲಿ ಜಾಗ (__ / [___] / -> [ ]) ಎರಡು ಬಾರಿ ಬರದಂತೆ: "ಕನ್ನಡ / English ____"
+  var TAIL_BLANK = /\s*(?:(?:➔|->|:)\s*)?(?:\[\s*_*\s*\]|_{2,})\s*$/;
+  function joinLine(kn, en) {
+    kn = String(kn || '').trim(); en = String(en || '').trim();
+    if (!en) return kn;
+    var tail = (kn.match(TAIL_BLANK) || [''])[0];
+    var knCore = tail ? kn.slice(0, kn.length - tail.length).trim() : kn;
+    var enCore = en.replace(TAIL_BLANK, '').trim();
+    if (!enCore || sameText(knCore, enCore)) return kn;
+    return knCore + ' / ' + enCore + (tail ? ' ' + tail.trim() : '');
+  }
+  function normDigits(x) { return String(x || '').replace(/[೦-೯]/g, function (d) { return String('೦೧೨೩೪೫೬೭೮೯'.indexOf(d)); }); }
+  function sameText(a, b) { return normDigits(a).replace(/\s+/g, '').toLowerCase() === normDigits(b).replace(/\s+/g, '').toLowerCase(); }
+  function stripOptPrefix(s) { return String(s || '').replace(/^\s*\(?[A-Da-dಅಆಇಈ]\)\s*/, '').trim(); }
+
+  function joinText(kn, en, mode) {
+    kn = String(kn == null ? '' : kn); en = String(en || '').trim();
+    if (!en || sameText(kn, en)) return kn;
+    var kl = kn.split(/\n|<br\s*\/?>/i), el = en.split(/\n|<br\s*\/?>/i);
+    if (kl.length > 1 && kl.length === el.length) {                // ಹಲವು ಸಾಲಿನ ಚಟುವಟಿಕೆ: ಸಾಲು-ಸಾಲಾಗಿ ಜೋಡಣೆ
+      return kl.map(function (line, i) { return sameText(line, el[i]) ? line : joinLine(line, el[i]); }).join('\n');
+    }
+    return mode === 'inline' ? joinLine(kn, en) : (kn.trim() + '\n' + en);
+  }
+
+  function toBilingual(q, grade) {
+    if (!q || q._bi || !hasEnglish(q)) return q;
+    var mode = grade <= 3 ? 'inline' : 'stack';
+    var o = Object.assign({}, q);
+    o._kn = q;
+    o._bi = true;
+    o.q = joinText(q.q, enOf(q, 'q'), mode);
+    ['a', 'b', 'c', 'd'].forEach(function (f) { if (q[f] != null) o[f] = joinText(q[f], enOf(q, f), 'inline'); });
+    if (q.ans != null) {
+      var ae = enOf(q, 'ans');
+      if (ae) {
+        var pre = (String(q.ans).match(/^\s*\(?[A-Dಅಆಇಈ]\)\s*/) || [''])[0];
+        o.ans = sameText(stripOptPrefix(q.ans), stripOptPrefix(ae)) ? q.ans : (String(q.ans).trim() + ' / ' + (pre ? stripOptPrefix(ae) : ae));
+      }
+    }
+    var mpE = q.matchPairs_en || (q.en && q.en.matchPairs);
+    if (Array.isArray(q.matchPairs) && Array.isArray(mpE)) {
+      o.matchPairs = q.matchPairs.map(function (p, i) {
+        var e = mpE[i] || {};
+        return Object.assign({}, p, { a: joinText(p.a, e.a, 'inline'), b: joinText(p.b, e.b, 'inline') });
+      });
+    }
+    return o;
+  }
+
+  // ---------- ೪. ಲೋಡರ್ ಹೊದಿಕೆ ----------
+  // ಕ್ರಮ:
+  //  (ಅ) GitHub ನ bilingual_medium/class_X/ ನಲ್ಲಿ ಕನ್ನಡ ಮಾಧ್ಯಮದ ಅದೇ ಹೆಸರಿನ ಫೈಲ್ ಇದ್ದರೆ → ಅದೇ ಪ್ರಶ್ನೆ ಬ್ಯಾಂಕ್
+  //      (ದ್ವಿಭಾಷಾ ಮಾಧ್ಯಮದ ಬದಲಾದ / ಹೊಸ ಪಾಠಗಳು ಇಲ್ಲಿ). ಫೈಲ್ ವಸ್ತು ರೂಪದಲ್ಲಿದ್ದರೆ:
+  //      { "from_kannada": ["1. ಪಾಠ", ...] ಅಥವಾ "all", "questions": [ ... ] }
+  //      from_kannada ಪಾಠಗಳನ್ನು ಕನ್ನಡ ಮಾಧ್ಯಮದ ಫೈಲ್‌ನಿಂದ (English ಪಠ್ಯ ಇದ್ದರೆ) ಸೇರಿಸಲಾಗುತ್ತದೆ.
+  //  (ಆ) ಇಲ್ಲದಿದ್ದರೆ → ಕನ್ನಡ ಮಾಧ್ಯಮದ ಫೈಲ್‌ನ, English ಪಠ್ಯ ಇರುವ ಪ್ರಶ್ನೆಗಳು.
+  function chapKey(c) { return String(c || '').replace(/^[\s\d೦-೯\.\-\)]+/, '').replace(/\s+/g, '').toLowerCase(); }
+
+  async function fetchBilingualFiles(kannadaUrls) {
+    var out = { found: [], questions: [], fromKannada: null };
+    await Promise.all(kannadaUrls.map(async function (u) {
+      var bu = u.replace('/kannada_medium/', '/bilingual_medium/');
+      try {
+        var r = await prevFetch(bu + '?t=' + Date.now());
+        if (!r.ok) return;
+        var t = await r.text(), data = null;
+        try { data = JSON.parse(t); } catch (e) { data = (typeof safeRepairAndParseJSON === 'function') ? safeRepairAndParseJSON(t) : null; }
+        var list = Array.isArray(data) ? data : (data && Array.isArray(data.questions) ? data.questions : []);
+        if (data && !Array.isArray(data) && data.from_kannada) {
+          out.fromKannada = out.fromKannada || [];
+          if (data.from_kannada === 'all' || data.from_kannada === true) out.fromKannada = 'all';
+          else if (out.fromKannada !== 'all' && Array.isArray(data.from_kannada)) out.fromKannada = out.fromKannada.concat(data.from_kannada);
+        }
+        var file = bu.split('/').pop();
+        list.forEach(function (q) { if (q && typeof q === 'object') { q._src = 'bi:' + file; if (!q.type && q.a && q.b) q.type = 'mcq'; out.questions.push(q); } });
+        out.found.push(file);
+      } catch (e) {}
+    }));
+    return out;
+  }
+
+  var prevLoad = window.loadQuestionsFromGitHub;
+  window.loadQuestionsFromGitHub = async function (medium, grade, rawSubject, part) {
+    loadedFiles = [];
+    var wantBi = medium === BI || mediumVal() === BI;
+    var args = Array.prototype.slice.call(arguments);
+    if (medium === BI) args[0] = 'kannada_medium';           // ಮೊದಲು ಕನ್ನಡ ಮಾಧ್ಯಮದ ಫೈಲ್ (ಫೈಲ್ ಹೆಸರು ತಿಳಿಯಲು + ಸಾಮಾನ್ಯ ಪಾಠಗಳು)
+    var r = await prevLoad.apply(this, args);
+    if (!wantBi || isLanguageSubject(rawSubject)) return r;
+    if ((document.getElementById('cfg-subject') || {}).value !== rawSubject) return r;
+
+    var g = parseInt(String(grade).replace(/\D/g, '')) || gradeNum();
+    var kannadaAll = appState.activeSubjectQuestions || [];
+    var kannadaFiles = loadedFiles.slice();
+    var bi = kannadaFiles.length ? await fetchBilingualFiles(kannadaFiles) : { found: [], questions: [], fromKannada: null };
+    if ((document.getElementById('cfg-subject') || {}).value !== rawSubject) return r;
+
+    var pool = [], note = '';
+    if (bi.found.length) {
+      // (ಅ) ದ್ವಿಭಾಷಾ ಮಾಧ್ಯಮದ ಸ್ವಂತ ಫೈಲ್
+      pool = bi.questions.map(function (q) { return hasEnglish(q) ? toBilingual(q, g) : q; });
+      if (bi.fromKannada && kannadaAll.length) {
+        await mergeFromEnglishFiles(kannadaAll);
+        var want = bi.fromKannada === 'all' ? null : bi.fromKannada.map(chapKey);
+        var biChaps = {};
+        bi.questions.forEach(function (q) { biChaps[chapKey(q.chapter)] = 1; });
+        kannadaAll.forEach(function (q) {
+          var k = chapKey(q.chapter);
+          if (biChaps[k]) return;                                  // ಅದೇ ಪಾಠ ದ್ವಿಭಾಷಾ ಫೈಲ್‌ನಲ್ಲಿ ಇದ್ದರೆ ಅದಕ್ಕೇ ಆದ್ಯತೆ
+          if (want && want.indexOf(k) === -1) return;
+          if (hasEnglish(q)) pool.push(toBilingual(q, g));
+        });
+      }
+      note = '🌐 ದ್ವಿಭಾಷಾ ಮಾಧ್ಯಮದ ಪ್ರಶ್ನೆ ಬ್ಯಾಂಕ್: ' + pool.length + ' ಪ್ರಶ್ನೆಗಳು (' + bi.found.join(', ') + ')';
+    } else {
+      // (ಆ) ಕನ್ನಡ ಮಾಧ್ಯಮದ ಫೈಲ್ + English ಪಠ್ಯ
+      if (!kannadaAll.length) return r;
+      await mergeFromEnglishFiles(kannadaAll);
+      var ready = kannadaAll.filter(hasEnglish);
+      if (!ready.length) {
+        appState.activeSubjectQuestions = [];
+        try { if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes(); } catch (e) {}
+        if (typeof showToast === 'function') showToast('⚠️ ಈ ವಿಷಯಕ್ಕೆ ದ್ವಿಭಾಷಾ ಪ್ರಶ್ನೆಗಳು ಇನ್ನೂ ಸಿದ್ಧವಿಲ್ಲ (bilingual_medium ಫೈಲ್ ಅಥವಾ English ಪಠ್ಯ ಇಲ್ಲ).', 'error');
+        return r;
+      }
+      pool = ready.map(function (q) { return toBilingual(q, g); });
+      note = '🌐 ದ್ವಿಭಾಷಾ: ' + ready.length + ' / ' + kannadaAll.length + ' ಪ್ರಶ್ನೆಗಳು ಕನ್ನಡ + English ನಲ್ಲಿ ಲಭ್ಯ' +
+        (ready.length < kannadaAll.length ? ' (English ಇಲ್ಲದವುಗಳನ್ನು ಬಿಡಲಾಗಿದೆ)' : '');
+    }
+    appState.activeSubjectQuestions = pool;
+    try { if (typeof renderChapterCheckboxes === 'function') renderChapterCheckboxes(); } catch (e) {}
+    try { if (typeof renderMaster10QuestionFormats === 'function') renderMaster10QuestionFormats(); } catch (e) {}
+    if (typeof showToast === 'function') showToast(note, 'success');
+    return r;
+  };
+
+  // ---------- ೫. ಪತ್ರಿಕೆಯ ಶೀರ್ಷಿಕೆಗಳು / ಸೂಚನೆಗಳು ದ್ವಿಭಾಷೆಯಲ್ಲಿ ----------
+  // [ಆರಂಭದ ಪದ, ಬದಲಿ] — ಪಠ್ಯದ ಆರಂಭದಲ್ಲಿ ಮಾತ್ರ ಬದಲಾಗುತ್ತದೆ (ಉಳಿದ ಭಾಗ ಹಾಗೆಯೇ)
+  var LABELS = [
+    [/^ವಿಷಯ\s*:/, 'ವಿಷಯ / Subject :'], [/^ತರಗತಿ\s*:/, 'ತರಗತಿ / Class :'], [/^ದಿನಾಂಕ\s*:/, 'ದಿನಾಂಕ / Date :'],
+    [/^ಒಟ್ಟು ಅಂಕಗಳು\s*:/, 'ಒಟ್ಟು ಅಂಕಗಳು / Marks :'], [/^ಗರಿಷ್ಠ ಅಂಕಗಳು\s*:/, 'ಗರಿಷ್ಠ ಅಂಕಗಳು / Marks :'],
+    [/^ಸಮಯ\s*:/, 'ಸಮಯ / Time :'], [/^ಉತ್ತರ\s*:/, 'ಉತ್ತರ / Answer :'],
+    [/^ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು\s*:/, 'ವಿದ್ಯಾರ್ಥಿಯ ಹೆಸರು / Student Name :'], [/^ಹಾಜರಾತಿ ಸಂಖ್ಯೆ\s*:/, 'ಹಾಜರಾತಿ ಸಂಖ್ಯೆ / Roll No. :'],
+    [/^ನೋಂದಣಿ ಸಂಖ್ಯೆ\s*:/, 'ನೋಂದಣಿ ಸಂಖ್ಯೆ / Reg. No. :'], [/^ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ\s*:/, 'ವಿದ್ಯಾರ್ಥಿಯ ಸಹಿ / Student Sign :'],
+    [/^ಶಿಕ್ಷಕರ ಸಹಿ\s*:/, 'ಶಿಕ್ಷಕರ ಸಹಿ / Teacher Sign :'], [/^ಗಳಿಸಿದ ಅಂಕ\s*:/, 'ಗಳಿಸಿದ ಅಂಕ / Score :']
+  ];
+  var EXTRA_HEADINGS = {
+    'ಗೆರೆ ಎಳೆದು ಹೊಂದಿಸಿ ಬರೆಯಿರಿ:': 'Match by drawing lines:'
+  };
+  function headingPairs() {
+    var pairs = [];
+    try {
+      if (typeof headingsMapKn !== 'undefined' && typeof headingsMapEn !== 'undefined') {
+        Object.keys(headingsMapKn).forEach(function (k) { if (headingsMapEn[k]) pairs.push([headingsMapKn[k], headingsMapEn[k]]); });
+      }
+    } catch (e) {}
+    Object.keys(EXTRA_HEADINGS).forEach(function (k) { pairs.push([k, EXTRA_HEADINGS[k]]); });
+    return pairs;
+  }
+  function bilingualizeDom(root) {
+    if (!root || root.dataset.wyBi === '1') return;
+    var pairs = headingPairs();
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var nodes = [], n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(function (t) {
+      var txt = t.nodeValue, trimmed = txt.trim();
+      if (!trimmed) return;
+      for (var i = 0; i < LABELS.length; i++) {
+        var m = trimmed.match(LABELS[i][0]);
+        if (m) { t.nodeValue = txt.replace(m[0], LABELS[i][1]); return; }
+      }
+      for (var j = 0; j < pairs.length; j++) {
+        if (trimmed.indexOf(pairs[j][0]) !== -1 && txt.indexOf(pairs[j][1]) === -1) {
+          var span = document.createElement('span');
+          span.className = 'wy-bi-en';
+          span.style.cssText = 'display:block;font-weight:600;font-size:0.92em;opacity:.9';
+          span.textContent = pairs[j][1];
+          if (t.parentNode) t.parentNode.insertBefore(span, t.nextSibling);
+          return;
+        }
+      }
+    });
+    root.dataset.wyBi = '1';
+  }
+  var prevRender = window.renderFullExamPaperWithCustomHeader;
+  window.renderFullExamPaperWithCustomHeader = function () {
+    var r = prevRender ? prevRender.apply(this, arguments) : undefined;
+    if (isBilingualActive()) {
+      ['rendered-paper', 'rendered-key'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) { el.dataset.wyBi = ''; bilingualizeDom(el); }
+      });
+    }
+    return r;
+  };
+  try { renderFullExamPaperWithCustomHeader = window.renderFullExamPaperWithCustomHeader; } catch (e) {}
 })();
 
 </script>

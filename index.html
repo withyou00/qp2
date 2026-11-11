@@ -23964,6 +23964,1062 @@ function wyStrongKeyPart() {
   window.addEventListener('storage', function (e) { if (e.key === 'wy_active_session') refreshAll(); });
   setTimeout(refreshAll, 1000);
 })();
+
+// =========================================================================
+// 🛒 With You QP — ಸ್ವಯಂ ನೋಂದಣಿ + ಪ್ಯಾಕ್ ಅಂಗಡಿ (ಬೋಧನಾ ಮಿತ್ರದ ಮಾದರಿ)
+// • ಶಿಕ್ಷಕರು/ಶಾಲೆ ತಾವೇ ಮೊಬೈಲ್ + ಪಾಸ್‌ವರ್ಡ್‌ನಿಂದ ನೋಂದಣಿ (Firebase Auth)
+// • Dashboard ನಲ್ಲಿ ಯಾವ ಮಾಧ್ಯಮ / ತರಗತಿ / ವಿಷಯದ ಪತ್ರಿಕೆಗಳಿವೆ ಎಂದು ತೋರಿಸಿ, ಪ್ಯಾಕ್ ಕಾರ್ಟ್‌ಗೆ
+// • UPI QR → UTR → ಆರ್ಡರ್ → Admin "Approve" → ಪ್ಯಾಕ್ ತೆರೆಯುತ್ತದೆ (31 ಮೇ ವರೆಗೆ)
+// • ಹಳೆಯ Secret Key ಲಾಗಿನ್‌ಗಳು ಮೊದಲಿನಂತೆಯೇ ಕೆಲಸ ಮಾಡುತ್ತವೆ
+// ಡೇಟಾ: /members/{mobile}/{profile,packs,trial}  /orders/{mobile}/{id}  /config/prices
+// =========================================================================
+(function installPackStore() {
+  var FB = 'https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app';
+  var API_KEY = 'AIzaSyDYKG0qgsNemCWK-VSjHxC3gqv_tDM3NjI';
+  var DOMAIN = 'withyouqp.in';
+  var UPI = '9902090911@ybl', UPI_NAME = 'With You QP', WA = '919902090911';
+  var AUTH_KEY = 'wy_member_auth', CART_KEY = 'wy_cart';
+  var PRICES = { sub: 100, st: 250, cls: 300, stg: 600, sch: 1000, sch2: 400, all: 1200, nmms1: 100, nmms: 150, ent: 100, cmp: 300, trial: 3 };
+  var PRICE_LABELS = {
+    sub: 'ವಿಷಯ ಪ್ಯಾಕ್ (1 ತರಗತಿ × 1 ವಿಷಯ)', st: 'ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್ (1 ವಿಷಯ × ಹಂತ)', cls: 'ತರಗತಿ ಪ್ಯಾಕ್', stg: 'ಹಂತ ಪ್ಯಾಕ್',
+    sch: 'ಶಾಲಾ (ಮಾಧ್ಯಮ) ಪ್ಯಾಕ್', sch2: 'ಹೆಚ್ಚುವರಿ ಮಾಧ್ಯಮ (ಶಾಲಾ ಪ್ಯಾಕ್)', all: 'ಸಂಪೂರ್ಣ ಶಾಲಾ ಪ್ಯಾಕ್', nmms1: 'NMMS GMAT / SAT (ಒಂದು)',
+    nmms: 'NMMS ಪ್ಯಾಕ್ (GMAT + SAT)', ent: 'ಪ್ರವೇಶ ಪರೀಕ್ಷೆ (ಒಂದು)', cmp: 'ಸ್ಪರ್ಧಾ ಕಾಂಬೋ', trial: 'ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆಗಳು (ಸಂಖ್ಯೆ)'
+  };
+  var MEDIA = { kn: { v: 'kannada_medium', n: 'ಕನ್ನಡ ಮಾಧ್ಯಮ', s: 'ಕನ್ನಡ' }, en: { v: 'english_medium', n: 'ಇಂಗ್ಲಿಷ್ ಮಾಧ್ಯಮ', s: 'English' }, bi: { v: 'bilingual_medium', n: 'ದ್ವಿಭಾಷಾ ಮಾಧ್ಯಮ', s: 'ದ್ವಿಭಾಷಾ' } };
+  var MCODE = { kannada_medium: 'kn', english_medium: 'en', bilingual_medium: 'bi' };
+  var STAGES = { p: { n: 'ಕಿರಿಯ ಪ್ರಾಥಮಿಕ (1–5)', c: [1, 2, 3, 4, 5] }, u: { n: 'ಹಿರಿಯ ಪ್ರಾಥಮಿಕ (6–8)', c: [6, 7, 8] }, h: { n: 'ಪ್ರೌಢಶಾಲೆ (8–10)', c: [8, 9, 10] } };
+  var SUBJ = { kannada: 'ಕನ್ನಡ', english: 'English', mathematics: 'ಗಣಿತ', evs: 'ಪರಿಸರ ಅಧ್ಯಯನ', science: 'ವಿಜ್ಞಾನ', social_science: 'ಸಮಾಜ ವಿಜ್ಞಾನ', hindi: 'ಹಿಂದಿ' };
+  var SUBJ_OPT = { kannada: 'ಕನ್ನಡ (Kannada)', english: 'English', mathematics: 'ಗಣಿತ (Mathematics)', evs: 'ಪರಿಸರ ಅಧ್ಯಯನ (EVS)', science: 'ವಿಜ್ಞಾನ (Science)', social_science: 'ಸಮಾಜ ವಿಜ್ಞಾನ (Social Science)', hindi: 'ಹಿಂದಿ (Hindi)' };
+  var NMMS = { gmat: 'NMMS GMAT (ಪತ್ರಿಕೆ 1 – ಬೌದ್ಧಿಕ ಸಾಮರ್ಥ್ಯ)', sat: 'NMMS SAT (ಪತ್ರಿಕೆ 2 – ಶೈಕ್ಷಣಿಕ ಸಾಮರ್ಥ್ಯ)' };
+  // ಪ್ರಶ್ನೆ ಬ್ಯಾಂಕ್‌ನ ಫೈಲ್ ಪಟ್ಟಿ (GitHub ಸಿಗದಿದ್ದರೆ ಬಳಸುವ ಪ್ರತಿ)
+  var SNAPSHOT = ["bilingual_medium/class_5/evs_part2.json", "bilingual_medium/class_5/mathematics_part2.json", "kannada_medium/class_1/kannada_part1.json", "kannada_medium/class_1/kannada_part2.json", "kannada_medium/class_10/english_part2.json", "kannada_medium/class_10/hindi_part2.json", "kannada_medium/class_10/kannada_part2.json", "kannada_medium/class_10/mathematics_part2.json", "kannada_medium/class_10/science_part2.json", "kannada_medium/class_10/social_science_part2.json", "kannada_medium/class_4/english_part2.json", "kannada_medium/class_4/evs_part2.json", "kannada_medium/class_4/kannada_part2.json", "kannada_medium/class_4/mathematics_part2.json", "kannada_medium/class_5/english_part2.json", "kannada_medium/class_5/evs_part2.json", "kannada_medium/class_5/kannada_part2.json", "kannada_medium/class_5/mathematics_part2.json", "kannada_medium/class_6/english_part2.json", "kannada_medium/class_6/hindi_part2.json", "kannada_medium/class_6/kannada_part2.json", "kannada_medium/class_6/mathematics_part2.json", "kannada_medium/class_6/morarji_english.json", "kannada_medium/class_6/morarji_kannada.json", "kannada_medium/class_6/morarji_science.json", "kannada_medium/class_6/morarji_social.json", "kannada_medium/class_6/science_part2.json", "kannada_medium/class_6/social_science_part2.json", "kannada_medium/class_7/english_part2.json", "kannada_medium/class_7/hindi_part2.json", "kannada_medium/class_7/kannada_part2.json", "kannada_medium/class_7/mathematics_part2.json", "kannada_medium/class_7/science_part1.json", "kannada_medium/class_7/science_part2.json", "kannada_medium/class_7/social_science_part2.json", "kannada_medium/class_8/english_part2.json", "kannada_medium/class_8/hindi_part2.json", "kannada_medium/class_8/kannada_part2.json", "kannada_medium/class_8/mathematics_part2.json", "kannada_medium/class_8/nmms_biology.json", "kannada_medium/class_8/nmms_chemistry.json", "kannada_medium/class_8/nmms_civics.json", "kannada_medium/class_8/nmms_geography.json", "kannada_medium/class_8/nmms_gmat.json", "kannada_medium/class_8/nmms_history.json", "kannada_medium/class_8/nmms_maths.json", "kannada_medium/class_8/nmms_physics.json", "kannada_medium/class_8/science_part1.json", "kannada_medium/class_8/science_part2.json", "kannada_medium/class_8/social_science_part2.json", "kannada_medium/class_9/english_part2.json", "kannada_medium/class_9/hindi_part2.json", "kannada_medium/class_9/kannada_part1.json", "kannada_medium/class_9/kannada_part2.json", "kannada_medium/class_9/mathematics_part2.json", "kannada_medium/class_9/science_part1.json", "kannada_medium/class_9/science_part2.json", "kannada_medium/class_9/social_science_part2.json"];
+
+  // ---------- ಸಣ್ಣ ಸಹಾಯಕಗಳು ----------
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function $(id) { return document.getElementById(id); }
+  function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+  function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function yearEnd(d) { d = d ? new Date(d) : new Date(); return (d.getMonth() + 1 >= 3 ? d.getFullYear() + 1 : d.getFullYear()) + '-05-31'; }
+  function dmy(s) { var m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '-' + m[2] + '-' + m[1] : String(s || ''); }
+  function rupee(n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); }
+  function subjectsFor(c) { return c <= 5 ? ['kannada', 'english', 'mathematics', 'evs'] : ['kannada', 'english', 'hindi', 'mathematics', 'science', 'social_science']; }
+  function mediaFor(c) { return c <= 5 ? ['kn', 'en', 'bi'] : ['kn', 'en']; }
+  function stagesFor(m) { return m === 'bi' ? ['p'] : ['p', 'u', 'h']; }
+  function exams() { return (window.WY_ENTRANCE_EXAMS || []).filter(function (e) { return e && e.enabled !== false && e.name; }); }
+  function examById(id) { return exams().filter(function (e) { return e.id === id; })[0] || null; }
+  var toastBox;
+  function toast(msg, bad) {
+    if (!toastBox) { toastBox = document.createElement('div'); toastBox.className = 'fixed left-1/2 -translate-x-1/2 bottom-5 z-[10000] space-y-2 w-[min(92vw,420px)] no-print'; document.body.appendChild(toastBox); }
+    var t = document.createElement('div');
+    t.className = 'px-4 py-3 rounded-2xl shadow-xl text-xs font-extrabold text-white ' + (bad ? 'bg-rose-600' : 'bg-slate-900');
+    t.textContent = msg; toastBox.appendChild(t);
+    setTimeout(function () { t.remove(); }, 3800);
+  }
+  window.wyStoreToast = toast;
+
+  // ---------- ಪ್ಯಾಕ್ ಮಾದರಿ ----------
+  // ಅಣು ಘಟಕಗಳು (items): r:m:c:s (ಸಾಮಾನ್ಯ ವಿಷಯ)  n:gmat|sat (NMMS)  e:id (ಪ್ರವೇಶ ಪರೀಕ್ಷೆ)
+  function regularItems(filter) {
+    var out = [];
+    for (var c = 1; c <= 10; c++) mediaFor(c).forEach(function (m) {
+      subjectsFor(c).forEach(function (s) { var it = { m: m, c: c, s: s }; if (!filter || filter(it)) out.push('r:' + m + ':' + c + ':' + s); });
+    });
+    return out;
+  }
+  function itemsOf(k) {
+    var p = k.split(':'), t = p[0];
+    if (t === 'sub') return ['r:' + p[1] + ':' + p[2] + ':' + p[3]];
+    if (t === 'st') return regularItems(function (i) { return i.m === p[1] && STAGES[p[2]].c.indexOf(i.c) !== -1 && i.s === p[3]; });
+    if (t === 'cls') return regularItems(function (i) { return i.m === p[1] && i.c === +p[2]; });
+    if (t === 'stg') return regularItems(function (i) { return i.m === p[1] && STAGES[p[2]].c.indexOf(i.c) !== -1; });
+    if (t === 'sch') return regularItems(function (i) { return i.m === p[1]; });
+    if (t === 'nmms') return p[1] ? ['n:' + p[1]] : ['n:gmat', 'n:sat'];
+    if (t === 'ent') return ['e:' + p[1]];
+    if (t === 'cmp') return ['n:gmat', 'n:sat'].concat(exams().map(function (e) { return 'e:' + e.id; }));
+    if (t === 'all') return itemsOf('sch:' + p[1]).concat(itemsOf('cmp'));
+    return [];
+  }
+  // ಒಂದು ಘಟಕವನ್ನು ಒಳಗೊಂಡ ಪ್ಯಾಕ್‌ಗಳು (ಚಿಕ್ಕದರಿಂದ ದೊಡ್ಡದಕ್ಕೆ)
+  function packsFor(item) {
+    var p = item.split(':');
+    if (p[0] === 'r') {
+      var m = p[1], c = +p[2], s = p[3];
+      var st = stagesFor(m).filter(function (g) { return STAGES[g].c.indexOf(c) !== -1; });
+      var out = ['sub:' + m + ':' + c + ':' + s];
+      st.forEach(function (g) { out.push('st:' + m + ':' + g + ':' + s); });
+      out.push('cls:' + m + ':' + c);
+      st.forEach(function (g) { out.push('stg:' + m + ':' + g); });
+      if (m !== 'bi') { out.push('sch:' + m); out.push('all:' + m); }
+      return out;
+    }
+    if (p[0] === 'n') return ['nmms:' + p[1], 'nmms', 'cmp', 'all:kn', 'all:en'];
+    if (p[0] === 'e') return ['ent:' + p[1], 'cmp', 'all:kn', 'all:en'];
+    return [];
+  }
+  function covers(a, b) {
+    if (a === b) return true;
+    var ib = itemsOf(b); if (!ib.length) return false;
+    return ib.every(function (i) { return packsFor(i).indexOf(a) !== -1; });
+  }
+  function basePrice(k) {
+    var t = k.split(':')[0], n = k.split(':').length;
+    if (t === 'nmms') return n > 1 ? PRICES.nmms1 : PRICES.nmms;
+    return PRICES[t] != null ? +PRICES[t] : 0;
+  }
+  function packTitle(k) {
+    var p = k.split(':'), t = p[0];
+    if (t === 'sub') return SUBJ[p[3]] + ' · ' + p[2] + 'ನೇ ತರಗತಿ';
+    if (t === 'st') return SUBJ[p[3]] + ' · ' + STAGES[p[2]].n;
+    if (t === 'cls') return p[2] + 'ನೇ ತರಗತಿ — ಎಲ್ಲಾ ವಿಷಯ';
+    if (t === 'stg') return STAGES[p[2]].n + ' — ಎಲ್ಲಾ ವಿಷಯ';
+    if (t === 'sch') return 'ಶಾಲಾ ಪ್ಯಾಕ್ — 1 ರಿಂದ 10 ಎಲ್ಲಾ ತರಗತಿ';
+    if (t === 'all') return 'ಸಂಪೂರ್ಣ ಶಾಲಾ ಪ್ಯಾಕ್ (ಶಾಲೆ + NMMS + ಪ್ರವೇಶ)';
+    if (t === 'nmms') return p[1] ? NMMS[p[1]] : 'NMMS ಪ್ಯಾಕ್ (GMAT + SAT)';
+    if (t === 'ent') { var e = examById(p[1]); return e ? e.name : p[1]; }
+    if (t === 'cmp') return 'ಸ್ಪರ್ಧಾ ಕಾಂಬೋ (NMMS + ಎಲ್ಲಾ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ)';
+    return k;
+  }
+  function packKind(k) {
+    return { sub: 'ವಿಷಯ ಪ್ಯಾಕ್', st: 'ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್', cls: 'ತರಗತಿ ಪ್ಯಾಕ್', stg: 'ಹಂತ ಪ್ಯಾಕ್', sch: 'ಶಾಲಾ ಪ್ಯಾಕ್', all: 'ಸಂಪೂರ್ಣ ಪ್ಯಾಕ್', nmms: 'NMMS', ent: 'ಪ್ರವೇಶ ಪರೀಕ್ಷೆ', cmp: 'ಸ್ಪರ್ಧಾ ಕಾಂಬೋ' }[k.split(':')[0]] || '';
+  }
+  function packMedium(k) { var p = k.split(':'); return /^(sub|st|cls|stg|sch|all)$/.test(p[0]) ? MEDIA[p[1]].n : ''; }
+  function packLabel(k) { return packTitle(k) + (packMedium(k) ? ' · ' + packMedium(k) : ''); }
+  window.wyPackLabel = packLabel;
+
+  // ---------- ಸದಸ್ಯರ ಲಾಗಿನ್ (Firebase Auth, ಮೊಬೈಲ್@withyouqp.in) ----------
+  var MEM = { profile: null, packs: {}, trial: 0, orders: [], loaded: false };
+  function authInfo() { return lsGet(AUTH_KEY, null); }
+  function emailOf(m) { return m + '@' + DOMAIN; }
+  async function idp(path, body) {
+    var r = await fetch('https://identitytoolkit.googleapis.com/v1/' + path + '?key=' + API_KEY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    var d = await r.json().catch(function () { return {}; });
+    if (!r.ok) { var e = new Error((d.error && d.error.message) || ('HTTP ' + r.status)); e.code = (d.error && d.error.message) || ''; throw e; }
+    return d;
+  }
+  function saveAuth(m, d) {
+    lsSet(AUTH_KEY, { mobile: m, idToken: d.idToken, refreshToken: d.refreshToken, exp: Date.now() + (parseInt(d.expiresIn || '3600') - 60) * 1000 });
+  }
+  async function token() {
+    var a = authInfo(); if (!a) return null;
+    if (a.exp > Date.now()) return a.idToken;
+    var r = await fetch('https://securetoken.googleapis.com/v1/token?key=' + API_KEY, {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(a.refreshToken)
+    });
+    if (!r.ok) { throw new Error('SESSION_EXPIRED'); }
+    var d = await r.json();
+    a.idToken = d.id_token; a.refreshToken = d.refresh_token || a.refreshToken; a.exp = Date.now() + (parseInt(d.expires_in || '3600') - 60) * 1000;
+    lsSet(AUTH_KEY, a); return a.idToken;
+  }
+  async function db(method, path, val) {
+    var tk = await token();
+    var url = FB + path + '.json' + (tk ? '?auth=' + encodeURIComponent(tk) : '');
+    var r = await fetch(url, method === 'GET' ? {} : { method: method, headers: { 'Content-Type': 'application/json' }, body: val === undefined ? undefined : JSON.stringify(val) });
+    if (!r.ok) { var e = new Error('DB ' + r.status); e.status = r.status; throw e; }
+    return r.json();
+  }
+  var ERR = {
+    EMAIL_EXISTS: 'ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯಿಂದ ಈಗಾಗಲೇ ನೋಂದಣಿ ಆಗಿದೆ. "ಲಾಗಿನ್" ಒತ್ತಿ.',
+    EMAIL_NOT_FOUND: 'ಈ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯಿಂದ ನೋಂದಣಿ ಆಗಿಲ್ಲ. "ಹೊಸ ನೋಂದಣಿ" ಒತ್ತಿ.',
+    INVALID_PASSWORD: 'ಪಾಸ್‌ವರ್ಡ್ ತಪ್ಪಾಗಿದೆ.',
+    INVALID_LOGIN_CREDENTIALS: 'ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಅಥವಾ ಪಾಸ್‌ವರ್ಡ್ ತಪ್ಪಾಗಿದೆ. (ಹೊಸಬರಾದರೆ "ಹೊಸ ನೋಂದಣಿ" ಒತ್ತಿ)',
+    USER_DISABLED: 'ಈ ಖಾತೆಯನ್ನು ನಿಲ್ಲಿಸಲಾಗಿದೆ. Admin ಅನ್ನು ಸಂಪರ್ಕಿಸಿ.',
+    TOO_MANY_ATTEMPTS_TRY_LATER: 'ಹಲವು ಬಾರಿ ತಪ್ಪಾಗಿದೆ. ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಪ್ರಯತ್ನಿಸಿ.',
+    OPERATION_NOT_ALLOWED: 'Firebase ನಲ್ಲಿ Email/Password ಲಾಗಿನ್ ಆನ್ ಆಗಿಲ್ಲ (Authentication → Sign-in method).',
+    SESSION_EXPIRED: 'ಲಾಗಿನ್ ಅವಧಿ ಮುಗಿದಿದೆ. ಮತ್ತೆ ಲಾಗಿನ್ ಆಗಿ.'
+  };
+  function errMsg(e) {
+    var c = String((e && (e.code || e.message)) || '');
+    var k = Object.keys(ERR).filter(function (x) { return c.indexOf(x) === 0; })[0];
+    if (k) return ERR[k];
+    if (/WEAK_PASSWORD/.test(c)) return 'ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ 6 ಅಕ್ಷರ ಇರಬೇಕು.';
+    if (/Failed to fetch|NetworkError/i.test(c)) return 'Internet ಸಂಪರ್ಕ ಇಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.';
+    if (/DB 401|DB 403/.test(c)) return 'ಅನುಮತಿ ಇಲ್ಲ (Firebase Rules ಹೊಸದನ್ನು ಹಾಕಿಲ್ಲವೇ?).';
+    return 'ಏನೋ ತಪ್ಪಾಗಿದೆ: ' + c;
+  }
+  function isMember() { var s = lsGet('wy_active_session', null); return !!(s && s.isLoggedIn && s.member && authInfo()); }
+  function isAdmin() { return sessionStorage.getItem('wy_is_admin') === 'true'; }
+  window.wyIsMember = isMember;
+
+  async function loadMember() {
+    var a = authInfo(); if (!a) return null;
+    var m = a.mobile;
+    var rec = await db('GET', '/members/' + m);
+    rec = rec || {};
+    MEM.profile = rec.profile || null; MEM.packs = rec.packs || {}; MEM.trial = +rec.trial || 0;
+    try { var o = await db('GET', '/orders/' + m); MEM.orders = Object.keys(o || {}).map(function (id) { return Object.assign({ id: id }, o[id]); }); } catch (e) { MEM.orders = []; }
+    MEM.loaded = true;
+    try { var pr = await (await fetch(FB + '/config/prices.json')).json(); if (pr) Object.keys(PRICES).forEach(function (k) { if (pr[k] != null && pr[k] !== '') PRICES[k] = +pr[k]; }); } catch (e) {}
+    return rec;
+  }
+  function startSession() {
+    var a = authInfo(), p = MEM.profile || {};
+    var session = {
+      isLoggedIn: true, member: true, type: 'member', role: p.role || 'teacher',
+      name: p.name || '', school: p.school || '', schoolEn: p.schoolEn || '', mobile: a.mobile, dise: p.dise || a.mobile,
+      allowedSubjects: ['all'], allowedClasses: ['all'], allowedMediums: null, validityDate: '2099-12-31'
+    };
+    localStorage.setItem('wy_active_session', JSON.stringify(session));
+    try { if (typeof applyUserSubjectPermissionsToUI === 'function') applyUserSubjectPermissionsToUI(session); } catch (e) {}
+    try { if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar(); } catch (e) {}
+    try { if (window.wyApplySessionSchoolEn) window.wyApplySessionSchoolEn(true); } catch (e) {}
+  }
+
+  // ---------- ಸಕ್ರಿಯ ಪ್ಯಾಕ್, ಮಾಲೀಕತ್ವ ----------
+  function activePacks() { var t = today(); return Object.keys(MEM.packs || {}).filter(function (k) { return String(MEM.packs[k]) >= t; }); }
+  function ownsItem(item) { if (isAdmin()) return true; var act = activePacks(); return packsFor(item).some(function (k) { return act.indexOf(k) !== -1; }); }
+  function ownsPack(k) { var it = itemsOf(k); return it.length > 0 && it.every(ownsItem); }
+  function itemExpiry(item) { var best = ''; packsFor(item).forEach(function (k) { var d = MEM.packs[k]; if (d && String(d) >= today() && String(d) > best) best = String(d); }); return best; }
+  function pendingItem(item) {
+    return MEM.orders.some(function (o) { return o.status === 'pending' && (o.items || []).some(function (k) { return packsFor(item).indexOf(k) !== -1; }); });
+  }
+  function trialLeft() { return Math.max(0, (+PRICES.trial || 0) - (+MEM.trial || 0)); }
+
+  // ---------- ಪ್ರಶ್ನೆ ಬ್ಯಾಂಕ್‌ನಲ್ಲಿ ಏನಿದೆ (GitHub ಪಟ್ಟಿ) ----------
+  var BANK = { files: SNAPSHOT, at: 0 };
+  (function () { var c = lsGet('wy_bank_tree', null); if (c && c.files && c.at > Date.now() - 6 * 3600e3) BANK = c; })();
+  async function refreshBank(force) {
+    if (!force && BANK.at > Date.now() - 6 * 3600e3) return;
+    try {
+      var r = await fetch('https://api.github.com/repos/withyou00/withyouqbank/git/trees/main?recursive=1');
+      if (!r.ok) return;
+      var d = await r.json();
+      var files = (d.tree || []).map(function (x) { return x.path; }).filter(function (p) { return /\.json$/i.test(p) && !/^images\//.test(p); });
+      if (files.length) { BANK = { files: files, at: Date.now() }; lsSet('wy_bank_tree', BANK); }
+    } catch (e) {}
+  }
+  function has(path) { return BANK.files.indexOf(path) !== -1; }
+  // ಒಂದು ವಿಷಯದ ಭಾಗಗಳು ಲಭ್ಯವೇ: [ಭಾಗ1, ಭಾಗ2]
+  function parts(m, c, s) {
+    function ex(med, part) { return has(med + '/class_' + c + '/' + s + '_part' + part + '.json'); }
+    return [1, 2].map(function (pt) {
+      if (m === 'kn') return ex('kannada_medium', pt);
+      if (m === 'en') return ex('english_medium', pt);
+      // ದ್ವಿಭಾಷಾ: ಪ್ರತ್ಯೇಕ ಫೈಲ್ ಇದ್ದರೆ ಅಥವಾ ಕನ್ನಡ + English ಎರಡೂ ಇದ್ದರೆ. ಭಾಷಾ ವಿಷಯಗಳು ಕನ್ನಡ ಮಾಧ್ಯಮದಂತೆಯೇ.
+      if (s === 'kannada' || s === 'english') return ex('kannada_medium', pt);
+      return ex('bilingual_medium', pt) || (ex('kannada_medium', pt) && ex('english_medium', pt));
+    });
+  }
+  function available(item) {
+    var p = item.split(':');
+    if (p[0] === 'r') return parts(p[1], +p[2], p[3]).some(Boolean);
+    if (p[0] === 'n') return true;
+    if (p[0] === 'e') return !!examById(p[1]);
+    return false;
+  }
+
+  // ---------- ಕಾರ್ಟ್ ಬೆಲೆ ----------
+  function cartGet() { return lsGet(CART_KEY, []); }
+  function cartSet(l) { lsSet(CART_KEY, l); renderCartBadges(); }
+  function priced(list) {
+    // ಎರಡನೇ ಮಾಧ್ಯಮದ ಶಾಲಾ ಪ್ಯಾಕ್‌ಗೆ ರಿಯಾಯಿತಿ
+    var ownedMedia = activePacks().filter(function (k) { return /^(sch|all):/.test(k); }).map(function (k) { return k.split(':')[1]; });
+    var seen = ownedMedia.slice();
+    return list.map(function (k) {
+      var price = basePrice(k), note = '';
+      if (/^(sch|all):/.test(k)) {
+        var m = k.split(':')[1];
+        if (seen.some(function (x) { return x !== m; })) { price -= Math.max(0, PRICES.sch - PRICES.sch2); note = 'ಹೆಚ್ಚುವರಿ ಮಾಧ್ಯಮ ರಿಯಾಯಿತಿ'; }
+        seen.push(m);
+      }
+      return { k: k, price: price, note: note };
+    });
+  }
+  function priceOf(k) { var l = cartGet().filter(function (x) { return x !== k; }); return priced(l.concat([k])).pop().price; }
+  function cartTotal(list) { return priced(list).reduce(function (a, x) { return a + x.price; }, 0); }
+  function cartAdd(k) {
+    if (ownsPack(k)) return toast('ಇದು ಈಗಾಗಲೇ ನಿಮ್ಮ ಪ್ಯಾಕ್‌ನಲ್ಲಿದೆ ✓');
+    var l = cartGet();
+    if (l.some(function (a) { return covers(a, k); })) return toast('ಇದು ಕಾರ್ಟ್‌ನಲ್ಲಿರುವ ಪ್ಯಾಕ್‌ನಲ್ಲೇ ಸೇರಿದೆ ✓');
+    var removed = l.filter(function (a) { return covers(k, a); });
+    l = l.filter(function (a) { return !covers(k, a); }); l.push(k); cartSet(l);
+    toast('🛒 ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಲಾಗಿದೆ: ' + packTitle(k) + (removed.length ? ' (ಒಳಗೊಂಡ ' + removed.length + ' ಚಿಕ್ಕ ಪ್ಯಾಕ್ ತೆಗೆಯಲಾಗಿದೆ)' : ''));
+  }
+  window.wyCartAdd = function (k) { if (!isMember()) { openMemberAuth('register'); return; } cartAdd(k); refreshViews(); };
+  // "ಇದನ್ನು ತೆಗೆದುಕೊಂಡರೆ ಉಳಿತಾಯ" ಸೂಚನೆಗಳು
+  function hints(l) {
+    var cands = {};
+    l.forEach(function (k) { itemsOf(k).forEach(function (i) { packsFor(i).forEach(function (c) { if (l.indexOf(c) === -1 && c.split(':')[0] !== 'sub') cands[c] = 1; }); }); });
+    var out = [];
+    Object.keys(cands).forEach(function (c) {
+      var inside = l.filter(function (k) { return covers(c, k); });
+      if (inside.length < 2) return;
+      var cost = cartTotal(inside), p = priceOf(c);
+      if (cost >= p) out.push({ k: c, save: cost - p, n: inside.length, price: p });
+    });
+    return out.sort(function (a, b) { return a.price - b.price; }).slice(0, 2);
+  }
+
+  // =====================================================================
+  // ಮೋಡಲ್ (ನೋಂದಣಿ / ಲಾಗಿನ್ / ಕಾರ್ಟ್)
+  // =====================================================================
+  function modal(html, wide) {
+    var w = $('wy-store-modal');
+    if (!w) {
+      w = document.createElement('div'); w.id = 'wy-store-modal';
+      w.className = 'fixed inset-0 z-[9000] bg-slate-950/70 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 overflow-y-auto no-print';
+      w.addEventListener('click', function (e) { if (e.target === w) closeModal(); });
+      document.body.appendChild(w);
+    }
+    w.innerHTML = '<div class="bg-white rounded-3xl shadow-2xl w-full ' + (wide ? 'max-w-2xl' : 'max-w-md') + ' my-4 overflow-hidden" role="dialog">' + html + '</div>';
+    w.style.display = 'flex';
+    return w;
+  }
+  function closeModal() { var w = $('wy-store-modal'); if (w) { w.style.display = 'none'; w.innerHTML = ''; } }
+  window.wyCloseStoreModal = closeModal;
+  function head(icon, title, sub, grad) {
+    return '<div class="px-5 py-4 bg-gradient-to-r ' + (grad || 'from-emerald-600 to-teal-600') + ' text-white flex items-start justify-between gap-3">' +
+      '<div class="flex items-center gap-3"><div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-lg"><i class="fa-solid ' + icon + '"></i></div>' +
+      '<div><h3 class="font-black text-base leading-tight">' + title + '</h3>' + (sub ? '<p class="text-[11px] font-bold text-white/80">' + sub + '</p>' : '') + '</div></div>' +
+      '<button type="button" onclick="wyCloseStoreModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 font-black">✕</button></div>';
+  }
+  var INP = 'w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold focus:outline-none focus:border-emerald-500';
+  function field(label, inner, hint) {
+    return '<label class="block"><span class="block text-xs font-extrabold text-slate-700 mb-1">' + label + '</span>' + inner +
+      (hint ? '<span class="block text-[10px] font-semibold text-slate-500 mt-1">' + hint + '</span>' : '') + '</label>';
+  }
+  async function busy(btn, fn) {
+    var old = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ದಯವಿಟ್ಟು ಕಾಯಿರಿ...';
+    try { return await fn(); } finally { btn.disabled = false; btn.innerHTML = old; }
+  }
+
+  // ---------- ನೋಂದಣಿ / ಲಾಗಿನ್ ----------
+  function openMemberAuth(view) {
+    var isReg = view === 'register', isProf = view === 'profile';
+    var forgot = 'https://wa.me/' + WA + '?text=' + encodeURIComponent('ನಮಸ್ಕಾರ, With You QP ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಿದ್ದೇನೆ. ನನ್ನ ಮೊಬೈಲ್: ');
+    var tabs = isProf ? '' : '<div class="flex gap-1 p-1 bg-slate-100 rounded-2xl text-xs font-black">' +
+      '<button type="button" onclick="wyOpenMemberAuth(\'login\')" class="flex-1 py-2 rounded-xl ' + (!isReg ? 'bg-white shadow text-slate-900' : 'text-slate-500') + '">🔑 ಲಾಗಿನ್</button>' +
+      '<button type="button" onclick="wyOpenMemberAuth(\'register\')" class="flex-1 py-2 rounded-xl ' + (isReg ? 'bg-white shadow text-slate-900' : 'text-slate-500') + '">📝 ಹೊಸ ನೋಂದಣಿ</button></div>';
+    var cred = isProf ? '' :
+      field('ಮೊಬೈಲ್ ಸಂಖ್ಯೆ', '<input id="wm-mob" type="tel" inputmode="numeric" maxlength="10" placeholder="10 ಅಂಕಿಯ ಮೊಬೈಲ್" class="' + INP + '">') +
+      field('ಪಾಸ್‌ವರ್ಡ್', '<input id="wm-pw" type="password" placeholder="' + (isReg ? 'ಕನಿಷ್ಠ 6 ಅಕ್ಷರ — ನೀವೇ ಆಯ್ಕೆ ಮಾಡಿ' : 'ನಿಮ್ಮ ಪಾಸ್‌ವರ್ಡ್') + '" class="' + INP + '">') +
+      (isReg ? field('ಪಾಸ್‌ವರ್ಡ್ ಮತ್ತೊಮ್ಮೆ', '<input id="wm-pw2" type="password" class="' + INP + '">') : '');
+    var prof = (isReg || isProf) ?
+      '<div class="grid grid-cols-2 gap-2 text-xs font-black">' +
+        '<label class="flex items-center gap-2 p-2.5 border-2 rounded-xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50"><input type="radio" name="wm-role" value="teacher" checked> 👩‍🏫 ಶಿಕ್ಷಕರು</label>' +
+        '<label class="flex items-center gap-2 p-2.5 border-2 rounded-xl cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50"><input type="radio" name="wm-role" value="school"> 🏫 ಶಾಲೆ / ಮುಖ್ಯ ಶಿಕ್ಷಕರು</label></div>' +
+      field('ನಿಮ್ಮ ಹೆಸರು', '<input id="wm-name" placeholder="ಉದಾ: ಎಂ. ಬಿ. ಪಾಟೀಲ್" class="' + INP + '">') +
+      field('ಶಾಲೆಯ ಪೂರ್ಣ ಹೆಸರು (ಕನ್ನಡ)', '<input id="wm-school" placeholder="ಉದಾ: ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ, ತುಮ್ಮರಗುದ್ದಿ" class="' + INP + '">', 'ಪ್ರತಿ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಯ ಮೇಲೆ ಇದೇ ಹೆಸರು ಬರುತ್ತದೆ.') +
+      field('ಶಾಲೆಯ ಹೆಸರು (English)', '<input id="wm-school-en" placeholder="e.g. Govt Higher Primary School, Tummaraguddi" class="' + INP + '">', 'ದ್ವಿಭಾಷಾ / English ಪತ್ರಿಕೆಗಳಲ್ಲಿ ಬರುತ್ತದೆ.') +
+      '<div class="grid grid-cols-2 gap-2">' + field('DISE ಕೋಡ್ <span class="font-semibold text-slate-400">(ಐಚ್ಛಿಕ)</span>', '<input id="wm-dise" inputmode="numeric" maxlength="11" class="' + INP + '">') +
+      field('ಊರು / ತಾಲ್ಲೂಕು', '<input id="wm-place" class="' + INP + '">') + '</div>' +
+      '<label class="flex items-start gap-2 text-[11px] font-bold text-slate-600 p-2.5 bg-amber-50 border border-amber-200 rounded-xl"><input id="wm-ok" type="checkbox" class="mt-0.5"> ಶಾಲೆಯ ಹೆಸರು ಸರಿಯಾಗಿದೆ. (ನಂತರ ಬದಲಿಸಲು Admin ಅನ್ನು ಸಂಪರ್ಕಿಸಬೇಕು)</label>' : '';
+    var body = '<div class="p-5 space-y-3">' + tabs +
+      (isReg ? '<div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-900">🎁 ನೋಂದಣಿ ಉಚಿತ. ನೋಂದಣಿಯಾದ ತಕ್ಷಣ <b>' + PRICES.trial + ' ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ</b> (SAMPLE ಗುರುತಿನೊಂದಿಗೆ). ನಂತರ ಬೇಕಾದ ಪ್ಯಾಕ್ ಮಾತ್ರ ಖರೀದಿಸಿ.</div>' : '') +
+      (isProf ? '<div class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-900">ನಿಮ್ಮ ಶಾಲೆಯ ವಿವರ ಇನ್ನೂ ಬಂದಿಲ್ಲ. ಒಮ್ಮೆ ತುಂಬಿ.</div>' : '') +
+      cred + prof +
+      '<p id="wm-err" class="text-xs font-extrabold text-rose-600"></p>' +
+      '<button id="wm-go" type="button" class="w-full py-3 rounded-2xl font-black text-sm text-white bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg">' +
+      (isReg ? '📝 ನೋಂದಣಿ ಮಾಡಿ' : isProf ? '💾 ಉಳಿಸಿ' : '🔑 ಲಾಗಿನ್') + '</button>' +
+      (!isReg && !isProf ? '<p class="text-[11px] font-bold text-slate-500 text-center">ಪಾಸ್‌ವರ್ಡ್ ಮರೆತಿದ್ದರೆ <a class="text-emerald-700 underline" target="_blank" rel="noopener" href="' + forgot + '">WhatsApp ನಲ್ಲಿ ಸಂಪರ್ಕಿಸಿ</a></p>' +
+        '<div class="pt-2 border-t text-[11px] font-bold text-slate-500 text-center">ಹಳೆಯ Secret Key ಇದೆಯೇ? <button type="button" onclick="wyCloseStoreModal();openTeacherAuthModal(\'login\')" class="text-indigo-700 underline">ಶಿಕ್ಷಕರ Key ಲಾಗಿನ್</button> · <button type="button" onclick="wyCloseStoreModal();openSchoolAuthModal(\'login\')" class="text-indigo-700 underline">ಶಾಲಾ Key ಲಾಗಿನ್</button> · <button type="button" onclick="wyCloseStoreModal();openCompetitiveAuthModal(\'login\')" class="text-indigo-700 underline">NMMS Key</button></div>' : '') +
+      '</div>';
+    modal(head(isReg ? 'fa-user-plus' : isProf ? 'fa-school' : 'fa-right-to-bracket', isReg ? 'ಹೊಸ ನೋಂದಣಿ' : isProf ? 'ಶಾಲೆಯ ವಿವರ' : 'ಲಾಗಿನ್', 'With You QP — ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಜನರೇಟರ್') + body);
+    if (isReg || isProf) {
+      var kn = $('wm-school'), en = $('wm-school-en');
+      en.addEventListener('input', function () { en.dataset.touched = '1'; });
+      kn.addEventListener('input', function () { if (!en.dataset.touched) { try { en.value = window.wySuggestSchoolEn ? window.wySuggestSchoolEn(kn.value.trim()) : ''; } catch (e) {} } });
+    }
+    var err = function (t) { $('wm-err').textContent = t || ''; if (t) toast(t, true); };
+    $('wm-go').onclick = function () {
+      var btn = this;
+      busy(btn, async function () {
+        err('');
+        var m = isProf ? authInfo().mobile : ($('wm-mob').value || '').replace(/\D/g, '');
+        var pw = isProf ? '' : $('wm-pw').value;
+        if (!isProf && !/^[6-9]\d{9}$/.test(m)) return err('10 ಅಂಕಿಯ ಸರಿಯಾದ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ಬರೆಯಿರಿ.');
+        if (!isProf && !pw) return err('ಪಾಸ್‌ವರ್ಡ್ ಬರೆಯಿರಿ.');
+        var rec = null;
+        if (isReg || isProf) {
+          if (isReg && pw.length < 6) return err('ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ 6 ಅಕ್ಷರ ಇರಬೇಕು.');
+          if (isReg && pw !== $('wm-pw2').value) return err('ಎರಡೂ ಪಾಸ್‌ವರ್ಡ್ ಒಂದೇ ಆಗಿಲ್ಲ.');
+          rec = {
+            role: (document.querySelector('input[name="wm-role"]:checked') || {}).value || 'teacher',
+            name: $('wm-name').value.trim(), school: $('wm-school').value.trim(), schoolEn: $('wm-school-en').value.trim(),
+            dise: ($('wm-dise').value || '').replace(/\D/g, ''), place: $('wm-place').value.trim(), mobile: m, at: new Date().toISOString()
+          };
+          if (rec.name.length < 2) return err('ನಿಮ್ಮ ಹೆಸರು ಬರೆಯಿರಿ.');
+          if (rec.school.length < 5) return err('ಶಾಲೆಯ ಪೂರ್ಣ ಹೆಸರು (ಕನ್ನಡ) ಬರೆಯಿರಿ.');
+          if (rec.schoolEn.length < 5) return err('ಶಾಲೆಯ ಹೆಸರನ್ನು English ನಲ್ಲಿಯೂ ಬರೆಯಿರಿ.');
+          if (rec.dise && rec.dise.length !== 11) return err('DISE ಕೋಡ್ 11 ಅಂಕಿ ಇರಬೇಕು (ಇಲ್ಲದಿದ್ದರೆ ಖಾಲಿ ಬಿಡಿ).');
+          if (!$('wm-ok').checked) return err('ಶಾಲೆಯ ಹೆಸರು ಸರಿಯಾಗಿದೆ ಎಂದು ಗುರುತು ಹಾಕಿ.');
+        }
+        try {
+          if (!isProf) saveAuth(m, await idp(isReg ? 'accounts:signUp' : 'accounts:signInWithPassword', { email: emailOf(m), password: pw, returnSecureToken: true }));
+          await loadMember();
+          if (rec && !MEM.profile) { await db('PUT', '/members/' + m + '/profile', rec); MEM.profile = rec; }   // ಪಾಸ್‌ವರ್ಡ್ ಮರೆತು ಮತ್ತೆ ನೋಂದಣಿ: ಹಳೆಯ ವಿವರ, ಪ್ಯಾಕ್ ಹಾಗೆಯೇ
+          else if (rec && isProf) { await db('PUT', '/members/' + m + '/profile', rec); MEM.profile = rec; }
+        } catch (e) { if (!isProf && !MEM.loaded) lsSet(AUTH_KEY, null); return err(errMsg(e)); }
+        if (!MEM.profile) return openMemberAuth('profile');
+        closeModal(); startSession();
+        toast(isReg ? '🎉 ನೋಂದಣಿ ಯಶಸ್ವಿ! ' + trialLeft() + ' ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ ಲಭ್ಯ.' : '✅ ಸ್ವಾಗತ, ' + (MEM.profile.name || ''));
+        try { navigateToSection('dashboard'); } catch (e) {}
+        refreshViews();
+      });
+    };
+  }
+  window.wyOpenMemberAuth = openMemberAuth;
+
+  // ---------- ಕಾರ್ಟ್ ----------
+  var qrLib = null;
+  function qrSvg(text) {
+    qrLib = qrLib || new Promise(function (res, rej) {
+      if (window.qrcode) return res(window.qrcode);
+      var s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+      s.onload = function () { res(window.qrcode); }; s.onerror = rej; document.head.appendChild(s);
+    });
+    return qrLib.then(function (q) { var x = q(0, 'M'); x.addData(text); x.make(); return x.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); });
+  }
+  function openCart() {
+    if (!isMember()) return openMemberAuth('register');
+    var l = cartGet(), rows = priced(l), tot = cartTotal(l), m = authInfo().mobile;
+    var pend = MEM.orders.filter(function (o) { return o.status === 'pending'; });
+    if (!l.length) {
+      modal(head('fa-cart-shopping', 'ಕಾರ್ಟ್', '', 'from-slate-800 to-slate-900') + '<div class="p-6 text-center space-y-3"><div class="text-4xl">🛒</div><p class="font-black text-slate-800">ಕಾರ್ಟ್ ಖಾಲಿ ಇದೆ</p>' +
+        '<p class="text-xs font-bold text-slate-500">Dashboard ನಲ್ಲಿ ಬೇಕಾದ ಪ್ಯಾಕ್ ಅಥವಾ ವಿಷಯದ ಮೇಲೆ "ಕಾರ್ಟ್‌ಗೆ" ಒತ್ತಿ.</p>' +
+        (pend.length ? '<p class="text-xs font-extrabold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">⏳ ' + pend.length + ' ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ. ಹಣ ಬಂದಿರುವುದನ್ನು ನೋಡಿದ ನಂತರ ತೆರೆಯುತ್ತದೆ.</p>' : '') + '</div>');
+      return;
+    }
+    var hs = hints(l);
+    var upi = 'upi://pay?pa=' + encodeURIComponent(UPI) + '&pn=' + encodeURIComponent(UPI_NAME) + '&am=' + tot + '&cu=INR&tn=' + encodeURIComponent('WYQP ' + m);
+    modal(head('fa-cart-shopping', 'ಕಾರ್ಟ್ (' + l.length + ')', yearEnd() ? dmy(yearEnd()) + ' ವರೆಗೆ ಮಾನ್ಯ' : '', 'from-slate-800 to-slate-900') +
+      '<div class="p-5 space-y-4">' +
+      '<div class="divide-y border rounded-2xl">' + rows.map(function (r, i) {
+        return '<div class="flex items-center justify-between gap-3 p-3"><div class="min-w-0"><div class="text-sm font-black text-slate-900">' + esc(packTitle(r.k)) + '</div>' +
+          '<div class="text-[11px] font-bold text-slate-500">' + esc(packKind(r.k)) + (packMedium(r.k) ? ' · ' + esc(packMedium(r.k)) : '') + (r.note ? ' · <span class="text-emerald-700">' + r.note + '</span>' : '') + '</div></div>' +
+          '<div class="flex items-center gap-2 shrink-0"><b class="text-sm">' + rupee(r.price) + '</b><button type="button" data-rm="' + i + '" class="w-7 h-7 rounded-full bg-rose-50 text-rose-600 font-black">✕</button></div></div>';
+      }).join('') + '</div>' +
+      hs.map(function (h) {
+        return '<div class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-emerald-50 border border-emerald-200"><span class="text-xs font-bold text-emerald-900">💡 <b>' + esc(packLabel(h.k)) + '</b> (' + rupee(h.price) + ') ತೆಗೆದುಕೊಂಡರೆ ಇವೆಲ್ಲವೂ ಮತ್ತು ಇನ್ನೂ ಹೆಚ್ಚು ಸಿಗುತ್ತದೆ' + (h.save > 0 ? ' — ' + rupee(h.save) + ' ಉಳಿತಾಯ' : '') + '</span>' +
+          '<button type="button" data-up="' + esc(h.k) + '" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-black shrink-0">ಬದಲಿಸಿ</button></div>';
+      }).join('') +
+      '<div class="flex items-center justify-between p-3 rounded-2xl bg-slate-900 text-white"><span class="font-black text-sm">ಒಟ್ಟು</span><b class="text-xl">' + rupee(tot) + '</b></div>' +
+      '<div class="space-y-3 text-xs font-bold text-slate-700">' +
+        '<div class="flex gap-3"><span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black shrink-0">1</span><div class="flex-1"><b class="text-slate-900">' + rupee(tot) + ' ಅನ್ನು UPI ಮೂಲಕ ಕಳುಹಿಸಿ</b>' +
+          '<div class="flex flex-wrap items-center gap-3 mt-2"><div id="wy-qr" class="w-36 h-36 bg-white border rounded-xl p-1"></div><div class="space-y-2"><div class="text-[10px] text-slate-500">UPI ID</div><code class="px-2 py-1 bg-slate-100 rounded-lg font-black">' + UPI + '</code> <button type="button" id="wy-upi-copy" class="px-2 py-1 rounded-lg bg-slate-200 font-black">copy</button>' +
+          '<p class="text-[10px] text-slate-500 max-w-[220px]">PhonePe / Google Pay / Paytm ನಲ್ಲಿ QR scan ಮಾಡಿ, ಅಥವಾ ಮೊಬೈಲ್‌ನಲ್ಲಿದ್ದರೆ ಕೆಳಗಿನ ಬಟನ್ ಒತ್ತಿ.</p><a href="' + upi + '" class="inline-block px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-black">UPI ಆಪ್ ತೆರೆಯಿರಿ</a></div></div></div></div>' +
+        '<div class="flex gap-3"><span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black shrink-0">2</span><div class="flex-1"><b class="text-slate-900">UPI ವಹಿವಾಟು ಸಂಖ್ಯೆ (UTR)</b> <span class="text-slate-500">— ಬೇಗ ಪರಿಶೀಲಿಸಲು</span>' +
+          '<input id="wy-utr" inputmode="numeric" maxlength="22" placeholder="12 ಅಂಕಿಯ UTR" class="' + INP + ' mt-1.5"></div></div>' +
+        '<div class="flex gap-3"><span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black shrink-0">3</span><div class="flex-1"><b class="text-slate-900">ಆರ್ಡರ್ ಕಳುಹಿಸಿ</b><p class="text-slate-500 mt-0.5">WhatsApp ತೆರೆಯುತ್ತದೆ — ಹಣ ಕಳುಹಿಸಿದ screenshot ಕೂಡ ಕಳುಹಿಸಿ.</p>' +
+          '<button id="wy-send" type="button" class="mt-2 w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-sm shadow-lg">✅ ಹಣ ಕಳುಹಿಸಿದ್ದೇನೆ — ಆರ್ಡರ್ ಕಳುಹಿಸಿ</button></div></div>' +
+      '</div></div>', true);
+    var w = $('wy-store-modal');
+    w.querySelectorAll('[data-rm]').forEach(function (b) { b.onclick = function () { var x = cartGet(); x.splice(+b.dataset.rm, 1); cartSet(x); openCart(); refreshViews(); }; });
+    w.querySelectorAll('[data-up]').forEach(function (b) { b.onclick = function () { cartAdd(b.dataset.up); openCart(); refreshViews(); }; });
+    $('wy-upi-copy').onclick = function () { try { navigator.clipboard.writeText(UPI); toast('UPI ID copy ಆಯಿತು.'); } catch (e) {} };
+    qrSvg(upi).then(function (svg) { if ($('wy-qr')) $('wy-qr').innerHTML = svg; }).catch(function () { if ($('wy-qr')) $('wy-qr').style.display = 'none'; });
+    $('wy-send').onclick = function () {
+      var btn = this;
+      busy(btn, async function () {
+        var utr = ($('wy-utr').value || '').replace(/\s/g, '');
+        if (utr && !/^\d{10,22}$/.test(utr)) return toast('UTR ಸಂಖ್ಯೆ ಸರಿಯಾಗಿಲ್ಲ (ಅಂಕಿಗಳು ಮಾತ್ರ).', true);
+        var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        var p = MEM.profile || {};
+        var o = { items: l, total: tot, utr: utr, status: 'pending', at: new Date().toISOString(), name: p.name || '', school: p.school || '', mobile: m, role: p.role || 'teacher' };
+        try { await db('PUT', '/orders/' + m + '/' + id, o); } catch (e) { return toast('ಆರ್ಡರ್ ಕಳುಹಿಸಲು ಆಗಲಿಲ್ಲ: ' + errMsg(e), true); }
+        MEM.orders.push(Object.assign({ id: id }, o));
+        var text = '*With You QP ಆರ್ಡರ್ #' + id.slice(-6).toUpperCase() + '*\n👤 ' + (p.name || '') + '\n🏫 ' + (p.school || '') + '\n📱 ' + m + '\n\n' +
+          l.map(function (k) { return '• ' + packLabel(k) + ' — ' + rupee(priced(l).filter(function (x) { return x.k === k; })[0].price); }).join('\n') +
+          '\n\n💰 *ಒಟ್ಟು: ' + rupee(tot) + '*' + (utr ? '\n🧾 UTR: ' + utr : '') + '\n\nದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ ತೆರೆಯಿರಿ.';
+        cartSet([]);
+        try { window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(text), '_blank'); } catch (e) {}
+        modal(head('fa-circle-check', 'ಆರ್ಡರ್ ಕಳುಹಿಸಲಾಗಿದೆ ✓', '', 'from-emerald-600 to-teal-600') +
+          '<div class="p-6 text-center space-y-3"><div class="text-4xl">🎉</div><p class="font-black text-slate-800">ಆರ್ಡರ್ ಸಂಖ್ಯೆ #' + id.slice(-6).toUpperCase() + '</p>' +
+          '<p class="text-xs font-bold text-slate-500">ಹಣ ಬಂದಿರುವುದನ್ನು ಪರಿಶೀಲಿಸಿದ ತಕ್ಷಣ ನಿಮ್ಮ ಪ್ಯಾಕ್ ತೆರೆಯುತ್ತದೆ. Dashboard ನಲ್ಲಿ "🔄 ನವೀಕರಿಸಿ" ಒತ್ತಿ ನೋಡಬಹುದು.</p>' +
+          '<button type="button" onclick="wyCloseStoreModal()" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-black text-xs">ಸರಿ</button></div>');
+        refreshViews();
+      });
+    };
+  }
+  window.wyOpenCart = openCart;
+  function renderCartBadges() {
+    var n = cartGet().length;
+    document.querySelectorAll('.wy-cart-n').forEach(function (e) { e.textContent = n; e.style.display = n ? '' : 'none'; });
+  }
+
+  // =====================================================================
+  // 📊 ಸದಸ್ಯರ Dashboard
+  // =====================================================================
+  var DS = { tab: lsGet('wy_dash_med', 'kn') };
+  function statusChip(item) {
+    if (!available(item)) return '<span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-400 text-[10px] font-black">ಶೀಘ್ರದಲ್ಲಿ</span>';
+    if (ownsItem(item)) return '<button type="button" data-open="' + item + '" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-black">✅ ರಚಿಸಿ →</button>';
+    if (pendingItem(item)) return '<span class="px-2 py-1 rounded-lg bg-amber-100 text-amber-800 text-[10px] font-black">⏳ ಪರಿಶೀಲನೆ</span>';
+    var k = packsFor(item)[0];
+    var inCart = cartGet().some(function (a) { return covers(a, k); });
+    return inCart ? '<button type="button" onclick="wyOpenCart()" class="px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-black">🛒 ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ</button>'
+      : '<button type="button" data-add="' + k + '" class="px-2 py-1 rounded-lg bg-white text-slate-700 border border-slate-300 hover:border-emerald-500 text-[10px] font-black">🔒 ' + rupee(priceOf(k)) + ' ಕಾರ್ಟ್‌ಗೆ</button>';
+  }
+  function packBtn(k, label) {
+    var owned = ownsPack(k), inCart = cartGet().some(function (a) { return covers(a, k); });
+    var pend = MEM.orders.some(function (o) { return o.status === 'pending' && (o.items || []).some(function (x) { return covers(x, k); }); });
+    if (owned) return '<span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black">✅ ' + (label || 'ತೆರೆದಿದೆ') + '</span>';
+    if (pend) return '<span class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[10px] font-black">⏳ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ</span>';
+    if (inCart) return '<button type="button" onclick="wyOpenCart()" class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-black">🛒 ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ</button>';
+    return '<button type="button" data-add="' + k + '" class="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[10px] font-black">' + (label || packKind(k)) + ' ' + rupee(priceOf(k)) + ' +</button>';
+  }
+  function sel(id, opts, val) {
+    return '<select data-pb="' + id.replace('wy-pb-', '') + '" class="w-full px-2 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold">' +
+      opts.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (String(o[0]) === String(val) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>';
+  }
+  var PB = lsGet('wy_pack_builder', { m: 'kn', c: 6, s: 'mathematics', g: 'h', n: '', e: '' });
+  function builderKey(type) {
+    var m = PB.m, c = +PB.c, g = PB.g, s = PB.s;
+    if (type === 'sub') return 'sub:' + m + ':' + c + ':' + s;
+    if (type === 'st') return 'st:' + m + ':' + g + ':' + s;
+    if (type === 'cls') return 'cls:' + m + ':' + c;
+    if (type === 'stg') return 'stg:' + m + ':' + g;
+    if (type === 'sch') return 'sch:' + (m === 'bi' ? 'kn' : m);
+    if (type === 'all') return 'all:' + (m === 'bi' ? 'kn' : m);
+    if (type === 'nmms') return PB.n ? 'nmms:' + PB.n : 'nmms';
+    if (type === 'ent') return 'ent:' + (PB.e || (exams()[0] || {}).id);
+    return type;
+  }
+  function fixPB() {
+    if (PB.m === 'bi') { if (+PB.c > 5) PB.c = 5; PB.g = 'p'; }
+    if (subjectsFor(+PB.c).indexOf(PB.s) === -1) PB.s = subjectsFor(+PB.c)[0];
+    var stS = STAGES[PB.g].c.some(function (c) { return subjectsFor(c).indexOf(PB.s) !== -1; });
+    if (!stS) PB.s = subjectsFor(STAGES[PB.g].c[0])[0];
+    lsSet('wy_pack_builder', PB);
+  }
+  function packCards() {
+    fixPB();
+    var medOpts = [['kn', 'ಕನ್ನಡ ಮಾಧ್ಯಮ'], ['en', 'ಇಂಗ್ಲಿಷ್ ಮಾಧ್ಯಮ'], ['bi', 'ದ್ವಿಭಾಷಾ (1–5)']];
+    var clsOpts = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(function (c) { return PB.m !== 'bi' || c <= 5; }).map(function (c) { return [c, c + 'ನೇ ತರಗತಿ']; });
+    var stgOpts = stagesFor(PB.m).map(function (g) { return [g, STAGES[g].n]; });
+    var subOptsC = subjectsFor(+PB.c).map(function (s) { return [s, SUBJ[s]]; });
+    var subOptsG = Object.keys(SUBJ).filter(function (s) { return STAGES[PB.g].c.some(function (c) { return subjectsFor(c).indexOf(s) !== -1; }); }).map(function (s) { return [s, SUBJ[s]]; });
+    var CARDS = [
+      { t: 'sub', icon: '📘', name: 'ವಿಷಯ ಪ್ಯಾಕ್', d: '1 ತರಗತಿಯ 1 ವಿಷಯ — ಎಲ್ಲಾ ಪರೀಕ್ಷೆಗಳು (ಘಟಕ, FA, SA, ಮೌಖಿಕ)', f: ['m', 'c', 'sc'] },
+      { t: 'st', icon: '👩‍🏫', name: 'ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್', d: 'ಒಂದು ವಿಷಯ, ಹಂತದ ಎಲ್ಲಾ ತರಗತಿ (ಉದಾ: ಗಣಿತ 8–10)', f: ['m', 'g', 'sg'], tag: 'ವಿಷಯ ಶಿಕ್ಷಕರಿಗೆ' },
+      { t: 'cls', icon: '🎒', name: 'ತರಗತಿ ಪ್ಯಾಕ್', d: '1 ತರಗತಿಯ ಎಲ್ಲಾ ವಿಷಯ', f: ['m', 'c'], tag: 'ಜನಪ್ರಿಯ' },
+      { t: 'stg', icon: '🏫', name: 'ಹಂತ ಪ್ಯಾಕ್', d: '1–5 / 6–8 / 8–10 — ಎಲ್ಲಾ ತರಗತಿ, ಎಲ್ಲಾ ವಿಷಯ', f: ['m', 'g'] },
+      { t: 'sch', icon: '🏆', name: 'ಶಾಲಾ (ಮಾಧ್ಯಮ) ಪ್ಯಾಕ್', d: '1 ರಿಂದ 10 ಎಲ್ಲಾ ತರಗತಿ, ಎಲ್ಲಾ ವಿಷಯ (ಒಂದು ಮಾಧ್ಯಮ). ಇನ್ನೊಂದು ಮಾಧ್ಯಮ +' + rupee(PRICES.sch2), f: ['m2'], tag: 'ಉತ್ತಮ ಮೌಲ್ಯ' },
+      { t: 'all', icon: '👑', name: 'ಸಂಪೂರ್ಣ ಶಾಲಾ ಪ್ಯಾಕ್', d: 'ಶಾಲಾ ಪ್ಯಾಕ್ + NMMS + ಎಲ್ಲಾ ಪ್ರವೇಶ ಪರೀಕ್ಷೆಗಳು', f: ['m2'] },
+      { t: 'nmms', icon: '🌟', name: 'NMMS ಪ್ಯಾಕ್', d: 'GMAT + SAT ' + rupee(PRICES.nmms) + ' (ಒಂದೇ ಪತ್ರಿಕೆ ' + rupee(PRICES.nmms1) + ')', f: ['n'] },
+      { t: 'ent', icon: '🎯', name: 'ಪ್ರವೇಶ ಪರೀಕ್ಷೆ', d: 'ಮೊರಾರ್ಜಿ / ಆದರ್ಶ / ಕಿತ್ತೂರು / ಸೈನಿಕ — ಪ್ರತಿಯೊಂದು', f: ['e'] },
+      { t: 'cmp', icon: '🚀', name: 'ಸ್ಪರ್ಧಾ ಕಾಂಬೋ', d: 'NMMS (GMAT + SAT) + ಎಲ್ಲಾ ಪ್ರವೇಶ ಪರೀಕ್ಷೆಗಳು', f: [] }
+    ];
+    return '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">' + CARDS.map(function (cd) {
+      var k = builderKey(cd.t);
+      var fields = cd.f.map(function (f) {
+        if (f === 'm') return sel('wy-pb-m', medOpts, PB.m);
+        if (f === 'm2') return sel('wy-pb-m', medOpts.slice(0, 2), PB.m === 'bi' ? 'kn' : PB.m);
+        if (f === 'c') return sel('wy-pb-c', clsOpts, PB.c);
+        if (f === 'g') return sel('wy-pb-g', stgOpts, PB.g);
+        if (f === 'sc') return sel('wy-pb-s', subOptsC, PB.s);
+        if (f === 'sg') return sel('wy-pb-s', subOptsG, PB.s);
+        if (f === 'n') return sel('wy-pb-n', [['', 'GMAT + SAT (ಎರಡೂ)'], ['gmat', 'GMAT ಮಾತ್ರ'], ['sat', 'SAT ಮಾತ್ರ']], PB.n);
+        if (f === 'e') return sel('wy-pb-e', exams().map(function (e) { return [e.id, e.name]; }), PB.e || (exams()[0] || {}).id);
+        return '';
+      }).join('');
+      return '<div class="relative p-4 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col gap-2.5">' +
+        (cd.tag ? '<span class="absolute -top-2 right-4 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black shadow">' + cd.tag + '</span>' : '') +
+        '<div class="flex items-start justify-between gap-2"><div class="flex items-center gap-2"><span class="text-2xl">' + cd.icon + '</span><div><div class="font-black text-sm text-slate-900">' + cd.name + '</div>' +
+        '<div class="text-[11px] font-bold text-slate-500 leading-snug">' + cd.d + '</div></div></div><div class="text-lg font-black text-emerald-700 shrink-0">' + rupee(priceOf(k)) + '</div></div>' +
+        (fields ? '<div class="grid grid-cols-' + Math.min(cd.f.length, 3) + ' gap-1.5" data-pb-card="' + cd.t + '">' + fields + '</div>' : '') +
+        '<div class="mt-auto flex items-center justify-between gap-2"><span class="text-[10px] font-bold text-slate-400 truncate">' + esc(packLabel(k)) + '</span>' + packBtn(k, 'ಕಾರ್ಟ್‌ಗೆ') + '</div></div>';
+    }).join('') + '</div>';
+  }
+  function catalog() {
+    var m = DS.tab;
+    var classes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(function (c) { return mediaFor(c).indexOf(m) !== -1; });
+    var count = function (mm) { var n = 0; regularItems(function (i) { return i.m === mm; }).forEach(function (it) { if (available(it)) n++; }); return n; };
+    var tabs = ['kn', 'en', 'bi'].map(function (k) {
+      return '<button type="button" data-dtab="' + k + '" class="px-3.5 py-2 rounded-xl text-xs font-black ' + (k === m ? 'bg-slate-900 text-white shadow' : 'bg-white text-slate-600 border') + '">' + MEDIA[k].n +
+        ' <span class="ml-1 px-1.5 rounded-md ' + (k === m ? 'bg-white/20' : 'bg-slate-100') + '">' + count(k) + '</span></button>';
+    }).join('');
+    var cards = classes.map(function (c) {
+      var subs = subjectsFor(c);
+      var avail = subs.filter(function (s) { return available('r:' + m + ':' + c + ':' + s); }).length;
+      return '<div class="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2.5">' +
+        '<div class="flex items-center justify-between gap-2"><div><div class="font-black text-slate-900">' + c + 'ನೇ ತರಗತಿ</div><div class="text-[10px] font-bold text-slate-500">' + avail + '/' + subs.length + ' ವಿಷಯಗಳ ಪತ್ರಿಕೆ ಲಭ್ಯ</div></div>' +
+        (avail ? packBtn('cls:' + m + ':' + c, 'ತರಗತಿ ಪ್ಯಾಕ್') : '<span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-400 text-[10px] font-black">ಶೀಘ್ರದಲ್ಲಿ</span>') + '</div>' +
+        '<div class="divide-y divide-slate-100">' + subs.map(function (s) {
+          var it = 'r:' + m + ':' + c + ':' + s, pr = parts(m, c, s);
+          return '<div class="flex items-center justify-between gap-2 py-1.5"><div class="min-w-0"><div class="text-xs font-extrabold text-slate-800">' + SUBJ[s] + '</div>' +
+            '<div class="flex gap-1 mt-0.5">' + pr.map(function (ok, i) { return '<span class="text-[9px] font-black px-1.5 rounded ' + (ok ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-300') + '">ಭಾಗ-' + (i + 1) + (ok ? ' ✓' : '') + '</span>'; }).join('') + '</div></div>' +
+            statusChip(it) + '</div>';
+        }).join('') + '</div></div>';
+    }).join('');
+    var comp = [['n:gmat', NMMS.gmat, '8ನೇ ತರಗತಿ · 90 ಅಂಕ'], ['n:sat', NMMS.sat, '8ನೇ ತರಗತಿ · 90 ಅಂಕ']]
+      .concat(exams().map(function (e) { return ['e:' + e.id, e.name, (e.classes || []).join(', ') + 'ನೇ ತರಗತಿ · ' + (e.marks || '') + ' ಅಂಕ']; }))
+      .map(function (x) {
+        return '<div class="flex items-center justify-between gap-2 p-3 rounded-2xl bg-white border border-slate-200"><div class="min-w-0"><div class="text-xs font-extrabold text-slate-800">' + esc(x[1]) + '</div><div class="text-[10px] font-bold text-slate-500">' + esc(x[2]) + '</div></div>' + statusChip(x[0]) + '</div>';
+      }).join('');
+    return '<div class="flex flex-wrap gap-2">' + tabs + '</div>' +
+      (m === 'en' && !count('en') ? '<div class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-900">English ಮಾಧ್ಯಮದ ಪ್ರಶ್ನೆಗಳು ಸೇರ್ಪಡೆಯಾಗುತ್ತಿವೆ. ಈಗ ಖರೀದಿಸಿದರೆ ಬಂದ ತಕ್ಷಣ ತೆರೆಯುತ್ತದೆ.</div>' : '') +
+      '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">' + cards + '</div>' +
+      '<h3 class="font-black text-slate-900 pt-3">🏆 ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' + comp + '</div>';
+  }
+  function renderMemberDashboard() {
+    var v = $('view-dashboard'); if (!v || !isMember()) return false;
+    var p = MEM.profile || {}, act = activePacks(), pend = MEM.orders.filter(function (o) { return o.status === 'pending'; });
+    var openCount = regularItems().filter(function (i) { return ownsItem(i) && available(i); }).length;
+    var mine = act.sort(function (a, b) { return String(MEM.packs[b]).localeCompare(String(MEM.packs[a])); });
+    v.innerHTML = '<div class="space-y-6 pb-16 animate-fade-in" id="wy-member-dash">' +
+      '<div class="hero-gradient-bg text-white rounded-[2rem] p-5 sm:p-8 shadow-2xl border border-slate-700/60 space-y-5">' +
+        '<div class="flex flex-wrap items-start justify-between gap-3"><div><p class="text-xs font-bold text-emerald-300">ನಮಸ್ಕಾರ 🙏</p><h2 class="text-xl sm:text-3xl font-black">' + esc(p.name) + '</h2>' +
+        '<p class="text-xs sm:text-sm font-bold text-slate-300">🏫 ' + esc(p.school) + (p.schoolEn ? ' · ' + esc(p.schoolEn) : '') + '</p><p class="text-[11px] font-bold text-slate-400">📱 ' + esc(authInfo().mobile) + '</p></div>' +
+        '<div class="flex flex-wrap gap-2"><button type="button" onclick="navigateToSection(\'generator\')" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-xs shadow-lg">✍️ ಪತ್ರಿಕೆ ರಚಿಸಿ</button>' +
+        '<button type="button" onclick="wyOpenCart()" class="relative px-4 py-2.5 rounded-2xl bg-white text-slate-900 font-black text-xs shadow">🛒 ಕಾರ್ಟ್ <span class="wy-cart-n absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center"></span></button>' +
+        '<button type="button" id="wy-dash-reload" class="px-3 py-2.5 rounded-2xl bg-white/10 border border-white/20 font-black text-xs">🔄 ನವೀಕರಿಸಿ</button></div></div>' +
+        '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">' +
+          [[act.length, 'ಸಕ್ರಿಯ ಪ್ಯಾಕ್', 'text-emerald-400'], [openCount, 'ತೆರೆದ ವಿಷಯಗಳು', 'text-cyan-400'], [trialLeft() + '/' + PRICES.trial, 'ಉಚಿತ ಪ್ರಯೋಗ ಬಾಕಿ', 'text-amber-400'], [pend.length, 'ಬಾಕಿ ಆರ್ಡರ್', 'text-rose-400']]
+            .map(function (x) { return '<div class="p-3 bg-white/5 rounded-2xl border border-white/10"><div class="text-2xl font-black ' + x[2] + '">' + x[0] + '</div><div class="text-[11px] font-bold text-slate-300">' + x[1] + '</div></div>'; }).join('') +
+        '</div></div>' +
+      (mine.length || pend.length ? '<section class="space-y-2"><h3 class="font-black text-slate-900">🎫 ನನ್ನ ಪ್ಯಾಕ್‌ಗಳು</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' +
+        mine.map(function (k) { return '<div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-2"><div><div class="text-xs font-black text-emerald-900">' + esc(packTitle(k)) + '</div><div class="text-[10px] font-bold text-emerald-700">' + esc(packKind(k)) + (packMedium(k) ? ' · ' + esc(packMedium(k)) : '') + '</div></div><span class="text-[10px] font-black text-emerald-800 shrink-0">' + dmy(MEM.packs[k]) + ' ವರೆಗೆ</span></div>'; }).join('') +
+        pend.map(function (o) { return '<div class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-900">⏳ ಆರ್ಡರ್ #' + esc(String(o.id).slice(-6).toUpperCase()) + ' · ' + rupee(o.total) + ' — ' + (o.items || []).map(function (k) { return esc(packTitle(k)); }).join(', ') + ' <span class="block text-[10px]">ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ</span></div>'; }).join('') +
+        '</div></section>' : '<div class="p-4 rounded-3xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-900">🎁 ನಿಮಗೆ <b>' + trialLeft() + ' ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ</b> ಬಾಕಿ ಇವೆ (SAMPLE ಗುರುತಿನೊಂದಿಗೆ). ಪೂರ್ಣ ಬಳಕೆಗೆ ಕೆಳಗಿನ ಪ್ಯಾಕ್ ಆಯ್ಕೆ ಮಾಡಿ.</div>') +
+      '<section class="space-y-3"><div class="flex items-end justify-between gap-2"><h3 class="font-black text-slate-900">📚 ಲಭ್ಯವಿರುವ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳು</h3><span class="text-[10px] font-bold text-slate-500">ಪ್ರತಿ ವಿಷಯದಲ್ಲಿ: ಘಟಕ · FA-1–4 · SA-1 · SA-2 · ಮೌಖಿಕ · ಕೀ ಉತ್ತರ · ನೀಲನಕ್ಷೆ · OMR</span></div>' +
+        '<div id="wy-catalog" class="space-y-3">' + catalog() + '</div></section>' +
+      '<section class="space-y-3"><h3 class="font-black text-slate-900">💰 ಪ್ಯಾಕ್‌ಗಳು ಮತ್ತು ದರಗಳು <span class="text-[11px] font-bold text-slate-500">(' + dmy(yearEnd()) + ' ವರೆಗೆ)</span></h3><div id="wy-packs">' + packCards() + '</div></section>' +
+      '<div class="text-center"><button type="button" onclick="logoutAnyUser()" class="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-black">⏻ Logout</button></div>' +
+      '</div>';
+    bindDash(v);
+    renderCartBadges();
+    return true;
+  }
+  function bindDash(root) {
+    var r = $('wy-dash-reload');
+    if (r) r.onclick = function () { busy(r, async function () { try { await loadMember(); await refreshBank(true); } catch (e) { toast(errMsg(e), true); } refreshViews(); toast('ನವೀಕರಿಸಲಾಗಿದೆ ✓'); }); };
+  }
+  // ಒಂದೇ ಕ್ಲಿಕ್ ಕೇಳುಗ (ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ + ಲಾಕ್ ಬ್ಯಾನರ್)
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('[data-add],[data-dtab],[data-open]'); if (!t) return;
+    if (t.dataset.add) { window.wyCartAdd(t.dataset.add); return; }
+    if (t.dataset.dtab) { DS.tab = t.dataset.dtab; lsSet('wy_dash_med', DS.tab); var c = $('wy-catalog'); if (c) c.innerHTML = catalog(); return; }
+    if (t.dataset.open) openInGenerator(t.dataset.open);
+  }, true);
+  document.addEventListener('change', function (e) {
+    var key = e.target && e.target.dataset && e.target.dataset.pb; if (!key) return;
+    PB[key] = (key === 'c') ? +e.target.value : e.target.value;
+    if (key === 'c') PB.g = (+PB.c <= 5) ? 'p' : (+PB.c <= 7 ? 'u' : (PB.g === 'u' && +PB.c === 8 ? 'u' : 'h'));
+    if (key === 'g' && STAGES[PB.g].c.indexOf(+PB.c) === -1) PB.c = STAGES[PB.g].c[0];
+    fixPB();
+    var w = $('wy-packs'); if (w) w.innerHTML = packCards();
+  });
+  function openInGenerator(item) {
+    var p = item.split(':');
+    try { navigateToSection('generator'); } catch (e) {}
+    setTimeout(function () {
+      var cl = $('cfg-class'), md = $('cfg-medium'), sb = $('cfg-subject');
+      var c = p[0] === 'r' ? +p[2] : (p[0] === 'n' ? 8 : ((examById(p[1]) || {}).classes || [6])[0]);
+      if (cl) { cl.value = String(c); cl.dispatchEvent(new Event('change', { bubbles: true })); try { handleMediumOrClassChange(); } catch (e) {} }
+      setTimeout(function () {
+        if (md && p[0] === 'r') { md.value = MEDIA[p[1]].v; md.dispatchEvent(new Event('change', { bubbles: true })); try { handleMediumOrClassChange(); } catch (e) {} }
+        setTimeout(function () {
+          if (!sb) return;
+          var want = p[0] === 'r' ? SUBJ_OPT[p[3]] : null;
+          var opt = Array.from(sb.options).find(function (o) {
+            if (want) return o.value === want || getNormalizedSubjectKey(o.value) === p[3];
+            if (p[0] === 'n') return /NMMS/.test(o.value) && (p[1] === 'gmat' ? /GMAT/ : /SAT \(/).test(o.value);
+            var ex = examById(p[1]); return ex && o.value === ex.name;
+          });
+          if (opt) { sb.value = opt.value; sb.dispatchEvent(new Event('change', { bubbles: true })); try { handleSubjectOrPartChange(); } catch (e) {} }
+          updateLockBanner();
+        }, 250);
+      }, 250);
+    }, 150);
+  }
+
+  // =====================================================================
+  // 🔒 ಜನರೇಟರ್‌ನಲ್ಲಿ: ಈಗಿನ ಆಯ್ಕೆ ತೆರೆದಿದೆಯೇ?
+  // =====================================================================
+  function currentItem() {
+    var subj = ($('cfg-subject') || {}).value || '';
+    var c = parseInt(String(($('cfg-class') || {}).value || '').replace(/\D/g, '')) || 0;
+    var m = MCODE[($('cfg-medium') || {}).value] || 'kn';
+    if (!subj || !c) return null;
+    if (/NMMS/i.test(subj)) return /SAT/.test(subj) && !/GMAT/.test(subj) ? 'n:sat' : 'n:gmat';
+    var ex = window.WY_findEntranceExam ? window.WY_findEntranceExam(subj) : null;
+    if (ex) return 'e:' + ex.id;
+    var s = typeof getNormalizedSubjectKey === 'function' ? getNormalizedSubjectKey(subj) : '';
+    if (!SUBJ[s]) return null;
+    if (m === 'bi' && c > 5) m = 'kn';
+    return 'r:' + m + ':' + c + ':' + s;
+  }
+  function itemTitle(item) {
+    var p = item.split(':');
+    if (p[0] === 'r') return SUBJ[p[3]] + ' · ' + p[2] + 'ನೇ ತರಗತಿ · ' + MEDIA[p[1]].n;
+    if (p[0] === 'n') return NMMS[p[1]];
+    var e = examById(p[1]); return e ? e.name : p[1];
+  }
+  function lockOptions(item) {
+    return packsFor(item).filter(function (k) { return !/^all:/.test(k) || k === 'all:' + (item.split(':')[1] === 'en' ? 'en' : 'kn'); })
+      .slice(0, 6).map(function (k) {
+        var inCart = cartGet().some(function (a) { return covers(a, k); });
+        return '<button type="button" ' + (inCart ? 'onclick="wyOpenCart()"' : 'data-add="' + k + '"') + ' class="text-left p-2.5 rounded-xl border ' + (inCart ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white hover:border-emerald-500') + '">' +
+          '<div class="text-[11px] font-black text-slate-900">' + esc(packKind(k)) + ' <span class="text-emerald-700">' + rupee(priceOf(k)) + '</span></div>' +
+          '<div class="text-[10px] font-bold text-slate-500 leading-tight">' + (inCart ? '🛒 ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ' : esc(packTitle(k))) + '</div></button>';
+      }).join('');
+  }
+  function updateLockBanner() {
+    var host = $('cfg-subject'); if (!host) return;
+    var b = $('wy-lock-banner');
+    if (!isMember()) { if (b) b.remove(); return; }
+    if (!b) {
+      b = document.createElement('div'); b.id = 'wy-lock-banner'; b.className = 'no-print';
+      var anchor = host.closest('.grid') || host.parentNode;
+      anchor.parentNode.insertBefore(b, anchor.nextSibling);
+    }
+    var it = currentItem();
+    if (!it) { b.innerHTML = ''; return; }
+    if (ownsItem(it)) {
+      b.innerHTML = '<div class="mt-3 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-extrabold text-emerald-800">✅ ' + esc(itemTitle(it)) + ' — ನಿಮ್ಮ ಪ್ಯಾಕ್‌ನಲ್ಲಿದೆ' + (itemExpiry(it) ? ' (' + dmy(itemExpiry(it)) + ' ವರೆಗೆ)' : '') + '</div>';
+      return;
+    }
+    var pend = pendingItem(it);
+    b.innerHTML = '<div class="mt-3 p-3 rounded-2xl bg-slate-900 text-white space-y-2.5">' +
+      '<div class="flex items-start gap-2"><span class="text-xl">🔒</span><div><div class="text-xs font-black">' + esc(itemTitle(it)) + ' — ಇನ್ನೂ ಖರೀದಿಸಿಲ್ಲ</div>' +
+      '<div class="text-[11px] font-bold text-slate-300">' + (pend ? '⏳ ನಿಮ್ಮ ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ. ತೆರೆದ ತಕ್ಷಣ ಇಲ್ಲಿ ✅ ಆಗುತ್ತದೆ.' :
+        (trialLeft() ? '🎁 ' + trialLeft() + ' ಉಚಿತ ಪ್ರಯೋಗ ಬಾಕಿ — "ರಚಿಸಿ" ಒತ್ತಿದರೆ SAMPLE ಗುರುತಿನೊಂದಿಗೆ ಪತ್ರಿಕೆ ಬರುತ್ತದೆ.' : 'ಉಚಿತ ಪ್ರಯೋಗ ಮುಗಿದಿದೆ. ಕೆಳಗಿನ ಯಾವುದಾದರೂ ಪ್ಯಾಕ್ ಆಯ್ಕೆ ಮಾಡಿ.')) + '</div></div></div>' +
+      (available(it) ? '' : '<div class="text-[11px] font-bold text-amber-300">ಈ ವಿಷಯದ ಪ್ರಶ್ನೆಗಳು ಇನ್ನೂ ಸೇರ್ಪಡೆಯಾಗುತ್ತಿವೆ.</div>') +
+      '<div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">' + lockOptions(it) + '</div>' +
+      '<button type="button" onclick="wyOpenCart()" class="w-full py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black">🛒 ಕಾರ್ಟ್ ನೋಡಿ (<span class="wy-cart-n"></span>)</button></div>';
+    renderCartBadges();
+  }
+  window.wyUpdateLockBanner = updateLockBanner;
+  document.addEventListener('change', function (e) { if (e.target && /^cfg-(class|medium|subject)$/.test(e.target.id)) setTimeout(updateLockBanner, 200); }, true);
+
+  // SAMPLE ಗುರುತು (ಪ್ರಯೋಗ ಪತ್ರಿಕೆ)
+  (function () {
+    var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='420' height='300'><text x='50%' y='50%' text-anchor='middle' dominant-baseline='middle' transform='rotate(-30 210 150)' font-family='Arial' font-size='44' font-weight='900' fill='rgba(220,38,38,0.16)'>SAMPLE · With You QP</text></svg>";
+    var st = document.createElement('style');
+    st.textContent = 'body.wy-trial [id^="rendered-"]{position:relative}' +
+      'body.wy-trial [id^="rendered-"]::before{content:"";position:absolute;inset:0;z-index:60;pointer-events:none;background:url("data:image/svg+xml;utf8,' + encodeURIComponent(svg) + '") repeat;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      'body.wy-trial #wy-trial-note{display:block}#wy-trial-note{display:none}';
+    document.head.appendChild(st);
+  })();
+
+  // ಪತ್ರಿಕೆ ರಚನೆ: ಖರೀದಿ / ಉಚಿತ ಪ್ರಯೋಗ ಪರಿಶೀಲನೆ
+  var prevGen = window.generateExamPackageFromBank;
+  if (typeof prevGen === 'function') {
+    window.generateExamPackageFromBank = function () {
+      var self = this, args = arguments;
+      if (!isMember() || isAdmin()) { document.body.classList.remove('wy-trial'); return prevGen.apply(self, args); }
+      var it = currentItem();
+      if (!it || ownsItem(it)) { document.body.classList.remove('wy-trial'); return prevGen.apply(self, args); }
+      if (!trialLeft()) {
+        updateLockBanner();
+        var b = $('wy-lock-banner'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        toast('🔒 ಈ ವಿಷಯ ನಿಮ್ಮ ಪ್ಯಾಕ್‌ನಲ್ಲಿ ಇಲ್ಲ. ಪ್ಯಾಕ್ ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಿ.', true);
+        return;
+      }
+      if (!confirm('🎁 ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ (' + trialLeft() + ' ಬಾಕಿ)\n\n' + itemTitle(it) + ' ಇನ್ನೂ ಖರೀದಿಸಿಲ್ಲ. ಪತ್ರಿಕೆಯ ಮೇಲೆ "SAMPLE" ಗುರುತು ಇರುತ್ತದೆ.\nಮುಂದುವರಿಯಲೇ?')) return;
+      var a = authInfo();
+      (async function () {
+        try { await db('PUT', '/members/' + a.mobile + '/trial', (+MEM.trial || 0) + 1); MEM.trial = (+MEM.trial || 0) + 1; }
+        catch (e) { toast('ಉಚಿತ ಪ್ರಯೋಗ ಎಣಿಕೆ ಉಳಿಸಲು ಆಗಲಿಲ್ಲ: ' + errMsg(e), true); return; }
+        document.body.classList.add('wy-trial');
+        prevGen.apply(self, args);
+        toast('🎁 ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ — ' + trialLeft() + ' ಬಾಕಿ');
+        updateLockBanner();
+      })();
+    };
+    try { generateExamPackageFromBank = window.generateExamPackageFromBank; } catch (e) {}
+  }
+
+  // =====================================================================
+  // 🏠 ಮುಖಪುಟ, ಮೇಲಿನ ಪಟ್ಟಿ, Logout, ಹಳೆಯ ನೋಂದಣಿ ದಾರಿಗಳು
+  // =====================================================================
+  var prevDash = window.renderUltraModernDashboard;
+  window.renderUltraModernDashboard = function () {
+    if (isMember() && renderMemberDashboard()) return;
+    var r = (typeof prevDash === 'function') ? prevDash.apply(this, arguments) : undefined;
+    try {
+      var s = lsGet('wy_active_session', null);
+      if (s && s.isLoggedIn) return r;            // ಹಳೆಯ Key ಬಳಕೆದಾರರು: ಮೊದಲಿನಂತೆಯೇ
+      var anyOld = document.querySelector('#view-dashboard [onclick*="openTeacherAuthModal(\'login\')"]');
+      var box = anyOld && anyOld.parentNode;
+      if (box && !$('wy-hero-member')) {
+        box.innerHTML = '<div id="wy-hero-member" class="w-full flex flex-col items-center gap-3">' +
+          '<div class="flex flex-wrap items-center justify-center gap-3">' +
+          '<button type="button" onclick="wyOpenMemberAuth(\'register\')" class="px-7 py-4 rounded-2xl font-black text-sm text-white bg-gradient-to-r from-emerald-500 to-teal-500 shadow-xl hover:scale-105 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-lg"></i> ಹೊಸ ನೋಂದಣಿ (ಉಚಿತ)</button>' +
+          '<button type="button" onclick="wyOpenMemberAuth(\'login\')" class="px-7 py-4 rounded-2xl font-black text-sm text-slate-950 bg-white shadow-xl hover:scale-105 transition flex items-center gap-2"><i class="fa-solid fa-right-to-bracket text-lg"></i> ಲಾಗಿನ್</button></div>' +
+          '<p class="text-[11px] sm:text-xs font-bold text-emerald-200">🎁 ನೋಂದಣಿಯಾದ ತಕ್ಷಣ ' + PRICES.trial + ' ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ · ವಿಷಯ ಪ್ಯಾಕ್ ' + rupee(PRICES.sub) + ' ರಿಂದ · ಶಾಲಾ ಪ್ಯಾಕ್ ' + rupee(PRICES.sch) + '</p>' +
+          '<p class="text-[11px] font-bold text-slate-400">ಹಳೆಯ Secret Key ಇರುವವರು: <button type="button" onclick="openTeacherAuthModal(\'login\')" class="underline text-slate-200">ಶಿಕ್ಷಕರು</button> · <button type="button" onclick="openSchoolAuthModal(\'login\')" class="underline text-slate-200">ಶಾಲೆ</button> · <button type="button" onclick="openCompetitiveAuthModal(\'login\')" class="underline text-slate-200">NMMS / ಮೊರಾರ್ಜಿ</button></p></div>';
+      }
+    } catch (e) {}
+    return r;
+  };
+  try { renderUltraModernDashboard = window.renderUltraModernDashboard; } catch (e) {}
+
+  // ಹಳೆಯ "ಹೊಸ ನೋಂದಣಿ" (Key ಕೋರಿಕೆ) ಬದಲು ಹೊಸ ಸ್ವಯಂ ನೋಂದಣಿ
+  ['openTeacherAuthModal', 'openSchoolAuthModal', 'openCompetitiveAuthModal'].forEach(function (fn) {
+    var prev = window[fn]; if (typeof prev !== 'function') return;
+    window[fn] = function (view) {
+      if (view === 'signup' && !isAdmin() && !window.WY_ALLOW_OLD_SIGNUP) { try { closeAuthModal(); } catch (e) {} return openMemberAuth('register'); }
+      return prev.apply(this, arguments);
+    };
+  });
+  try { openTeacherAuthModal = window.openTeacherAuthModal; openSchoolAuthModal = window.openSchoolAuthModal; openCompetitiveAuthModal = window.openCompetitiveAuthModal; } catch (e) {}
+  // ಹಳೆಯ ಲಾಗಿನ್ ಮೋಡಲ್‌ಗಳ "ಹೊಸ ನೋಂದಣಿ" ಟ್ಯಾಬ್ ಒತ್ತಿದರೂ ಹೊಸ ನೋಂದಣಿಗೆ
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('#auth-modal-wrapper button');
+    if (!b || isAdmin() || window.WY_ALLOW_OLD_SIGNUP) return;
+    var oc = b.getAttribute('onclick') || '';
+    if (/signup/i.test(oc) && /switch|Tab|View|open/i.test(oc) && !/Submit/.test(oc)) {
+      e.preventDefault(); e.stopPropagation();
+      try { closeAuthModal(); } catch (x) {}
+      openMemberAuth('register');
+    }
+  }, true);
+
+  var prevBar = window.renderTopUserProfileBar;
+  window.renderTopUserProfileBar = function () {
+    var r = (typeof prevBar === 'function') ? prevBar.apply(this, arguments) : undefined;
+    try {
+      if (!isMember()) return r;
+      var c = $('wy-user-profile-header'); if (!c) return r;
+      var p = MEM.profile || lsGet('wy_active_session', {});
+      c.className = 'w-full mb-4 animate-fade-in no-print';
+      c.innerHTML = '<div class="bg-gradient-to-r from-emerald-900 via-slate-900 to-teal-950 text-white p-3 rounded-2xl shadow-lg flex flex-wrap items-center justify-between gap-2 border border-slate-700">' +
+        '<div class="flex items-center gap-3 min-w-0"><div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center font-black text-lg shrink-0"><i class="fa-solid ' + (p.role === 'school' ? 'fa-school' : 'fa-chalkboard-user') + '"></i></div>' +
+        '<div class="min-w-0"><div class="text-xs sm:text-sm font-black truncate">' + esc(p.name || '') + '</div><p class="text-[11px] text-slate-300 font-bold truncate">🏫 ' + esc(p.school || '') + '</p></div></div>' +
+        '<div class="flex items-center gap-1.5"><button type="button" onclick="navigateToSection(\'dashboard\')" class="px-3 py-1.5 bg-white/10 border border-white/20 rounded-xl text-xs font-black">📊 ನನ್ನ ಪ್ಯಾಕ್</button>' +
+        '<button type="button" onclick="wyOpenCart()" class="relative px-3 py-1.5 bg-white text-slate-900 rounded-xl text-xs font-black">🛒<span class="wy-cart-n absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center"></span></button>' +
+        '<button type="button" onclick="logoutAnyUser()" class="px-3 py-1.5 bg-rose-600 rounded-xl text-xs font-black"><i class="fa-solid fa-power-off"></i></button></div></div>';
+      renderCartBadges();
+    } catch (e) {}
+    return r;
+  };
+  try { renderTopUserProfileBar = window.renderTopUserProfileBar; } catch (e) {}
+
+  var prevLogout = window.logoutAnyUser;
+  window.logoutAnyUser = function () {
+    var wasMember = isMember();
+    lsSet(AUTH_KEY, null); MEM = { profile: null, packs: {}, trial: 0, orders: [], loaded: false };
+    document.body.classList.remove('wy-trial');
+    var r = (typeof prevLogout === 'function') ? prevLogout.apply(this, arguments) : undefined;
+    if (wasMember) { try { localStorage.removeItem('wy_active_session'); } catch (e) {} setTimeout(function () { try { navigateToSection('dashboard'); renderTopUserProfileBar(); updateLockBanner(); } catch (e) {} }, 50); }
+    return r;
+  };
+  window.logoutAdmin = window.logoutAnyUser;
+  try { logoutAnyUser = window.logoutAnyUser; logoutAdmin = window.logoutAnyUser; } catch (e) {}
+
+  function refreshViews() {
+    try { if (isMember() && !$('view-dashboard').classList.contains('hidden')) renderMemberDashboard(); } catch (e) {}
+    try { renderTopUserProfileBar(); } catch (e) {}
+    updateLockBanner(); renderCartBadges();
+  }
+  window.wyRefreshStoreViews = refreshViews;
+
+  // ---------- ಆರಂಭ ----------
+  (async function init() {
+    refreshBank(false).then(function () { if (isMember()) refreshViews(); });
+    try { var pr = await (await fetch(FB + '/config/prices.json')).json(); if (pr) Object.keys(PRICES).forEach(function (k) { if (pr[k] != null && pr[k] !== '') PRICES[k] = +pr[k]; }); } catch (e) {}
+    if (!authInfo()) {
+      var s = lsGet('wy_active_session', null);
+      if (s && s.member) { localStorage.removeItem('wy_active_session'); try { renderTopUserProfileBar(); navigateToSection('dashboard'); } catch (e) {} }
+      return;
+    }
+    try { await loadMember(); } catch (e) {
+      if (String(e.message) === 'SESSION_EXPIRED') { window.logoutAnyUser(); toast(ERR.SESSION_EXPIRED, true); }
+      return;
+    }
+    if (!MEM.profile) { openMemberAuth('profile'); return; }
+    startSession();
+    try { if (!$('view-dashboard').classList.contains('hidden')) renderMemberDashboard(); } catch (e) {}
+    refreshViews();
+  })();
+
+  // =====================================================================
+  // 👑 Admin: ಆರ್ಡರ್‌ಗಳು, ಸದಸ್ಯರು, ದರಗಳು
+  // =====================================================================
+  var ADM = { members: {}, orders: [], q: '', ostat: 'pending' };
+  async function adminGet(path) { var r = await fetch(FB + path + '.json?t=' + Date.now()); if (!r.ok) throw new Error('DB ' + r.status); return r.json(); }
+  async function adminSend(method, path, val) {
+    var r = await fetch(FB + path + '.json', { method: method, headers: { 'Content-Type': 'application/json' }, body: val === undefined ? undefined : JSON.stringify(val) });
+    if (!r.ok) throw new Error('DB ' + r.status); return r.json();
+  }
+  async function adminLoad() {
+    var mem = await adminGet('/members'), ord = await adminGet('/orders');
+    ADM.members = mem || {};
+    ADM.orders = [];
+    Object.keys(ord || {}).forEach(function (m) { Object.keys(ord[m] || {}).forEach(function (id) { ADM.orders.push(Object.assign({ id: id, mob: m }, ord[m][id])); }); });
+    ADM.orders.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
+    try { var pr = await adminGet('/config/prices'); if (pr) Object.keys(PRICES).forEach(function (k) { if (pr[k] != null && pr[k] !== '') PRICES[k] = +pr[k]; }); } catch (e) {}
+  }
+  var TABS = [['orders', 'fa-cart-shopping text-emerald-600', 'ಆರ್ಡರ್'], ['members', 'fa-users text-indigo-600', 'ಹೊಸ ಸದಸ್ಯರು'], ['prices', 'fa-indian-rupee-sign text-amber-600', 'ದರಗಳು']];
+  var prevAdmOpen = window.openAdminDashboardModal;
+  window.openAdminDashboardModal = async function (activeTab) {
+    var r = (typeof prevAdmOpen === 'function') ? await prevAdmOpen.apply(this, arguments) : undefined;
+    var notice = $('adm-tab-notice');
+    if (!notice || $('adm-tab-orders')) return r;
+    TABS.forEach(function (t) {
+      var btn = document.createElement('button');
+      btn.id = 'adm-tab-' + t[0];
+      btn.className = 'flex-1 py-2.5 px-3 rounded-xl transition text-slate-700 hover:bg-white';
+      btn.innerHTML = '<i class="fa-solid ' + t[1] + '"></i> ' + t[2] + (t[0] === 'orders' ? ' <span id="wy-adm-pend" class="ml-1 px-1.5 rounded-md bg-rose-600 text-white text-[10px]" style="display:none"></span>' : '');
+      btn.onclick = function () { window.switchAdminTab(t[0]); };
+      notice.parentNode.insertBefore(btn, notice);
+      var view = document.createElement('div'); view.id = 'adm-view-' + t[0]; view.className = 'space-y-4'; view.style.display = 'none';
+      var nv = $('adm-view-notice'); if (nv) nv.parentNode.insertBefore(view, nv);
+    });
+    adminLoad().then(function () { var n = ADM.orders.filter(function (o) { return o.status === 'pending'; }).length, b = $('wy-adm-pend'); if (b) { b.textContent = n; b.style.display = n ? '' : 'none'; } }).catch(function () {});
+    if (TABS.some(function (t) { return t[0] === activeTab; })) window.switchAdminTab(activeTab);
+    return r;
+  };
+  try { openAdminDashboardModal = window.openAdminDashboardModal; } catch (e) {}
+  var prevAdmSwitch = window.switchAdminTab;
+  window.switchAdminTab = function (tab) {
+    if (typeof prevAdmSwitch === 'function') prevAdmSwitch.call(this, tab);
+    TABS.forEach(function (t) {
+      var b = $('adm-tab-' + t[0]), v = $('adm-view-' + t[0]), on = tab === t[0];
+      if (b) { b.classList.toggle('bg-slate-900', on); b.classList.toggle('text-white', on); b.classList.toggle('shadow', on); }
+      if (v) v.style.display = on ? '' : 'none';
+    });
+    if (tab === 'orders') renderOrders(true);
+    if (tab === 'members') renderMembers(true);
+    if (tab === 'prices') renderPrices();
+  };
+  try { switchAdminTab = window.switchAdminTab; } catch (e) {}
+  function loading(v) { v.innerHTML = '<div class="py-8 text-center text-xs font-bold text-slate-500"><i class="fa-solid fa-spinner fa-spin"></i> ಲೋಡ್ ಆಗುತ್ತಿದೆ...</div>'; }
+  function admErr(v, e) { v.innerHTML = '<div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700">ಲೋಡ್ ಆಗಲಿಲ್ಲ: ' + esc(errMsg(e)) + '<br>Firebase Rules ನಲ್ಲಿ members / orders ಭಾಗ ಸೇರಿಸಿದ್ದೀರಾ?</div>'; }
+
+  async function renderOrders(reload) {
+    var v = $('adm-view-orders'); if (!v) return;
+    if (reload) { loading(v); try { await adminLoad(); } catch (e) { return admErr(v, e); } }
+    var mon = today().slice(0, 7), sum = function (l) { return l.reduce(function (a, o) { return a + (+o.total || 0); }, 0); };
+    var done = ADM.orders.filter(function (o) { return o.status === 'done'; });
+    var list = ADM.orders.filter(function (o) { return ADM.ostat === 'all' || o.status === ADM.ostat; });
+    var cnt = function (s) { return ADM.orders.filter(function (o) { return o.status === s; }).length; };
+    v.innerHTML = '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">' +
+      [[cnt('pending'), 'ಬಾಕಿ ಆರ್ಡರ್', 'text-rose-600'], [rupee(sum(done.filter(function (o) { return String(o.doneAt || o.at).slice(0, 7) === mon; }))), 'ಈ ತಿಂಗಳ ಆದಾಯ', 'text-emerald-600'], [rupee(sum(done)), 'ಒಟ್ಟು ಆದಾಯ', 'text-indigo-600'], [Object.keys(ADM.members).length, 'ಹೊಸ ಸದಸ್ಯರು', 'text-amber-600']]
+        .map(function (x) { return '<div class="p-3 bg-white border rounded-2xl"><div class="text-xl font-black ' + x[2] + '">' + x[0] + '</div><div class="text-[11px] font-bold text-slate-500">' + x[1] + '</div></div>'; }).join('') + '</div>' +
+      '<div class="flex flex-wrap gap-1.5">' + [['pending', '⏳ ಬಾಕಿ'], ['done', '✅ ತೆರೆದವು'], ['rejected', '❌ ತಿರಸ್ಕೃತ'], ['all', 'ಎಲ್ಲಾ']].map(function (x) {
+        return '<button type="button" data-ost="' + x[0] + '" class="px-3 py-1.5 rounded-xl text-xs font-black ' + (ADM.ostat === x[0] ? 'bg-slate-900 text-white' : 'bg-white border text-slate-600') + '">' + x[1] + ' (' + (x[0] === 'all' ? ADM.orders.length : cnt(x[0])) + ')</button>';
+      }).join('') + '<button type="button" data-ost-reload="1" class="ml-auto px-3 py-1.5 rounded-xl text-xs font-black bg-white border">🔄</button></div>' +
+      (list.length ? list.map(function (o) {
+        var prof = (ADM.members[o.mob] || {}).profile || {};
+        return '<div class="p-4 bg-white border rounded-2xl space-y-2' + (o.status === 'pending' ? ' border-amber-300 shadow-sm' : '') + '">' +
+          '<div class="flex flex-wrap items-start justify-between gap-2"><div><div class="text-sm font-black text-slate-900">' + esc(o.name || prof.name) + ' <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100">' + (o.role === 'school' ? '🏫 ಶಾಲೆ' : '👩‍🏫 ಶಿಕ್ಷಕರು') + '</span></div>' +
+          '<div class="text-[11px] font-bold text-slate-500">🏫 ' + esc(o.school || prof.school) + ' · 📱 <a class="underline" href="https://wa.me/91' + esc(o.mob) + '" target="_blank" rel="noopener">' + esc(o.mob) + '</a></div>' +
+          '<div class="text-[10px] font-bold text-slate-400">#' + esc(String(o.id).slice(-6).toUpperCase()) + ' · ' + esc(String(o.at).slice(0, 16).replace('T', ' ')) + '</div></div>' +
+          '<div class="text-right"><div class="text-lg font-black text-emerald-700">' + rupee(o.total) + '</div><div class="text-[11px] font-black ' + (o.utr ? 'text-slate-700' : 'text-slate-400') + '">UTR: ' + esc(o.utr || '—') + '</div></div></div>' +
+          '<ul class="text-xs font-bold text-slate-700 list-disc pl-5">' + (o.items || []).map(function (k) { return '<li>' + esc(packLabel(k)) + '</li>'; }).join('') + '</ul>' +
+          (o.status === 'pending' ? '<div class="flex flex-wrap items-center gap-2 pt-1"><label class="text-[11px] font-bold text-slate-500">ಮಾನ್ಯತೆ: <input type="date" data-exp="' + esc(o.mob + '/' + o.id) + '" value="' + yearEnd(o.at) + '" class="px-2 py-1 border rounded-lg text-xs font-bold"></label>' +
+            '<button type="button" data-approve="' + esc(o.mob + '/' + o.id) + '" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">✅ ಹಣ ಬಂದಿದೆ — ತೆರೆಯಿರಿ</button>' +
+            '<button type="button" data-reject="' + esc(o.mob + '/' + o.id) + '" class="px-3 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-black">❌ ತಿರಸ್ಕರಿಸಿ</button></div>'
+            : '<div class="text-[11px] font-black ' + (o.status === 'done' ? 'text-emerald-700' : 'text-rose-600') + '">' + (o.status === 'done' ? '✅ ತೆರೆಯಲಾಗಿದೆ' + (o.expiry ? ' · ' + dmy(o.expiry) + ' ವರೆಗೆ' : '') : '❌ ತಿರಸ್ಕರಿಸಲಾಗಿದೆ') + '</div>') +
+          '</div>';
+      }).join('') : '<div class="p-8 text-center bg-slate-50 border rounded-2xl text-slate-500 font-bold text-xs">ಈ ವಿಭಾಗದಲ್ಲಿ ಆರ್ಡರ್‌ಗಳಿಲ್ಲ.</div>');
+  }
+  async function renderMembers(reload) {
+    var v = $('adm-view-members'); if (!v) return;
+    if (reload) { loading(v); try { await adminLoad(); } catch (e) { return admErr(v, e); } }
+    var q = ADM.q.toLowerCase(), t = today();
+    var mobs = Object.keys(ADM.members).filter(function (m) {
+      var p = ADM.members[m].profile || {};
+      return !q || [m, p.name, p.school, p.schoolEn, p.place, p.dise].join(' ').toLowerCase().indexOf(q) !== -1;
+    }).sort(function (a, b) { return String((ADM.members[b].profile || {}).at).localeCompare(String((ADM.members[a].profile || {}).at)); });
+    v.innerHTML = '<div class="flex flex-wrap gap-2 items-center"><input id="wy-mem-q" value="' + esc(ADM.q) + '" placeholder="🔎 ಹೆಸರು / ಮೊಬೈಲ್ / ಶಾಲೆ ಹುಡುಕಿ" class="flex-1 min-w-[200px] px-3 py-2 border rounded-xl text-xs font-bold">' +
+      '<span class="text-xs font-black text-slate-500">' + mobs.length + ' ಸದಸ್ಯರು</span></div>' +
+      '<p class="text-[11px] font-bold text-slate-500">ಪಾಸ್‌ವರ್ಡ್ ಮರೆತರೆ: Firebase Console → Authentication ನಲ್ಲಿ ' + esc('ಮೊಬೈಲ್@' + DOMAIN) + ' ಖಾತೆ Delete ಮಾಡಿ; ಅವರು ಮತ್ತೆ ನೋಂದಣಿ ಮಾಡಿದರೆ ಹಳೆಯ ಪ್ಯಾಕ್‌ಗಳು ಹಾಗೆಯೇ ಇರುತ್ತವೆ.</p>' +
+      (mobs.length ? mobs.map(function (m) {
+        var rec = ADM.members[m], p = rec.profile || {}, packs = rec.packs || {};
+        return '<div class="p-4 bg-white border rounded-2xl space-y-2"><div class="flex flex-wrap items-start justify-between gap-2"><div><div class="text-sm font-black text-slate-900">' + esc(p.name || '—') + ' <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100">' + (p.role === 'school' ? '🏫 ಶಾಲೆ' : '👩‍🏫 ಶಿಕ್ಷಕರು') + '</span></div>' +
+          '<div class="text-[11px] font-bold text-slate-500">📱 ' + esc(m) + (p.dise ? ' · DISE ' + esc(p.dise) : '') + (p.place ? ' · ' + esc(p.place) : '') + '</div>' +
+          '<div class="text-[11px] font-bold text-slate-600">🏫 ' + esc(p.school) + (p.schoolEn ? ' · ' + esc(p.schoolEn) : '') + '</div></div>' +
+          '<div class="text-[11px] font-bold text-slate-500 text-right">ಉಚಿತ ಪ್ರಯೋಗ ಬಳಸಿದ್ದು: ' + (+rec.trial || 0) + '/' + PRICES.trial + '<br><button type="button" data-mtrial="' + m + '" class="underline">ಮರುಹೊಂದಿಸಿ</button> · <button type="button" data-medit="' + m + '" class="underline">ಶಾಲೆ ಹೆಸರು ಬದಲಿಸಿ</button></div></div>' +
+          '<div class="flex flex-wrap gap-1.5">' + (Object.keys(packs).length ? Object.keys(packs).map(function (k) {
+            var live = String(packs[k]) >= t;
+            return '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black ' + (live ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-slate-100 text-slate-400 line-through') + '">' + esc(packLabel(k)) + ' · ' + dmy(packs[k]) +
+              ' <button type="button" data-mrev="' + esc(m + '|' + k) + '" class="text-rose-600">✕</button></span>';
+          }).join('') : '<span class="text-[11px] font-bold text-slate-400">ಯಾವ ಪ್ಯಾಕ್ ಇಲ್ಲ</span>') + '</div>' +
+          '<button type="button" data-mgrant="' + m + '" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[11px] font-black">+ ಪ್ಯಾಕ್ ಕೊಡಿ</button><div id="wy-grant-' + m + '"></div></div>';
+      }).join('') : '<div class="p-8 text-center bg-slate-50 border rounded-2xl text-slate-500 font-bold text-xs">ಇನ್ನೂ ಹೊಸ ನೋಂದಣಿ ಇಲ್ಲ.</div>');
+    var qi = $('wy-mem-q'); if (qi) qi.oninput = function () { ADM.q = qi.value; var pos = qi.selectionStart; renderMembers(false); var n = $('wy-mem-q'); n.focus(); n.setSelectionRange(pos, pos); };
+  }
+  function grantForm(m) {
+    var box = $('wy-grant-' + m); if (!box) return;
+    var types = [['sub', 'ವಿಷಯ ಪ್ಯಾಕ್'], ['st', 'ವಿಷಯ ಶಿಕ್ಷಕ'], ['cls', 'ತರಗತಿ'], ['stg', 'ಹಂತ'], ['sch', 'ಶಾಲಾ'], ['all', 'ಸಂಪೂರ್ಣ'], ['nmms', 'NMMS'], ['ent', 'ಪ್ರವೇಶ'], ['cmp', 'ಸ್ಪರ್ಧಾ ಕಾಂಬೋ']];
+    var S = 'px-2 py-1.5 border rounded-lg text-xs font-bold';
+    box.innerHTML = '<div class="mt-2 p-3 rounded-2xl bg-slate-50 border grid grid-cols-2 sm:grid-cols-4 gap-1.5">' +
+      '<select data-g="t" class="' + S + '">' + types.map(function (x) { return '<option value="' + x[0] + '">' + x[1] + '</option>'; }).join('') + '</select>' +
+      '<select data-g="m" class="' + S + '"><option value="kn">ಕನ್ನಡ</option><option value="en">English</option><option value="bi">ದ್ವಿಭಾಷಾ</option></select>' +
+      '<select data-g="c" class="' + S + '">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (c) { return '<option value="' + c + '">' + c + 'ನೇ</option>'; }).join('') + '</select>' +
+      '<select data-g="g" class="' + S + '">' + Object.keys(STAGES).map(function (g) { return '<option value="' + g + '">' + STAGES[g].n + '</option>'; }).join('') + '</select>' +
+      '<select data-g="s" class="' + S + '">' + Object.keys(SUBJ).map(function (s) { return '<option value="' + s + '">' + SUBJ[s] + '</option>'; }).join('') + '</select>' +
+      '<select data-g="n" class="' + S + '"><option value="">GMAT + SAT</option><option value="gmat">GMAT</option><option value="sat">SAT</option></select>' +
+      '<select data-g="e" class="' + S + '">' + exams().map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(e.name) + '</option>'; }).join('') + '</select>' +
+      '<input data-g="x" type="date" value="' + yearEnd() + '" class="' + S + '">' +
+      '<div class="col-span-2 sm:col-span-4 flex items-center justify-between gap-2"><span data-g="preview" class="text-[11px] font-black text-slate-700"></span><button type="button" data-g="go" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-black">✅ ಕೊಡಿ</button></div></div>';
+    function val(n) { return box.querySelector('[data-g="' + n + '"]').value; }
+    function key() {
+      var t = val('t'), md = val('m');
+      if (t === 'sub') return 'sub:' + md + ':' + val('c') + ':' + val('s');
+      if (t === 'st') return 'st:' + md + ':' + val('g') + ':' + val('s');
+      if (t === 'cls') return 'cls:' + md + ':' + val('c');
+      if (t === 'stg') return 'stg:' + md + ':' + val('g');
+      if (t === 'sch' || t === 'all') return t + ':' + (md === 'bi' ? 'kn' : md);
+      if (t === 'nmms') return val('n') ? 'nmms:' + val('n') : 'nmms';
+      if (t === 'ent') return 'ent:' + val('e');
+      return t;
+    }
+    function upd() { var k = key(); box.querySelector('[data-g="preview"]').textContent = itemsOf(k).length ? '→ ' + packLabel(k) : '⚠️ ಈ ಸಂಯೋಜನೆ ಸರಿಯಿಲ್ಲ'; }
+    box.addEventListener('change', upd); upd();
+    box.querySelector('[data-g="go"]').onclick = async function () {
+      var k = key(); if (!itemsOf(k).length) return toast('ಸಂಯೋಜನೆ ಸರಿಯಿಲ್ಲ', true);
+      var body = {}; body[k] = val('x');
+      try { await adminSend('PATCH', '/members/' + m + '/packs', body); toast('✅ ' + packLabel(k) + ' ಕೊಡಲಾಗಿದೆ'); renderMembers(true); } catch (e) { toast(errMsg(e), true); }
+    };
+  }
+  async function decideOrder(ref, ok) {
+    var mob = ref.split('/')[0], id = ref.split('/')[1];
+    var o = ADM.orders.filter(function (x) { return x.mob === mob && x.id === id; })[0]; if (!o) return;
+    try {
+      if (ok) {
+        var inp = document.querySelector('[data-exp="' + ref + '"]'), exp = (inp && inp.value) || yearEnd(o.at);
+        var body = {}; (o.items || []).forEach(function (k) { body[k] = exp; });
+        await adminSend('PATCH', '/members/' + mob + '/packs', body);
+        await adminSend('PATCH', '/orders/' + mob + '/' + id, { status: 'done', doneAt: new Date().toISOString(), expiry: exp });
+        toast('✅ ' + (o.name || mob) + ' ಅವರ ಪ್ಯಾಕ್ ತೆರೆಯಲಾಗಿದೆ');
+        if (confirm('ಅವರಿಗೆ WhatsApp ನಲ್ಲಿ ತಿಳಿಸಲೇ?')) window.open('https://wa.me/91' + mob + '?text=' + encodeURIComponent('ನಮಸ್ಕಾರ ' + (o.name || '') + ', ನಿಮ್ಮ With You QP ಆರ್ಡರ್ #' + id.slice(-6).toUpperCase() + ' ತೆರೆಯಲಾಗಿದೆ ✅\n' + (o.items || []).map(function (k) { return '• ' + packLabel(k); }).join('\n') + '\n' + dmy(exp) + ' ವರೆಗೆ ಮಾನ್ಯ.\nಲಾಗಿನ್ ಆಗಿ Dashboard ನಲ್ಲಿ "🔄 ನವೀಕರಿಸಿ" ಒತ್ತಿ.'), '_blank');
+      } else {
+        if (!confirm('ಈ ಆರ್ಡರ್ ತಿರಸ್ಕರಿಸಲೇ?')) return;
+        await adminSend('PATCH', '/orders/' + mob + '/' + id, { status: 'rejected', doneAt: new Date().toISOString() });
+      }
+    } catch (e) { return toast(errMsg(e), true); }
+    renderOrders(true);
+  }
+  function renderPrices() {
+    var v = $('adm-view-prices'); if (!v) return;
+    v.innerHTML = '<div class="p-4 bg-white border rounded-2xl space-y-3"><h4 class="font-black text-slate-900">💰 ಪ್ಯಾಕ್ ದರಗಳು <span class="text-[11px] font-bold text-slate-500">(ಒಂದು ಮಾಧ್ಯಮಕ್ಕೆ, ' + dmy(yearEnd()) + ' ವರೆಗೆ)</span></h4>' +
+      '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' + Object.keys(PRICE_LABELS).map(function (k) {
+        return '<label class="flex items-center justify-between gap-2 p-2 bg-slate-50 border rounded-xl"><span class="text-xs font-bold text-slate-700">' + PRICE_LABELS[k] + '</span>' +
+          '<span class="flex items-center gap-1 text-xs font-black">' + (k === 'trial' ? '' : '₹') + '<input type="number" min="0" data-price="' + k + '" value="' + PRICES[k] + '" class="w-20 px-2 py-1 border rounded-lg text-right font-black"></span></label>';
+      }).join('') + '</div><button type="button" id="wy-save-prices" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">💾 ದರ ಉಳಿಸಿ</button></div>';
+    $('wy-save-prices').onclick = async function () {
+      var d = {}; v.querySelectorAll('[data-price]').forEach(function (i) { d[i.dataset.price] = Math.max(0, +i.value || 0); });
+      try { await adminSend('PUT', '/config/prices', d); Object.assign(PRICES, d); toast('✅ ದರಗಳನ್ನು ಉಳಿಸಲಾಗಿದೆ'); } catch (e) { toast(errMsg(e), true); }
+    };
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('[data-ost],[data-ost-reload],[data-approve],[data-reject],[data-mgrant],[data-mrev],[data-mtrial],[data-medit]'); if (!t) return;
+    if (t.dataset.ost) { ADM.ostat = t.dataset.ost; renderOrders(false); }
+    else if (t.dataset.ostReload) renderOrders(true);
+    else if (t.dataset.approve) busy(t, function () { return decideOrder(t.dataset.approve, true); });
+    else if (t.dataset.reject) decideOrder(t.dataset.reject, false);
+    else if (t.dataset.mgrant) grantForm(t.dataset.mgrant);
+    else if (t.dataset.mrev) {
+      var mk = t.dataset.mrev.split('|');
+      if (!confirm(packLabel(mk[1]) + ' — ಈ ಪ್ಯಾಕ್ ತೆಗೆಯಲೇ?')) return;
+      adminSend('DELETE', '/members/' + mk[0] + '/packs/' + mk[1]).then(function () { toast('ತೆಗೆಯಲಾಗಿದೆ'); renderMembers(true); }).catch(function (x) { toast(errMsg(x), true); });
+    } else if (t.dataset.mtrial) {
+      adminSend('PUT', '/members/' + t.dataset.mtrial + '/trial', 0).then(function () { toast('ಉಚಿತ ಪ್ರಯೋಗ ಮರುಹೊಂದಿಸಲಾಗಿದೆ'); renderMembers(true); }).catch(function (x) { toast(errMsg(x), true); });
+    } else if (t.dataset.medit) {
+      var m = t.dataset.medit, p = (ADM.members[m] || {}).profile || {};
+      var kn = prompt('ಶಾಲೆಯ ಹೆಸರು (ಕನ್ನಡ):', p.school || ''); if (kn == null) return;
+      var en = prompt('ಶಾಲೆಯ ಹೆಸರು (English):', p.schoolEn || ''); if (en == null) return;
+      adminSend('PATCH', '/members/' + m + '/profile', { school: kn.trim(), schoolEn: en.trim() }).then(function () { toast('ಉಳಿಸಲಾಗಿದೆ'); renderMembers(true); }).catch(function (x) { toast(errMsg(x), true); });
+    }
+  }, true);
+})();
 </script>
 </body>
 </html>

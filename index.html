@@ -1550,7 +1550,9 @@
         dise: userData.dise || rawMobile,
         allowedSubjects: subjs,
         allowedClasses: classes,
-        validityDate: userData.validityDate || '2030-12-31'
+        validityDate: userData.validityDate || '2030-12-31',
+        allowedMediums: userData.allowedMediums || userData.mediums || null,
+        schoolEn: userData.schoolEn || ''
       };
 
       localStorage.setItem('wy_active_session', JSON.stringify(sessionData));
@@ -1558,6 +1560,7 @@
       if (typeof closeAuthModal === 'function') closeAuthModal();
       applyUserSubjectPermissionsToUI(sessionData);
       renderTopUserProfileBar();
+      try { if (window.wyApplySessionSchoolEn) window.wyApplySessionSchoolEn(true); if (window.wyRefreshMediumAccess) window.wyRefreshMediumAccess(); } catch (e) {}
 
       document.getElementById('view-dashboard')?.classList.add('hidden');
       document.getElementById('view-generator')?.classList.remove('hidden');
@@ -23498,6 +23501,469 @@ function wyStrongKeyPart() {
   try { renderFullExamPaperWithCustomHeader = window.renderFullExamPaperWithCustomHeader; } catch (e) {}
 })();
 
+
+// =========================================================================
+// 🗣️ ನೋಂದಣಿಯಲ್ಲಿ ಮಾಧ್ಯಮ ಆಯ್ಕೆ + ಶಾಲೆಯ ಹೆಸರು (English) — ಆಯ್ಕೆ ಮಾಡಿದ ಮಾಧ್ಯಮ ಮಾತ್ರ ಲಭ್ಯ
+// • ಹೊಸ ನೋಂದಣಿ: ಮಾಧ್ಯಮ (ದ್ವಿಭಾಷಾ / ಕನ್ನಡ / English) ಮತ್ತು ಶಾಲೆಯ English ಹೆಸರು ಕಡ್ಡಾಯ
+// • allowedMediums ಇಲ್ಲದ ಹಳೆಯ ಖಾತೆಗಳು: ಎಲ್ಲಾ ಮಾಧ್ಯಮ ಲಭ್ಯ (Admin Edit ನಲ್ಲಿ ಬದಲಿಸಬಹುದು)
+// =========================================================================
+(function installMediumRegistration() {
+  var BI = 'bilingual_medium', KN = 'kannada_medium', EN = 'english_medium';
+  var MEDIA = [
+    { k: BI, label: 'ದ್ವಿಭಾಷಾ ಮಾಧ್ಯಮ', sub: 'ಕನ್ನಡ + English (1–5ನೇ)', short: 'ದ್ವಿಭಾಷಾ' },
+    { k: KN, label: 'ಕನ್ನಡ ಮಾಧ್ಯಮ', sub: 'Kannada Medium', short: 'ಕನ್ನಡ' },
+    { k: EN, label: 'ಇಂಗ್ಲಿಷ್ ಮಾಧ್ಯಮ', sub: 'English Medium', short: 'English' }
+  ];
+  var VALID = MEDIA.map(function (m) { return m.k; });
+
+  function esc(s) { return (typeof escapeHtml === 'function') ? escapeHtml(s == null ? '' : String(s)) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function normMediums(v) {
+    if (v == null || v === '') return null;
+    var arr = Array.isArray(v) ? v : (typeof v === 'object' ? Object.keys(v).map(function (k) { return v[k]; }) : String(v).split(','));
+    arr = arr.map(function (x) { return String(x || '').trim(); }).filter(function (x, i, a) { return VALID.indexOf(x) !== -1 && a.indexOf(x) === i; });
+    return arr.length ? arr : null;
+  }
+  function userMediums(u) { return u ? normMediums(u.allowedMediums != null ? u.allowedMediums : u.mediums) : null; }
+  function mediumNames(list) {
+    if (!list) return 'ಎಲ್ಲಾ ಮಾಧ್ಯಮ (ನಿರ್ಬಂಧವಿಲ್ಲ)';
+    return list.map(function (k) { var m = MEDIA.filter(function (x) { return x.k === k; })[0]; return m ? m.label : k; }).join(', ');
+  }
+  window.wyMediumNames = mediumNames;
+  function getSession() { try { return JSON.parse(localStorage.getItem('wy_active_session') || 'null'); } catch (e) { return null; } }
+  function suggestEn(kn) { try { return window.wySuggestSchoolEn ? window.wySuggestSchoolEn(kn) : ''; } catch (e) { return ''; } }
+
+  function checkboxesHtml(name, checked, accent) {
+    return '<div class="grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-[11px] font-bold">' + MEDIA.map(function (m) {
+      return '<label class="flex items-start gap-1.5 p-2 bg-slate-50 border rounded-lg hover:border-' + accent + '-500 cursor-pointer">' +
+        '<input type="checkbox" name="' + name + '" value="' + m.k + '"' + (checked && checked.indexOf(m.k) !== -1 ? ' checked' : '') + ' class="mt-0.5 w-3.5 h-3.5 rounded">' +
+        '<span class="leading-tight">' + m.label + '<span class="block text-[10px] font-semibold text-slate-500">' + m.sub + '</span></span></label>';
+    }).join('') + '</div>';
+  }
+  function classBoxesHtml(name, checked, accent, withRanges) {
+    var ranges = [['1–5', 1, 5], ['1–7', 1, 7], ['1–8', 1, 8], ['8–10', 8, 10], ['1–10', 1, 10]];
+    return (withRanges ? '<div class="flex flex-wrap gap-1 mb-1.5">' + ranges.map(function (r) {
+        return '<button type="button" data-wy-range="' + name + ':' + r[1] + ':' + r[2] + '" class="px-2 py-0.5 text-[10px] font-extrabold rounded-md bg-slate-100 border hover:bg-' + accent + '-100">' + r[0] + '</button>';
+      }).join('') + '</div>' : '') +
+      '<div class="grid grid-cols-5 gap-1 text-[11px] font-bold">' + [1,2,3,4,5,6,7,8,9,10].map(function (c) {
+        return '<label class="flex items-center gap-1 p-1.5 bg-slate-50 border rounded-lg cursor-pointer"><input type="checkbox" name="' + name + '" value="' + c + '"' +
+          (checked && checked.indexOf(String(c)) !== -1 ? ' checked' : '') + ' class="w-3.5 h-3.5 rounded">' + c + '</label>';
+      }).join('') + '</div>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('[data-wy-range]'); if (!b) return;
+    var p = b.getAttribute('data-wy-range').split(':'), lo = +p[1], hi = +p[2];
+    document.querySelectorAll('input[name="' + p[0] + '"]').forEach(function (c) { c.checked = (+c.value >= lo && +c.value <= hi); });
+  }, true);
+  function numList(v) {
+    if (v == null) return [];
+    var arr = Array.isArray(v) ? v : String(v).split(',');
+    return arr.map(function (x) { return String(x).replace(/\D/g, ''); }).filter(function (x, i, a) { return x && +x >= 1 && +x <= 10 && a.indexOf(x) === i; });
+  }
+  function biOnlyBad(mediums, classes) {
+    return mediums.length === 1 && mediums[0] === BI && classes.some(function (c) { return +c > 5; });
+  }
+  var BI_ONLY_MSG = '⚠️ ದ್ವಿಭಾಷಾ ಮಾಧ್ಯಮದ ಪತ್ರಿಕೆಗಳು 1 ರಿಂದ 5ನೇ ತರಗತಿಗೆ ಮಾತ್ರ.\n6ನೇ ತರಗತಿ ಮತ್ತು ಮೇಲಿನ ತರಗತಿಗಳಿದ್ದರೆ ಕನ್ನಡ ಅಥವಾ English ಮಾಧ್ಯಮವನ್ನೂ ಆಯ್ಕೆ ಮಾಡಿ.';
+  function checkedVals(name) { return Array.from(document.querySelectorAll('input[name="' + name + '"]:checked')).map(function (c) { return c.value; }); }
+
+  // ---------- ೧. ನೋಂದಣಿ ಫಾರ್ಮ್‌ಗಳಿಗೆ ಹೊಸ ಕ್ಷೇತ್ರಗಳು ----------
+  var FORMS = [
+    { p: 't', schoolId: 't-reg-school', accent: 'emerald' },
+    { p: 's', schoolId: 's-reg-name', accent: 'indigo' }
+  ];
+  function injectSignupFields() {
+    FORMS.forEach(function (f) {
+      var kn = document.getElementById(f.schoolId);
+      if (!kn || document.getElementById(f.p + '-reg-school-en')) return;
+      var host = kn.parentNode;
+      var box = document.createElement('div');
+      box.className = 'space-y-3';
+      box.innerHTML =
+        '<div><label class="block text-xs font-bold text-slate-700 mb-1">ಶಾಲೆಯ ಹೆಸರು (English ನಲ್ಲಿ)</label>' +
+        '<input type="text" id="' + f.p + '-reg-school-en" placeholder="e.g. Govt Higher Primary School, Dharwad" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold" /></div>' +
+        '<div id="' + f.p + '-reg-medium-box"><label class="block text-xs font-bold text-slate-700 mb-1">ಬೋಧನಾ ಮಾಧ್ಯಮ (Medium) <span class="text-[10px] font-semibold text-slate-500">— ಆಯ್ಕೆ ಮಾಡಿದ ಮಾಧ್ಯಮದ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಮಾತ್ರ ಲಭ್ಯ</span></label>' +
+        checkboxesHtml(f.p + '_reg_medium', null, f.accent) + '</div>' +
+        (f.p === 's' ? '<div id="s-reg-class-box"><label class="block text-xs font-bold text-slate-700 mb-1">ಶಾಲೆಯಲ್ಲಿರುವ ತರಗತಿಗಳು <span class="text-[10px] font-semibold text-slate-500">— ಈ ತರಗತಿಗಳ ಪತ್ರಿಕೆಗಳು ಮಾತ್ರ ಲಭ್ಯ</span></label>' +
+          classBoxesHtml('s_reg_class', null, f.accent, true) + '</div>' : '');
+      host.parentNode.insertBefore(box, host.nextSibling);
+      var en = document.getElementById(f.p + '-reg-school-en');
+      en.addEventListener('input', function () { en.dataset.touched = '1'; });
+      kn.addEventListener('input', function () { if (!en.dataset.touched) en.value = suggestEn(kn.value.trim()); });
+    });
+  }
+  new MutationObserver(injectSignupFields).observe(document.documentElement, { childList: true, subtree: true });
+  injectSignupFields();
+
+  // ---------- ೨. ನೋಂದಣಿ ಸಲ್ಲಿಕೆ: ಪರಿಶೀಲನೆ + ಕೋರಿಕೆಗೆ ಸೇರಿಸುವುದು ----------
+  var pendingReg = null, pendingManual = null;
+  function wrapSignup(fnName, p) {
+    var orig = window[fnName];
+    if (typeof orig !== 'function') return;
+    var wrapped = async function () {
+      var enInp = document.getElementById(p + '-reg-school-en');
+      if (!enInp) return orig.apply(this, arguments);   // ಫಾರ್ಮ್ ಇಲ್ಲದಿದ್ದರೆ ಮೂಲದಂತೆ
+      var mediums = checkedVals(p + '_reg_medium');
+      var schoolEn = enInp.value.trim();
+      if (!mediums.length) return alert('⚠️ ದಯವಿಟ್ಟು ಬೋಧನಾ ಮಾಧ್ಯಮವನ್ನು ಆಯ್ಕೆ ಮಾಡಿ (ದ್ವಿಭಾಷಾ / ಕನ್ನಡ / English).');
+      if (!schoolEn) return alert('⚠️ ದಯವಿಟ್ಟು ಶಾಲೆಯ ಹೆಸರನ್ನು English ನಲ್ಲಿಯೂ ಬರೆಯಿರಿ.');
+      var schoolClasses = null;
+      if (p === 's') {
+        schoolClasses = numList(checkedVals('s_reg_class'));
+        if (!schoolClasses.length) return alert('⚠️ ದಯವಿಟ್ಟು ನಿಮ್ಮ ಶಾಲೆಯಲ್ಲಿರುವ ತರಗತಿಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ (ಉದಾ: 1–5, 1–8, 8–10).');
+        if (biOnlyBad(mediums, schoolClasses)) return alert(BI_ONLY_MSG);
+      } else if (biOnlyBad(mediums, numList(checkedVals('t_reg_class')))) return alert(BI_ONLY_MSG);
+      pendingReg = { mediums: mediums, schoolEn: schoolEn, schoolClasses: schoolClasses };
+      try { return await orig.apply(this, arguments); }
+      finally { pendingReg = null; }
+    };
+    window[fnName] = wrapped;
+  }
+  wrapSignup('handleTeacherSignUpSubmit', 't');
+  wrapSignup('handleSchoolSignUpSubmit', 's');
+  try { handleTeacherSignUpSubmit = window.handleTeacherSignUpSubmit; } catch (e) {}
+  try { handleSchoolSignUpSubmit = window.handleSchoolSignUpSubmit; } catch (e) {}
+
+  var prevFetch = window.fetch;
+  window.fetch = function (input, init) {
+    try {
+      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      var method = String((init && init.method) || 'GET').toUpperCase();
+      if (method === 'PUT' && init && typeof init.body === 'string' && /firebasedatabase\.app\//.test(url)) {
+        var isReq = /\/requests\/[^\/?]+\.json/.test(url), isUser = /\/users\/[^\/?]+\.json/.test(url);
+        if ((isReq && pendingReg) || isUser) {
+          var body = JSON.parse(init.body);
+          if (body && typeof body === 'object') {
+            var changed = false;
+            if (isReq && pendingReg && body.status === 'pending') { body.mediums = pendingReg.mediums; body.schoolEn = pendingReg.schoolEn; if (pendingReg.schoolClasses) body.schoolClasses = pendingReg.schoolClasses; changed = true; }
+            if (isUser) {
+              if (pendingManual) {
+                if (pendingManual.mediums) body.allowedMediums = pendingManual.mediums;
+                if (pendingManual.schoolEn) body.schoolEn = pendingManual.schoolEn;
+                if (pendingManual.classes && pendingManual.classes.length) { body.allowedClasses = pendingManual.classes; if (body.type === 'school') body.schoolClasses = pendingManual.classes; }
+                changed = true;
+              }
+              // ಅನುಮೋದನೆ: ಕೋರಿಕೆಯ mediums → allowedMediums
+              if (body.allowedMediums == null && normMediums(body.mediums)) { body.allowedMediums = normMediums(body.mediums); changed = true; }
+              if (body.mediums != null && body.allowedMediums != null) { delete body.mediums; changed = true; }
+              // ಶಾಲೆಯ ತರಗತಿಗಳು → allowedClasses
+              var sc = numList(body.schoolClasses);
+              if (sc.length && JSON.stringify(body.allowedClasses) !== JSON.stringify(sc)) { body.allowedClasses = sc; changed = true; }
+            }
+            if (changed) init = Object.assign({}, init, { body: JSON.stringify(body) });
+          }
+        }
+      }
+    } catch (e) {}
+    return prevFetch.call(this, input, init);
+  };
+
+  // WhatsApp ಸಂದೇಶದಲ್ಲಿ ಮಾಧ್ಯಮ ಮತ್ತು English ಹೆಸರು
+  var prevOpen = window.open;
+  window.open = function (url) {
+    try {
+      if (pendingReg && typeof url === 'string' && /wa\.me\/\d*\?text=/.test(url)) {
+        var i = url.indexOf('?text=');
+        var msg = decodeURIComponent(url.slice(i + 6));
+        var extra = '🗣️ *ಮಾಧ್ಯಮ:* ' + mediumNames(pendingReg.mediums) + '\n🏫 *School (English):* ' + pendingReg.schoolEn + '\n' +
+          (pendingReg.schoolClasses ? '🎒 *ತರಗತಿಗಳು:* ' + pendingReg.schoolClasses.join(', ') + '\n' : '');
+        msg = /\n\n(?=[^\n]*$)/.test(msg) ? msg.replace(/\n\n(?=[^\n]*$)/, '\n' + extra + '\n') : msg + '\n' + extra;
+        arguments[0] = url.slice(0, i + 6) + encodeURIComponent(msg);
+      }
+    } catch (e) {}
+    return prevOpen.apply(window, arguments);
+  };
+
+  // ---------- ೩. Admin: ಕೋರಿಕೆ & ಸದಸ್ಯರ ಕಾರ್ಡ್‌ಗಳಲ್ಲಿ ಮಾಧ್ಯಮ ----------
+  function badgeHtml(list, schoolEn, classes) {
+    return (classes && classes.length ? '<div class="wy-class-line text-xs font-bold text-slate-600">🎒 <b>ತರಗತಿಗಳು:</b> ' + esc(classes.join(', ')) + '</div>' : '') + '<div class="wy-medium-line text-xs font-bold text-slate-600 flex items-center gap-1.5 flex-wrap">' +
+      '<span>🗣️ <b>ಮಾಧ್ಯಮ:</b></span><span class="px-2.5 py-0.5 rounded-lg border font-extrabold ' + (list ? 'bg-amber-50 text-amber-900 border-amber-200' : 'bg-slate-100 text-slate-600 border-slate-200') + '">' + esc(mediumNames(list)) + '</span>' +
+      (schoolEn ? '<span class="text-slate-500">· 🏫 ' + esc(schoolEn) + '</span>' : '') + '</div>';
+  }
+  var prevReqs = window.renderPendingRequestsListHtml;
+  window.renderPendingRequestsListHtml = function (requests) {
+    var html = (typeof prevReqs === 'function') ? prevReqs.apply(this, arguments) : '';
+    try {
+      var pending = (requests || []).filter(function (r) { return r && r.status === 'pending'; });
+      if (!pending.length) return html;
+      var tpl = document.createElement('template'); tpl.innerHTML = html;
+      var list = tpl.content.querySelector('#wy-reqs-list') || tpl.content;
+      var cards = Array.from(list.children).filter(function (n) { return n.nodeType === 1 && n.querySelector('[onclick*="approveRequestDirectly"]'); });
+      if (cards.length !== pending.length) return html;
+      cards.forEach(function (card, i) {
+        var r = pending[i], info = card.querySelector('.bg-white.rounded-xl') || card;
+        var d = document.createElement('div'); d.innerHTML = badgeHtml(userMediums(r), r.schoolEn, r.type === 'school' ? numList(r.schoolClasses) : null);
+        while (d.firstChild) info.appendChild(d.firstChild);
+        if (card.dataset.q != null) card.dataset.q += ' ' + mediumNames(userMediums(r)).toLowerCase() + ' ' + String(r.schoolEn || '').toLowerCase();
+      });
+      return tpl.innerHTML;
+    } catch (e) { return html; }
+  };
+  try { renderPendingRequestsListHtml = window.renderPendingRequestsListHtml; } catch (e) {}
+
+  var prevUsers = window.renderSpaciousActiveUsersHtml;
+  window.renderSpaciousActiveUsersHtml = function (users) {
+    var html = (typeof prevUsers === 'function') ? prevUsers.apply(this, arguments) : '';
+    try {
+      if (!users || !users.length) return html;
+      var tpl = document.createElement('template'); tpl.innerHTML = html;
+      var list = tpl.content.querySelector('#wy-users-list') || tpl.content.querySelector('.space-y-3');
+      if (!list || list.children.length !== users.length) return html;
+      Array.from(list.children).forEach(function (card, i) {
+        var u = users[i]; if (!u) return;
+        var btn = card.querySelector('[onclick*="openEditUserModal"]');
+        var row = btn ? btn.parentNode : null;
+        var d = document.createElement('div'); d.innerHTML = badgeHtml(userMediums(u), u.schoolEn, u.type === 'school' ? numList(u.schoolClasses) : null);
+        while (d.firstChild) { if (row && row.parentNode === card) card.insertBefore(d.firstChild, row); else card.appendChild(d.firstChild); }
+        if (card.dataset.q != null) card.dataset.q += ' ' + mediumNames(userMediums(u)).toLowerCase() + ' ' + String(u.schoolEn || '').toLowerCase();
+      });
+      return tpl.innerHTML;
+    } catch (e) { return html; }
+  };
+  try { renderSpaciousActiveUsersHtml = window.renderSpaciousActiveUsersHtml; } catch (e) {}
+
+  // ---------- ೪. Admin Edit: ಮಾಧ್ಯಮ + English ಶಾಲೆ ಹೆಸರು ----------
+  function adminFieldsHtml(prefix, list, schoolEn, classes, classLabel) {
+    return '<div class="wy-admin-medium space-y-2 p-2.5 bg-amber-50/60 border border-amber-200 rounded-xl">' +
+      '<div><label class="block text-slate-700 mb-1">🏫 ಶಾಲೆಯ ಹೆಸರು (English)</label>' +
+      '<input type="text" id="' + prefix + '-school-en" value="' + esc(schoolEn || '') + '" placeholder="Government Higher Primary School ..." class="w-full px-3 py-2 bg-white border rounded-xl font-bold" /></div>' +
+      '<div><label class="block text-slate-700 mb-1">🗣️ ಅನುಮತಿಸಿದ ಮಾಧ್ಯಮ <span class="text-[10px] font-semibold text-slate-500">— ಯಾವುದನ್ನೂ ಆಯ್ಕೆ ಮಾಡದಿದ್ದರೆ ಎಲ್ಲಾ ಮಾಧ್ಯಮ ಲಭ್ಯ</span></label>' +
+      checkboxesHtml(prefix.replace(/-/g, '_') + '_mediums', list, 'amber') + '</div>' +
+      (classLabel ? '<div><label class="block text-slate-700 mb-1">🎒 ' + classLabel + ' <span class="text-[10px] font-semibold text-slate-500">— ಯಾವುದನ್ನೂ ಆಯ್ಕೆ ಮಾಡದಿದ್ದರೆ ಎಲ್ಲಾ ತರಗತಿ</span></label>' +
+        classBoxesHtml(prefix.replace(/-/g, '_') + '_classes', classes, 'amber', true) + '</div>' : '') + '</div>';
+  }
+  var prevOpenEdit = window.openEditUserModal;
+  if (typeof prevOpenEdit === 'function') {
+    window.openEditUserModal = function (index) {
+      var r = prevOpenEdit.apply(this, arguments);
+      try {
+        var users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+        var u = users[index];
+        var save = document.querySelector('#auth-modal-wrapper [onclick*="saveEditedUserSubmit"]');
+        if (u && save && !document.getElementById('edit-u-school-en')) {
+          var row = save.parentNode, d = document.createElement('div');
+          var isSch = u.type === 'school';
+          var cur = numList(u.schoolClasses);
+          if (!cur.length && isSch) cur = numList(u.allowedClasses);
+          d.innerHTML = adminFieldsHtml('edit-u', userMediums(u), u.schoolEn, cur, isSch ? 'ಶಾಲೆಯಲ್ಲಿರುವ ತರಗತಿಗಳು' : '');
+          row.parentNode.insertBefore(d.firstChild, row);
+        }
+      } catch (e) {}
+      return r;
+    };
+    try { openEditUserModal = window.openEditUserModal; } catch (e) {}
+  }
+  var prevSaveEdit = window.saveEditedUserSubmit;
+  if (typeof prevSaveEdit === 'function') {
+    window.saveEditedUserSubmit = async function (index) {
+      var enInp = document.getElementById('edit-u-school-en');
+      if (enInp) {
+        try {
+          var users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+          var u = users[index];
+          if (u) {
+            var list = normMediums(checkedVals('edit_u_mediums'));
+            delete u.mediums;
+            if (list) u.allowedMediums = list; else delete u.allowedMediums;
+            var en = enInp.value.trim();
+            if (en) u.schoolEn = en; else delete u.schoolEn;
+            var editCls = null;
+            if (u.type === 'school' && document.querySelector('input[name="edit_u_classes"]')) {
+              editCls = numList(checkedVals('edit_u_classes'));
+              if (list && biOnlyBad(list, editCls.length ? editCls : ['6'])) { alert(BI_ONLY_MSG); return; }
+              if (editCls.length) u.schoolClasses = editCls; else delete u.schoolClasses;
+            }
+            users[index] = u;
+            localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+            var s = getSession();
+            var ids = [u.mobile, u.dise].map(function (x) { return String(x || '').toLowerCase(); }).filter(Boolean);
+            if (s && ids.some(function (x) { return x === String(s.mobile || '').toLowerCase() || x === String(s.dise || '').toLowerCase(); })) {
+              s.allowedMediums = list; s.schoolEn = en;
+              if (editCls) s.allowedClasses = editCls.length ? editCls : ['all'];
+              localStorage.setItem('wy_active_session', JSON.stringify(s));
+            }
+          }
+        } catch (e) {}
+      }
+      var res = await prevSaveEdit.apply(this, arguments);
+      try {   // ಸ್ಥಳೀಯ ಪಟ್ಟಿಯಲ್ಲೂ ತರಗತಿ ಸರಿಪಡಿಸು
+        var us = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+        var uu = us[index];
+        if (uu && uu.type === 'school') { var sc2 = numList(uu.schoolClasses); uu.allowedClasses = sc2.length ? sc2 : ['all']; localStorage.setItem('wy_admin_users_db', JSON.stringify(us)); }
+      } catch (e) {}
+      return res;
+    };
+    try { saveEditedUserSubmit = window.saveEditedUserSubmit; } catch (e) {}
+  }
+
+  // ಕೈಯಾರೆ ಸೇರಿಸುವ ಫಾರ್ಮ್
+  var prevManForm = window.renderManualUserAddFormHtml;
+  if (typeof prevManForm === 'function') {
+    window.renderManualUserAddFormHtml = function () {
+      var html = prevManForm.apply(this, arguments);
+      return html.replace(/(<button[^>]*handleManualUserSaveSubmit)/, adminFieldsHtml('man', null, '', null, 'ತರಗತಿಗಳು') + '\n      $1');
+    };
+    try { renderManualUserAddFormHtml = window.renderManualUserAddFormHtml; } catch (e) {}
+  }
+  var prevManSave = window.handleManualUserSaveSubmit;
+  if (typeof prevManSave === 'function') {
+    window.handleManualUserSaveSubmit = async function () {
+      var enInp = document.getElementById('man-school-en');
+      if (!enInp) return prevManSave.apply(this, arguments);
+      pendingManual = { mediums: normMediums(checkedVals('man_mediums')), schoolEn: enInp.value.trim(), classes: numList(checkedVals('man_classes')) };
+      if (pendingManual.mediums && biOnlyBad(pendingManual.mediums, pendingManual.classes.length ? pendingManual.classes : ['6'])) { pendingManual = null; return alert(BI_ONLY_MSG); }
+      var snap = pendingManual;
+      try { return await prevManSave.apply(this, arguments); }
+      finally {
+        pendingManual = null;
+        try {
+          var users = JSON.parse(localStorage.getItem('wy_admin_users_db') || '[]');
+          if (users[0] && !users[0].schoolEn && !users[0].allowedMediums) {
+            if (snap.mediums) users[0].allowedMediums = snap.mediums;
+            if (snap.schoolEn) users[0].schoolEn = snap.schoolEn;
+            if (snap.classes.length) { users[0].allowedClasses = snap.classes; if (users[0].type === 'school') users[0].schoolClasses = snap.classes; }
+            localStorage.setItem('wy_admin_users_db', JSON.stringify(users));
+          }
+        } catch (e) {}
+      }
+    };
+    try { handleManualUserSaveSubmit = window.handleManualUserSaveSubmit; } catch (e) {}
+  }
+
+  // ---------- ೫. ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚನೆ: ಅನುಮತಿಸಿದ ಮಾಧ್ಯಮ ಮಾತ್ರ ----------
+  function allowedNow() {
+    if (sessionStorage.getItem('wy_is_admin') === 'true') return null;
+    var s = getSession();
+    if (!s || !s.isLoggedIn) return null;
+    return normMediums(s.allowedMediums);
+  }
+  function gradeNum() { return parseInt(String((document.getElementById('cfg-class') || {}).value || '').replace(/\D/g, '')) || 0; }
+  function applyMediumRestriction() {
+    var sel = document.getElementById('cfg-medium'); if (!sel) return false;
+    var allowed = allowedNow();
+    var eff = allowed ? allowed.slice() : null;
+    var firstOk = null;
+    Array.from(sel.options).forEach(function (o) {
+      var ok = !eff || eff.indexOf(o.value) !== -1;
+      o.disabled = !ok; o.hidden = !ok;
+      if (ok && !firstOk) firstOk = o.value;
+    });
+    // ಅನುಮತಿ ಇರುವ ಮಾಧ್ಯಮ ಈ ತರಗತಿಗೆ ಇಲ್ಲದಿದ್ದರೆ (ಉದಾ: ಕೇವಲ ದ್ವಿಭಾಷಾ, ಆದರೆ ಪಟ್ಟಿಯಲ್ಲಿ ಇನ್ನೂ ಇಲ್ಲ) — ಕನ್ನಡ
+    if (!firstOk) { var kn = sel.querySelector('option[value="' + KN + '"]'); if (kn) { kn.disabled = false; kn.hidden = false; firstOk = KN; } }
+    var cur = sel.options[sel.selectedIndex];
+    if (!cur || cur.disabled) {
+      // ದ್ವಿಭಾಷಾ ಖಾತೆಗೆ ದ್ವಿಭಾಷಾ ಆಯ್ಕೆಯೇ ಮೊದಲು
+      var pref = (eff && eff[0] && sel.querySelector('option[value="' + eff[0] + '"]:not([disabled])')) ? eff[0] : firstOk;
+      sel.value = pref;
+      return true;
+    }
+    return false;
+  }
+  window.wyApplyMediumRestriction = applyMediumRestriction;
+
+  // ---------- ೬. ತರಗತಿ ನಿರ್ಬಂಧ (ಶಾಲೆ + ಶಿಕ್ಷಕರು) ----------
+  function allowedClassesNow() {
+    if (sessionStorage.getItem('wy_is_admin') === 'true') return null;
+    var s = getSession();
+    if (!s || !s.isLoggedIn || s.type === 'competitive') return null;
+    var raw = Array.isArray(s.allowedClasses) ? s.allowedClasses : String(s.allowedClasses || '').split(',');
+    var all = raw.some(function (x) { return String(x).trim().toLowerCase() === 'all'; }) || !numList(raw).length;
+    var cls = all ? ['1','2','3','4','5','6','7','8','9','10'] : numList(raw);
+    var med = normMediums(s.allowedMediums);
+    if (med && med.length === 1 && med[0] === BI) cls = cls.filter(function (c) { return +c <= 5; });   // ಕೇವಲ ದ್ವಿಭಾಷಾ → 1–5 ಮಾತ್ರ
+    if (all && cls.length === 10) return null;
+    return cls;
+  }
+  window.wyAllowedClassesNow = allowedClassesNow;
+  function applyClassRestriction() {
+    var sel = document.getElementById('cfg-class'); if (!sel) return false;
+    var allowed = allowedClassesNow(); if (!allowed) return false;
+    if (!allowed.length) allowed = ['1'];
+    var before = sel.value, removed = false;
+    Array.from(sel.options).forEach(function (o) {
+      var v = String(o.value).replace(/\D/g, '');
+      if (allowed.indexOf(v) === -1) { o.remove(); removed = true; }
+    });
+    if (!sel.options.length) return false;
+    if (!Array.from(sel.options).some(function (o) { return o.value === before; })) { sel.value = sel.options[0].value; return true; }
+    return false;
+  }
+  window.wyApplyClassRestriction = applyClassRestriction;
+  var inCls = false;
+  ['updateSubjectOptionsForClass', 'applyUserSubjectPermissionsToUI'].forEach(function (fn) {
+    var prev = window[fn]; if (typeof prev !== 'function') return;
+    window[fn] = function () {
+      var r = prev.apply(this, arguments);
+      if (!inCls) {
+        inCls = true;
+        try { if (applyClassRestriction()) { try { window.updateSubjectOptionsForClass(); } catch (e) {} try { window.handleMediumOrClassChange(); } catch (e) {} } }
+        finally { inCls = false; }
+      }
+      return r;
+    };
+  });
+  try { updateSubjectOptionsForClass = window.updateSubjectOptionsForClass; } catch (e) {}
+  try { applyUserSubjectPermissionsToUI = window.applyUserSubjectPermissionsToUI; } catch (e) {}
+
+  // ರಚನೆಯ ಮುನ್ನ ಕೊನೆಯ ಪರಿಶೀಲನೆ
+  var prevGen = window.generateExamPackageFromBank;
+  if (typeof prevGen === 'function') {
+    window.generateExamPackageFromBank = function () {
+      try {
+        var cls = String((document.getElementById('cfg-class') || {}).value || '').replace(/\D/g, '');
+        var ac = allowedClassesNow();
+        if (ac && cls && ac.indexOf(cls) === -1) { alert('⚠️ ತರಗತಿ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ!\nನಿಮ್ಮ ಖಾತೆಗೆ ' + cls + 'ನೇ ತರಗತಿಗೆ ಅನುಮತಿ ಇಲ್ಲ.'); return; }
+        var am = allowedNow(), mv = (document.getElementById('cfg-medium') || {}).value;
+        if (am && mv && am.indexOf(mv) === -1) { alert('⚠️ ಈ ಮಾಧ್ಯಮಕ್ಕೆ ನಿಮ್ಮ ಖಾತೆಗೆ ಅನುಮತಿ ಇಲ್ಲ.'); return; }
+      } catch (e) {}
+      return prevGen.apply(this, arguments);
+    };
+    try { generateExamPackageFromBank = window.generateExamPackageFromBank; } catch (e) {}
+  }
+
+  var prevMC = window.handleMediumOrClassChange, inMC = false;
+  window.handleMediumOrClassChange = function () {
+    var r = (typeof prevMC === 'function') ? prevMC.apply(this, arguments) : undefined;
+    if (!inMC) {
+      inMC = true;
+      try { if (applyMediumRestriction() && typeof prevMC === 'function') prevMC.apply(this, arguments); }
+      finally { inMC = false; }
+    }
+    return r;
+  };
+  try { handleMediumOrClassChange = window.handleMediumOrClassChange; } catch (e) {}
+
+  // ಶಾಲೆಯ English ಹೆಸರು ಸೆಷನ್‌ನಿಂದ
+  function applySessionSchoolEn(force) {
+    var s = getSession();
+    var inp = document.getElementById('cfg-school-name-en');
+    if (!s || !s.isLoggedIn || !s.schoolEn || sessionStorage.getItem('wy_is_admin') === 'true') {
+      if (inp && inp.dataset.wyLocked) { inp.readOnly = false; inp.classList.remove('cursor-not-allowed'); delete inp.dataset.wyLocked; }
+      return;
+    }
+    var kn = s.school || '';
+    try {
+      var m = JSON.parse(localStorage.getItem('wy_school_name_en') || '{}');
+      if (force || m[kn] !== s.schoolEn) { m[kn] = s.schoolEn; localStorage.setItem('wy_school_name_en', JSON.stringify(m)); }
+    } catch (e) {}
+    if (inp) {
+      inp.value = s.schoolEn; inp.dataset.forKn = kn;
+      inp.readOnly = true; inp.classList.add('cursor-not-allowed'); inp.dataset.wyLocked = '1';
+    }
+  }
+  window.wyApplySessionSchoolEn = applySessionSchoolEn;
+
+  function refreshAll() {
+    if (applyClassRestriction()) { try { window.updateSubjectOptionsForClass(); } catch (e) {} }
+    if (applyMediumRestriction()) { try { window.handleMediumOrClassChange(); } catch (e) {} }
+    try { if (window.wySyncSchoolEnBox) window.wySyncSchoolEnBox(); } catch (e) {}
+    applySessionSchoolEn(false);
+  }
+  window.wyRefreshMediumAccess = refreshAll;
+  document.addEventListener('change', function (e) {
+    if (e.target && /^cfg-(class|medium)$/.test(e.target.id)) setTimeout(refreshAll, 80);
+  }, true);
+  window.addEventListener('storage', function (e) { if (e.key === 'wy_active_session') refreshAll(); });
+  setTimeout(refreshAll, 1000);
+})();
 </script>
 </body>
 </html>

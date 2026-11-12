@@ -24475,7 +24475,7 @@ function wyStrongKeyPart() {
   // =====================================================================
   // 📊 ಸದಸ್ಯರ Dashboard
   // =====================================================================
-  var DS = { tab: lsGet('wy_dash_med', 'kn') };
+  var DS = { tab: lsGet('wy_dash_med', 'kn'), cls: lsGet('wy_dash_cls', 0) };
   function statusChip(item) {
     if (!available(item)) return '<span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-400 text-[10px] font-black">ಶೀಘ್ರದಲ್ಲಿ</span>';
     if (ownsItem(item)) return '<button type="button" data-open="' + item + '" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-black">✅ ರಚಿಸಿ →</button>';
@@ -24532,7 +24532,7 @@ function wyStrongKeyPart() {
           (on ? 'bg-emerald-600 text-white border-emerald-600' : ok ? (dis ? 'bg-white text-slate-300 border-slate-200' : 'bg-white text-slate-700 border-slate-300 hover:border-emerald-500') : 'bg-slate-50 text-slate-300 border-slate-100 line-through') + '">' + c + '</button>';
       }).join('') + '</div></div>';
   }
-  function packCards() {
+  function packCards(only) {
     fixPB();
     var medOpts = [['kn', 'ಕನ್ನಡ ಮಾಧ್ಯಮ'], ['en', 'ಇಂಗ್ಲಿಷ್ ಮಾಧ್ಯಮ'], ['bi', 'ದ್ವಿಭಾಷಾ (1–5)']];
     var clsOpts = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(function (c) { return PB.m !== 'bi' || c <= 5; }).map(function (c) { return [c, c + 'ನೇ ತರಗತಿ']; });
@@ -24550,7 +24550,8 @@ function wyStrongKeyPart() {
       { t: 'ent', icon: '🎯', name: 'ಪ್ರವೇಶ ಪರೀಕ್ಷೆ', d: 'ಮೊರಾರ್ಜಿ / ಆದರ್ಶ / ಕಿತ್ತೂರು / ಸೈನಿಕ — ಪ್ರತಿಯೊಂದು', f: ['e'] },
       { t: 'cmp', icon: '🚀', name: 'ಸ್ಪರ್ಧಾ ಕಾಂಬೋ', d: 'NMMS (GMAT + SAT) + ಎಲ್ಲಾ ಪ್ರವೇಶ ಪರೀಕ್ಷೆಗಳು', f: [] }
     ];
-    return '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">' + CARDS.map(function (cd) {
+    if (only) CARDS = CARDS.filter(function (cd) { return cd.t === only; });
+    return '<div class="grid grid-cols-1 ' + (only ? '' : 'sm:grid-cols-2 lg:grid-cols-3 ') + 'gap-3">' + CARDS.map(function (cd) {
       var k = builderKey(cd.t);
       var fields = cd.f.map(function (f) {
         if (f === 'm') return sel('wy-pb-m', medOpts, PB.m);
@@ -24568,67 +24569,139 @@ function wyStrongKeyPart() {
       return '<div class="relative p-4 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col gap-2.5">' +
         (cd.tag ? '<span class="absolute -top-2 right-4 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black shadow">' + cd.tag + '</span>' : '') +
         '<div class="flex items-start justify-between gap-2"><div class="flex items-center gap-2"><span class="text-2xl">' + cd.icon + '</span><div><div class="font-black text-sm text-slate-900">' + cd.name + '</div>' +
-        '<div class="text-[11px] font-bold text-slate-500 leading-snug">' + cd.d + '</div></div></div><div class="text-lg font-black text-emerald-700 shrink-0">' + rupee(priceOf(k)) + '</div></div>' +
+        '<div class="text-[11px] font-bold text-slate-500 leading-snug">' + cd.d + '</div></div></div><div class="text-lg font-black text-emerald-700 shrink-0">' + rupee(cd.t === 'st' && PB.sc.length < 2 ? PRICES.st : priceOf(k)) + '</div></div>' +
         (fields ? '<div class="grid grid-cols-' + Math.min(cd.f.length, 3) + ' gap-1.5" data-pb-card="' + cd.t + '">' + fields + '</div>' : '') +
         '<div class="mt-auto flex items-center justify-between gap-2"><span class="text-[10px] font-bold text-slate-400 truncate">' + esc(cd.t === 'st' && PB.sc.length < 2 ? 'ಕನಿಷ್ಠ 2 ತರಗತಿ ಆರಿಸಿ (1 ತರಗತಿಗೆ ವಿಷಯ ಪ್ಯಾಕ್ ಸಾಕು)' : packLabel(k)) + '</span>' +
           (cd.t === 'st' && PB.sc.length < 2 ? '<span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-400 text-[10px] font-black">ಕಾರ್ಟ್‌ಗೆ</span>' : packBtn(k, 'ಕಾರ್ಟ್‌ಗೆ')) + '</div></div>';
     }).join('') + '</div>';
   }
-  function catalog() {
+  // ---------- ಸರಳ Dashboard: ① ಮಾಧ್ಯಮ → ② ತರಗತಿ → ③ ವಿಷಯ ----------
+  function firstClassWithPapers(m) {
+    for (var c = 1; c <= 10; c++) if (mediaFor(c).indexOf(m) !== -1 && subjectsFor(c).some(function (s) { return available('r:' + m + ':' + c + ':' + s); })) return c;
+    return m === 'bi' ? 1 : 1;
+  }
+  function stepHead(n, t) { return '<div class="flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-slate-900 text-white text-xs font-black flex items-center justify-center">' + n + '</span><span class="text-sm font-black text-slate-800">' + t + '</span></div>'; }
+  function chip(attr, val, on, label, sub) {
+    return '<button type="button" ' + attr + '="' + val + '" class="px-3.5 py-2.5 rounded-2xl text-xs font-black border-2 transition ' +
+      (on ? 'bg-emerald-600 border-emerald-600 text-white shadow' : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-400') + '">' + label +
+      (sub ? '<span class="block text-[10px] font-bold ' + (on ? 'text-emerald-100' : 'text-slate-400') + '">' + sub + '</span>' : '') + '</button>';
+  }
+  function rowHtml(item, title, sub) {
+    return '<div class="flex items-center justify-between gap-3 py-3"><div class="min-w-0"><div class="text-sm font-black text-slate-900">' + esc(title) + '</div>' +
+      (sub ? '<div class="text-[11px] font-bold text-slate-500">' + sub + '</div>' : '') + '</div>' + statusChip(item) + '</div>';
+  }
+  function offerHtml(k, text) {
+    if (!k || ownsPack(k)) return '';
+    return '<div class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-emerald-50 border border-emerald-200"><span class="text-xs font-bold text-emerald-900">' + text + '</span>' + packBtn(k, 'ಕಾರ್ಟ್‌ಗೆ') + '</div>';
+  }
+  function picker() {
     var m = DS.tab;
+    var medChips = ['kn', 'en', 'bi'].map(function (k) { return chip('data-dtab', k, m === k, MEDIA[k].n, k === 'bi' ? '1–5ನೇ ತರಗತಿ' : ''); }).join('') +
+      chip('data-dtab', 'cmp', m === 'cmp', '🏆 NMMS / ಪ್ರವೇಶ ಪರೀಕ್ಷೆ', '');
+    var out = '<div class="space-y-2">' + stepHead(1, 'ಮಾಧ್ಯಮ ಆರಿಸಿ') + '<div class="flex flex-wrap gap-2">' + medChips + '</div></div>';
+    if (m === 'cmp') {
+      var rows = [['n:gmat', NMMS.gmat, '8ನೇ ತರಗತಿ'], ['n:sat', NMMS.sat, '8ನೇ ತರಗತಿ']]
+        .concat(exams().map(function (e) { return ['e:' + e.id, e.name, (e.classes || []).join(', ') + 'ನೇ ತರಗತಿ']; }));
+      return out + '<div class="space-y-2">' + stepHead(2, 'ಪರೀಕ್ಷೆ ಆರಿಸಿ') + '<div class="divide-y divide-slate-100 px-1">' + rows.map(function (r) { return rowHtml(r[0], r[1], r[2]); }).join('') + '</div>' +
+        offerHtml('cmp', '💡 ಎಲ್ಲಾ ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳೂ ಬೇಕೇ? <b>ಸ್ಪರ್ಧಾ ಕಾಂಬೋ</b>') + '</div>';
+    }
     var classes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(function (c) { return mediaFor(c).indexOf(m) !== -1; });
-    var count = function (mm) { var n = 0; regularItems(function (i) { return i.m === mm; }).forEach(function (it) { if (available(it)) n++; }); return n; };
-    var tabs = ['kn', 'en', 'bi'].map(function (k) {
-      return '<button type="button" data-dtab="' + k + '" class="px-3.5 py-2 rounded-xl text-xs font-black ' + (k === m ? 'bg-slate-900 text-white shadow' : 'bg-white text-slate-600 border') + '">' + MEDIA[k].n +
-        ' <span class="ml-1 px-1.5 rounded-md ' + (k === m ? 'bg-white/20' : 'bg-slate-100') + '">' + count(k) + '</span></button>';
+    if (classes.indexOf(+DS.cls) === -1) DS.cls = firstClassWithPapers(m);
+    var c = +DS.cls;
+    out += '<div class="space-y-2">' + stepHead(2, 'ತರಗತಿ ಆರಿಸಿ') + '<div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5">' + classes.map(function (x) {
+      var on = x === c, has = subjectsFor(x).some(function (s) { return available('r:' + m + ':' + x + ':' + s); });
+      return '<button type="button" data-dcls="' + x + '" class="py-2.5 rounded-xl text-sm font-black border-2 ' + (on ? 'bg-emerald-600 border-emerald-600 text-white' : has ? 'bg-white border-slate-200 text-slate-800 hover:border-emerald-400' : 'bg-slate-50 border-slate-100 text-slate-300') + '">' + x + '</button>';
+    }).join('') + '</div></div>';
+    var subs = subjectsFor(c), avail = subs.filter(function (s) { return available('r:' + m + ':' + c + ':' + s); }).length;
+    out += '<div class="space-y-2">' + stepHead(3, c + 'ನೇ ತರಗತಿ — ವಿಷಯ ಆರಿಸಿ') + '<div class="divide-y divide-slate-100 px-1">' + subs.map(function (s) {
+      var pr = parts(m, c, s);
+      var sub = pr[0] || pr[1] ? 'ಭಾಗ-1 ' + (pr[0] ? '✓' : '—') + ' · ಭಾಗ-2 ' + (pr[1] ? '✓' : '—') + ' · ಘಟಕ, FA, SA, ಮೌಖಿಕ' : '';
+      return rowHtml('r:' + m + ':' + c + ':' + s, SUBJ[s], sub);
+    }).join('') + '</div>' +
+      (avail > 1 ? offerHtml('cls:' + m + ':' + c, '💡 ಈ ತರಗತಿಯ <b>ಎಲ್ಲಾ ವಿಷಯ</b> ಬೇಕೇ? ತರಗತಿ ಪ್ಯಾಕ್') : '') +
+      (avail ? '<p class="text-[11px] font-bold text-slate-500 px-1">ಒಂದೇ ವಿಷಯವನ್ನು 2–3 ತರಗತಿಗೆ ಬೋಧಿಸುತ್ತೀರಾ? <button type="button" onclick="wyOpenPackBuilder(\'st\')" class="text-emerald-700 underline font-black">ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್ ' + rupee(PRICES.st) + '</button> · ಇಡೀ ಶಾಲೆಗೆ? <button type="button" onclick="wyOpenPackBuilder(\'sch\')" class="text-emerald-700 underline font-black">ಶಾಲಾ ಪ್ಯಾಕ್ ' + rupee(PRICES.sch) + '</button></p>' : '') +
+      '</div>';
+    return out;
+  }
+  function priceList() {
+    var R = [
+      ['sub', 'ವಿಷಯ ಪ್ಯಾಕ್', '1 ತರಗತಿಯ 1 ವಿಷಯ', PRICES.sub],
+      ['st', 'ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್', '1 ವಿಷಯ, ನೀವು ಆರಿಸುವ ' + (+PRICES.stn || 3) + ' ತರಗತಿ', PRICES.st],
+      ['cls', 'ತರಗತಿ ಪ್ಯಾಕ್', '1 ತರಗತಿಯ ಎಲ್ಲಾ ವಿಷಯ', PRICES.cls],
+      ['stg', 'ಹಂತ ಪ್ಯಾಕ್', '1–5 / 6–8 / 8–10 ಎಲ್ಲಾ ವಿಷಯ', PRICES.stg],
+      ['sch', 'ಶಾಲಾ ಪ್ಯಾಕ್', '1–10 ಎಲ್ಲಾ ತರಗತಿ, ಎಲ್ಲಾ ವಿಷಯ (ಇನ್ನೊಂದು ಮಾಧ್ಯಮ +' + rupee(PRICES.sch2) + ')', PRICES.sch],
+      ['nmms', 'NMMS ಪ್ಯಾಕ್', 'GMAT + SAT (ಒಂದು ' + rupee(PRICES.nmms1) + ')', PRICES.nmms],
+      ['ent', 'ಪ್ರವೇಶ ಪರೀಕ್ಷೆ', 'ಮೊರಾರ್ಜಿ / ಆದರ್ಶ / ಕಿತ್ತೂರು / ಸೈನಿಕ — ಒಂದು', PRICES.ent],
+      ['cmp', 'ಸ್ಪರ್ಧಾ ಕಾಂಬೋ', 'NMMS + ಎಲ್ಲಾ ಪ್ರವೇಶ ಪರೀಕ್ಷೆ', PRICES.cmp],
+      ['all', 'ಸಂಪೂರ್ಣ ಶಾಲಾ ಪ್ಯಾಕ್', 'ಶಾಲಾ ಪ್ಯಾಕ್ + ಸ್ಪರ್ಧಾ ಕಾಂಬೋ', PRICES.all]
+    ];
+    return '<details class="group bg-white border border-slate-200 rounded-3xl"><summary class="cursor-pointer list-none p-4 flex items-center justify-between"><span class="text-sm font-black text-slate-900">💰 ಎಲ್ಲಾ ದರಗಳು ಮತ್ತು ದೊಡ್ಡ ಪ್ಯಾಕ್‌ಗಳು</span><span class="text-xs font-black text-slate-400 group-open:rotate-180 transition">▼</span></summary>' +
+      '<div class="px-4 pb-4 divide-y divide-slate-100">' + R.map(function (r) {
+        return '<div class="flex items-center justify-between gap-3 py-2.5"><div class="min-w-0"><div class="text-xs font-black text-slate-900">' + r[1] + '</div><div class="text-[11px] font-bold text-slate-500">' + r[2] + '</div></div>' +
+          '<div class="flex items-center gap-2 shrink-0"><b class="text-sm text-emerald-700">' + rupee(r[3]) + '</b>' + (r[0] === 'sub' ? '' : '<button type="button" onclick="wyOpenPackBuilder(\'' + r[0] + '\')" class="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[10px] font-black">ಆರಿಸಿ</button>') + '</div></div>';
+      }).join('') + '<p class="pt-2 text-[11px] font-bold text-slate-500">ಪ್ರತಿ ಪ್ಯಾಕ್ ತೆರೆದ ದಿನದಿಂದ ' + validityText() + ' ಮಾನ್ಯ. ಕಾರ್ಟ್‌ನಲ್ಲಿ ಉಳಿತಾಯದ ದಾರಿ ಇದ್ದರೆ ನಾವೇ ತಿಳಿಸುತ್ತೇವೆ.</p></div></details>';
+  }
+  window.wyOpenPackBuilder = function (type) {
+    if (!isMember()) return openMemberAuth('register');
+    var names = { st: 'ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್', cls: 'ತರಗತಿ ಪ್ಯಾಕ್', stg: 'ಹಂತ ಪ್ಯಾಕ್', sch: 'ಶಾಲಾ ಪ್ಯಾಕ್', all: 'ಸಂಪೂರ್ಣ ಶಾಲಾ ಪ್ಯಾಕ್', nmms: 'NMMS ಪ್ಯಾಕ್', ent: 'ಪ್ರವೇಶ ಪರೀಕ್ಷೆ', cmp: 'ಸ್ಪರ್ಧಾ ಕಾಂಬೋ', sub: 'ವಿಷಯ ಪ್ಯಾಕ್' };
+    modal(head('fa-box-open', names[type] || 'ಪ್ಯಾಕ್', 'ಆಯ್ಕೆ ಮಾಡಿ "ಕಾರ್ಟ್‌ಗೆ" ಒತ್ತಿ', 'from-emerald-600 to-teal-600') + '<div class="p-4"><div id="wy-packs" data-only="' + type + '">' + packCards(type) + '</div>' +
+      '<button type="button" onclick="wyOpenCart()" class="mt-3 w-full py-2.5 rounded-2xl bg-slate-900 text-white text-xs font-black">🛒 ಕಾರ್ಟ್ ನೋಡಿ (<span class="wy-cart-n"></span>)</button></div>');
+    renderCartBadges();
+  };
+  function rerenderPacks() { var w = $('wy-packs'); if (w) w.innerHTML = packCards(w.dataset.only || null); }
+
+  // ---------- 📋 ಒಂದೇ ಮಾಸ್ಟರ್ ಕೋಷ್ಟಕ: ಎಲ್ಲಾ ತರಗತಿ × ವಿಷಯ × ಮಾಧ್ಯಮ ----------
+  function masterTable() {
+    var COLS = ['kannada', 'english', 'hindi', 'mathematics', 'evs', 'science', 'social_science'];
+    var MS = [['kn', 'ಕ'], ['en', 'En'], ['bi', 'ದ್ವಿ']];
+    var cnt = { kn: 0, en: 0, bi: 0 };
+    var body = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (c) {
+      return '<tr class="border-t border-slate-100"><th class="sticky left-0 bg-white px-2 py-1.5 text-xs font-black text-slate-800 text-left whitespace-nowrap">' + c + 'ನೇ</th>' + COLS.map(function (s) {
+        if (subjectsFor(c).indexOf(s) === -1) return '<td class="px-1 py-1.5 text-center text-slate-200 text-xs">—</td>';
+        return '<td class="px-1 py-1.5"><div class="flex justify-center gap-0.5">' + MS.map(function (x) {
+          if (mediaFor(c).indexOf(x[0]) === -1) return '';
+          var ok = available('r:' + x[0] + ':' + c + ':' + s); if (ok) cnt[x[0]]++;
+          return '<button type="button" data-mt="' + x[0] + ':' + c + '" title="' + MEDIA[x[0]].n + ' · ' + SUBJ[s] + ' · ' + c + 'ನೇ — ' + (ok ? 'ಲಭ್ಯ' : 'ಇನ್ನೂ ಇಲ್ಲ') + '" class="min-w-[26px] px-1 py-0.5 rounded-md text-[10px] font-black ' +
+            (ok ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300') + '">' + x[1] + '</button>';
+        }).join('') + '</div></td>';
+      }).join('') + '</tr>';
     }).join('');
-    var cards = classes.map(function (c) {
-      var subs = subjectsFor(c);
-      var avail = subs.filter(function (s) { return available('r:' + m + ':' + c + ':' + s); }).length;
-      return '<div class="p-4 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-2.5">' +
-        '<div class="flex items-center justify-between gap-2"><div><div class="font-black text-slate-900">' + c + 'ನೇ ತರಗತಿ</div><div class="text-[10px] font-bold text-slate-500">' + avail + '/' + subs.length + ' ವಿಷಯಗಳ ಪತ್ರಿಕೆ ಲಭ್ಯ</div></div>' +
-        (avail ? packBtn('cls:' + m + ':' + c, 'ತರಗತಿ ಪ್ಯಾಕ್') : '<span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-400 text-[10px] font-black">ಶೀಘ್ರದಲ್ಲಿ</span>') + '</div>' +
-        '<div class="divide-y divide-slate-100">' + subs.map(function (s) {
-          var it = 'r:' + m + ':' + c + ':' + s, pr = parts(m, c, s);
-          return '<div class="flex items-center justify-between gap-2 py-1.5"><div class="min-w-0"><div class="text-xs font-extrabold text-slate-800">' + SUBJ[s] + '</div>' +
-            '<div class="flex gap-1 mt-0.5">' + pr.map(function (ok, i) { return '<span class="text-[9px] font-black px-1.5 rounded ' + (ok ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-300') + '">ಭಾಗ-' + (i + 1) + (ok ? ' ✓' : '') + '</span>'; }).join('') + '</div></div>' +
-            statusChip(it) + '</div>';
-        }).join('') + '</div></div>';
-    }).join('');
-    var comp = [['n:gmat', NMMS.gmat, '8ನೇ ತರಗತಿ · 90 ಅಂಕ'], ['n:sat', NMMS.sat, '8ನೇ ತರಗತಿ · 90 ಅಂಕ']]
-      .concat(exams().map(function (e) { return ['e:' + e.id, e.name, (e.classes || []).join(', ') + 'ನೇ ತರಗತಿ · ' + (e.marks || '') + ' ಅಂಕ']; }))
-      .map(function (x) {
-        return '<div class="flex items-center justify-between gap-2 p-3 rounded-2xl bg-white border border-slate-200"><div class="min-w-0"><div class="text-xs font-extrabold text-slate-800">' + esc(x[1]) + '</div><div class="text-[10px] font-bold text-slate-500">' + esc(x[2]) + '</div></div>' + statusChip(x[0]) + '</div>';
-      }).join('');
-    return '<div class="flex flex-wrap gap-2">' + tabs + '</div>' +
-      (m === 'en' && !count('en') ? '<div class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-900">English ಮಾಧ್ಯಮದ ಪ್ರಶ್ನೆಗಳು ಸೇರ್ಪಡೆಯಾಗುತ್ತಿವೆ. ಈಗ ಖರೀದಿಸಿದರೆ ಬಂದ ತಕ್ಷಣ ತೆರೆಯುತ್ತದೆ.</div>' : '') +
-      '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">' + cards + '</div>' +
-      '<h3 class="font-black text-slate-900 pt-3">🏆 ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆಗಳು</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' + comp + '</div>';
+    var comp = [['n:gmat', 'NMMS GMAT'], ['n:sat', 'NMMS SAT']].concat(exams().map(function (e) { return ['e:' + e.id, e.name]; }))
+      .map(function (x) { var ok = available(x[0]); return '<span class="px-2.5 py-1 rounded-lg text-[11px] font-black ' + (ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-slate-100 text-slate-400') + '">' + (ok ? '✓ ' : '✗ ') + esc(x[1]) + '</span>'; }).join('');
+    return '<div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3" id="wy-master">' +
+      '<div class="flex flex-wrap items-end justify-between gap-2"><h3 class="text-base font-black text-slate-900">📋 ಲಭ್ಯವಿರುವ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳು — ಎಲ್ಲಾ ತರಗತಿ, ಎಲ್ಲಾ ಮಾಧ್ಯಮ</h3>' +
+      '<div class="flex flex-wrap gap-1.5 text-[10px] font-black"><span class="px-2 py-1 rounded-md bg-emerald-500 text-white">ಕ = ಕನ್ನಡ</span><span class="px-2 py-1 rounded-md bg-emerald-500 text-white">En = English</span><span class="px-2 py-1 rounded-md bg-emerald-500 text-white">ದ್ವಿ = ದ್ವಿಭಾಷಾ</span><span class="px-2 py-1 rounded-md bg-slate-100 text-slate-400">ಬೂದು = ಇನ್ನೂ ಇಲ್ಲ</span></div></div>' +
+      '<p class="sm:hidden text-[10px] font-bold text-slate-400">👉 ಎಲ್ಲಾ ವಿಷಯ ನೋಡಲು ಕೋಷ್ಟಕವನ್ನು ಬದಿಗೆ ಸರಿಸಿ</p>' +
+      '<div class="overflow-x-auto -mx-2"><table class="min-w-full text-center"><thead><tr class="text-[11px] font-black text-slate-500"><th class="sticky left-0 bg-white px-2 py-1.5 text-left">ತರಗತಿ</th>' +
+      COLS.map(function (s) { return '<th class="px-1 py-1.5 whitespace-nowrap">' + SUBJ[s] + '</th>'; }).join('') + '</tr></thead><tbody>' + body + '</tbody></table></div>' +
+      '<div class="flex flex-wrap items-center gap-1.5"><span class="text-[11px] font-black text-slate-500 mr-1">🏆 ಸ್ಪರ್ಧಾತ್ಮಕ:</span>' + comp + '</div>' +
+      '<p class="text-[11px] font-bold text-slate-500">ಒಟ್ಟು ಲಭ್ಯ: ಕನ್ನಡ ಮಾಧ್ಯಮ ' + cnt.kn + ' · English ' + cnt.en + ' · ದ್ವಿಭಾಷಾ ' + cnt.bi + ' ವಿಷಯ-ತರಗತಿಗಳು. ಹಸಿರು ಗುರುತು ಒತ್ತಿದರೆ ಕೆಳಗೆ ಆ ತರಗತಿಯ ಖರೀದಿ ಭಾಗ ತೆರೆಯುತ್ತದೆ. ಹೊಸ ಪ್ರಶ್ನೆಗಳು ಸೇರಿದಂತೆ ಇದು ತಾನಾಗಿ ಬದಲಾಗುತ್ತದೆ.</p></div>';
   }
   function renderMemberDashboard() {
     var v = $('view-dashboard'); if (!v || !isMember()) return false;
     var p = MEM.profile || {}, act = activePacks(), pend = MEM.orders.filter(function (o) { return o.status === 'pending'; });
-    var openCount = regularItems().filter(function (i) { return ownsItem(i) && available(i); }).length;
     var mine = act.sort(function (a, b) { return String(MEM.packs[b]).localeCompare(String(MEM.packs[a])); });
-    v.innerHTML = '<div class="space-y-6 pb-16 animate-fade-in" id="wy-member-dash">' +
-      '<div class="hero-gradient-bg text-white rounded-[2rem] p-5 sm:p-8 shadow-2xl border border-slate-700/60 space-y-5">' +
-        '<div class="flex flex-wrap items-start justify-between gap-3"><div><p class="text-xs font-bold text-emerald-300">ನಮಸ್ಕಾರ 🙏</p><h2 class="text-xl sm:text-3xl font-black">' + esc(p.name) + '</h2>' +
-        '<p class="text-xs sm:text-sm font-bold text-slate-300">🏫 ' + esc(p.school) + (p.schoolEn ? ' · ' + esc(p.schoolEn) : '') + '</p><p class="text-[11px] font-bold text-slate-400">📱 ' + esc(authInfo().mobile) + '</p></div>' +
-        '<div class="flex flex-wrap gap-2"><button type="button" onclick="navigateToSection(\'generator\')" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-xs shadow-lg">✍️ ಪತ್ರಿಕೆ ರಚಿಸಿ</button>' +
-        '<button type="button" onclick="wyOpenCart()" class="relative px-4 py-2.5 rounded-2xl bg-white text-slate-900 font-black text-xs shadow">🛒 ಕಾರ್ಟ್ <span class="wy-cart-n absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center"></span></button>' +
-        '<button type="button" id="wy-dash-reload" class="px-3 py-2.5 rounded-2xl bg-white/10 border border-white/20 font-black text-xs">🔄 ನವೀಕರಿಸಿ</button></div></div>' +
-        '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">' +
-          [[act.length, 'ಸಕ್ರಿಯ ಪ್ಯಾಕ್', 'text-emerald-400'], [openCount, 'ತೆರೆದ ವಿಷಯಗಳು', 'text-cyan-400'], [trialLeft() + '/' + PRICES.trial, 'ಉಚಿತ ಪ್ರಯೋಗ ಬಾಕಿ', 'text-amber-400'], [pend.length, 'ಬಾಕಿ ಆರ್ಡರ್', 'text-rose-400']]
-            .map(function (x) { return '<div class="p-3 bg-white/5 rounded-2xl border border-white/10"><div class="text-2xl font-black ' + x[2] + '">' + x[0] + '</div><div class="text-[11px] font-bold text-slate-300">' + x[1] + '</div></div>'; }).join('') +
-        '</div></div>' +
-      (mine.length || pend.length ? '<section class="space-y-2"><h3 class="font-black text-slate-900">🎫 ನನ್ನ ಪ್ಯಾಕ್‌ಗಳು</h3><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' +
-        mine.map(function (k) { return '<div class="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-2"><div><div class="text-xs font-black text-emerald-900">' + esc(packTitle(k)) + '</div><div class="text-[10px] font-bold text-emerald-700">' + esc(packKind(k)) + (packMedium(k) ? ' · ' + esc(packMedium(k)) : '') + '</div></div><span class="text-[10px] font-black text-emerald-800 shrink-0">' + dmy(MEM.packs[k]) + ' ವರೆಗೆ</span></div>'; }).join('') +
-        pend.map(function (o) { return '<div class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-900">⏳ ಆರ್ಡರ್ #' + esc(String(o.id).slice(-6).toUpperCase()) + ' · ' + rupee(o.total) + ' — ' + (o.items || []).map(function (k) { return esc(packTitle(k)); }).join(', ') + ' <span class="block text-[10px]">ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ</span></div>'; }).join('') +
-        '</div></section>' : '<div class="p-4 rounded-3xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-900">🎁 ನಿಮಗೆ <b>' + trialLeft() + ' ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ</b> ಬಾಕಿ ಇವೆ (SAMPLE ಗುರುತಿನೊಂದಿಗೆ). ಪೂರ್ಣ ಬಳಕೆಗೆ ಕೆಳಗಿನ ಪ್ಯಾಕ್ ಆಯ್ಕೆ ಮಾಡಿ.</div>') +
-      '<section class="space-y-3"><div class="flex items-end justify-between gap-2"><h3 class="font-black text-slate-900">📚 ಲಭ್ಯವಿರುವ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳು</h3><span class="text-[10px] font-bold text-slate-500">ಪ್ರತಿ ವಿಷಯದಲ್ಲಿ: ಘಟಕ · FA-1–4 · SA-1 · SA-2 · ಮೌಖಿಕ · ಕೀ ಉತ್ತರ · ನೀಲನಕ್ಷೆ · OMR</span></div>' +
-        '<div id="wy-catalog" class="space-y-3">' + catalog() + '</div></section>' +
-      '<section class="space-y-3"><h3 class="font-black text-slate-900">💰 ಪ್ಯಾಕ್‌ಗಳು ಮತ್ತು ದರಗಳು <span class="text-[11px] font-bold text-slate-500">(ಪ್ರತಿ ಪ್ಯಾಕ್ ತೆರೆದ ದಿನದಿಂದ ' + validityText() + ')</span></h3><div id="wy-packs">' + packCards() + '</div></section>' +
-      '<div class="text-center"><button type="button" onclick="logoutAnyUser()" class="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 text-xs font-black">⏻ Logout</button></div>' +
+    var pills = [];
+    if (trialLeft()) pills.push('<span class="px-3 py-1.5 rounded-full bg-amber-100 text-amber-900">🎁 ' + trialLeft() + ' ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ ಬಾಕಿ</span>');
+    if (pend.length) pills.push('<span class="px-3 py-1.5 rounded-full bg-sky-100 text-sky-900">⏳ ' + pend.length + ' ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ</span>');
+    v.innerHTML = '<div class="max-w-3xl mx-auto space-y-5 pb-16 animate-fade-in" id="wy-member-dash">' +
+      '<div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">' +
+        '<div class="flex items-center justify-between gap-3"><h2 class="text-lg font-black text-slate-900 truncate">ನಮಸ್ಕಾರ, ' + esc(p.name) + ' 🙏</h2>' +
+        '<button type="button" id="wy-dash-reload" title="ನವೀಕರಿಸಿ" class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 font-black shrink-0">🔄</button></div>' +
+        '<div class="grid grid-cols-2 gap-2"><button type="button" onclick="navigateToSection(\'generator\')" class="py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-sm shadow">✍️ ಪತ್ರಿಕೆ ರಚಿಸಿ</button>' +
+        '<button type="button" onclick="wyOpenCart()" class="relative py-3 rounded-2xl bg-slate-900 text-white font-black text-sm shadow">🛒 ಕಾರ್ಟ್ <span class="wy-cart-n absolute -top-2 -right-1 min-w-[22px] h-[22px] px-1 rounded-full bg-rose-600 text-white text-[11px] flex items-center justify-center"></span></button></div>' +
+        (pills.length ? '<div class="flex flex-wrap gap-2 text-[11px] font-black">' + pills.join('') + '</div>' : '') +
+        (mine.length ? '<div class="space-y-1.5"><div class="text-xs font-black text-slate-500">🎫 ನನ್ನ ಪ್ಯಾಕ್‌ಗಳು</div>' + mine.map(function (k) {
+          return '<div class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-emerald-50 text-xs"><span class="font-black text-emerald-900 truncate">✅ ' + esc(packLabel(k)) + '</span><span class="font-bold text-emerald-700 shrink-0">' + dmy(MEM.packs[k]) + ' ವರೆಗೆ</span></div>';
+        }).join('') + '</div>' : '') +
+      '</div>' +
+      masterTable() +
+      '<div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-5" id="wy-picker-card"><h3 class="text-base font-black text-slate-900">📚 ಯಾವ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಬೇಕು?</h3><div id="wy-catalog" class="space-y-5">' + picker() + '</div></div>' +
+      '<div class="grid grid-cols-3 gap-2 text-center">' + [['👆', 'ವಿಷಯ ಆರಿಸಿ "ಕಾರ್ಟ್‌ಗೆ" ಒತ್ತಿ'], ['📲', 'ಕಾರ್ಟ್‌ನಲ್ಲಿ UPI ಮೂಲಕ ಹಣ ಕಳುಹಿಸಿ'], ['✅', 'ಪರಿಶೀಲಿಸಿ ' + validityText() + 'ಕ್ಕೆ ತೆರೆಯುತ್ತೇವೆ']].map(function (x, i) {
+        return '<div class="p-3 rounded-2xl bg-slate-50 border border-slate-200"><div class="text-xl">' + x[0] + '</div><div class="text-[11px] font-bold text-slate-600 leading-snug">' + (i + 1) + '. ' + x[1] + '</div></div>';
+      }).join('') + '</div>' +
+      priceList() +
+      '<div class="text-center"><button type="button" onclick="logoutAnyUser()" class="px-4 py-2 rounded-xl text-slate-500 text-xs font-black hover:text-rose-600">⏻ Logout</button></div>' +
       '</div>';
     bindDash(v);
     renderCartBadges();
@@ -24640,21 +24713,26 @@ function wyStrongKeyPart() {
   }
   // ಒಂದೇ ಕ್ಲಿಕ್ ಕೇಳುಗ (ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ + ಲಾಕ್ ಬ್ಯಾನರ್)
   document.addEventListener('click', function (e) {
-    var t = e.target.closest && e.target.closest('[data-add],[data-dtab],[data-open]'); if (!t) return;
+    var t = e.target.closest && e.target.closest('[data-add],[data-dtab],[data-open],[data-dcls],[data-mt]'); if (!t) return;
+    if (t.dataset.mt) {
+      DS.tab = t.dataset.mt.split(':')[0]; DS.cls = +t.dataset.mt.split(':')[1]; lsSet('wy_dash_med', DS.tab); lsSet('wy_dash_cls', DS.cls);
+      var pc = $('wy-catalog'); if (pc) { pc.innerHTML = picker(); $('wy-picker-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      return;
+    }
+    if (t.dataset.dcls) { DS.cls = +t.dataset.dcls; lsSet('wy_dash_cls', DS.cls); var cc = $('wy-catalog'); if (cc) cc.innerHTML = picker(); return; }
     if (t.dataset.add) { window.wyCartAdd(t.dataset.add); return; }
-    if (t.dataset.dtab) { DS.tab = t.dataset.dtab; lsSet('wy_dash_med', DS.tab); var c = $('wy-catalog'); if (c) c.innerHTML = catalog(); return; }
+    if (t.dataset.dtab) { DS.tab = t.dataset.dtab; lsSet('wy_dash_med', DS.tab); var c = $('wy-catalog'); if (c) c.innerHTML = picker(); return; }
     if (t.dataset.open) openInGenerator(t.dataset.open);
   }, true);
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-pbc]'); if (!b || b.disabled) return;
     var c = +b.dataset.pbc, i = PB.sc.indexOf(c);
     if (i === -1) PB.sc.push(c); else PB.sc.splice(i, 1);
-    fixPB(); var w = $('wy-packs'); if (w) w.innerHTML = packCards();
+    fixPB(); rerenderPacks();
   }, true);
   window.wyPickSubjectTeacher = function (m, c, s) {
     PB.m = m; PB.ss = s; PB.sc = [+c]; fixPB();
-    try { navigateToSection('dashboard'); } catch (e) {}
-    setTimeout(function () { var w = $('wy-packs'); if (w) { w.innerHTML = packCards(); var card = w.querySelector('[data-pb-card="st"]'); (card || w).scrollIntoView({ behavior: 'smooth', block: 'center' }); } toast('ನೀವು ಬೋಧಿಸುವ ಇನ್ನೂ ತರಗತಿಗಳನ್ನು ಆರಿಸಿ, ನಂತರ "ಕಾರ್ಟ್‌ಗೆ" ಒತ್ತಿ.'); }, 300);
+    window.wyOpenPackBuilder('st');
   };
   document.addEventListener('change', function (e) {
     var key = e.target && e.target.dataset && e.target.dataset.pb; if (!key) return;
@@ -24662,7 +24740,7 @@ function wyStrongKeyPart() {
     if (key === 'c') PB.g = (+PB.c <= 5) ? 'p' : (+PB.c <= 7 ? 'u' : (PB.g === 'u' && +PB.c === 8 ? 'u' : 'h'));
     if (key === 'g' && STAGES[PB.g].c.indexOf(+PB.c) === -1) PB.c = STAGES[PB.g].c[0];
     fixPB();
-    var w = $('wy-packs'); if (w) w.innerHTML = packCards();
+    rerenderPacks();
   });
   function openInGenerator(item) {
     var p = item.split(':');
@@ -24711,16 +24789,14 @@ function wyStrongKeyPart() {
     var e = examById(p[1]); return e ? e.name : p[1];
   }
   function lockOptions(item) {
-    return packsFor(item).filter(function (k) { return !/^all:/.test(k) || k === 'all:' + (item.split(':')[1] === 'en' ? 'en' : 'kn'); })
-      .slice(0, 6).map(function (k) {
-        var inCart = cartGet().some(function (a) { return covers(a, k); });
-        return '<button type="button" ' + (inCart ? 'onclick="wyOpenCart()"' : 'data-add="' + k + '"') + ' class="text-left p-2.5 rounded-xl border ' + (inCart ? 'border-indigo-300 bg-indigo-50' : 'border-slate-200 bg-white hover:border-emerald-500') + '">' +
-          '<div class="text-[11px] font-black text-slate-900">' + esc(packKind(k)) + ' <span class="text-emerald-700">' + rupee(priceOf(k)) + '</span></div>' +
-          '<div class="text-[10px] font-bold text-slate-500 leading-tight">' + (inCart ? '🛒 ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ' : esc(packTitle(k))) + '</div></button>';
-      }).join('') + (item.split(':')[0] === 'r' ? (function () { var p = item.split(':');
-        return '<button type="button" onclick="wyPickSubjectTeacher(\'' + p[1] + '\',' + p[2] + ',\'' + p[3] + '\')" class="text-left p-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:border-emerald-500">' +
-          '<div class="text-[11px] font-black text-slate-900">ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್ <span class="text-emerald-700">' + rupee(PRICES.st) + '</span></div>' +
-          '<div class="text-[10px] font-bold text-slate-500 leading-tight">' + esc(SUBJ[p[3]]) + ' — ಇದೂ ಸೇರಿ ಯಾವುದೇ ' + (+PRICES.stn || 3) + ' ತರಗತಿ</div></button>'; })() : '');
+    var p = item.split(':');
+    var ks = p[0] === 'r' ? ['sub:' + p[1] + ':' + p[2] + ':' + p[3], 'cls:' + p[1] + ':' + p[2]] : p[0] === 'n' ? ['nmms:' + p[1], 'nmms'] : ['ent:' + p[1], 'cmp'];
+    var names = p[0] === 'r' ? ['ಈ ವಿಷಯ ಮಾತ್ರ', 'ಈ ತರಗತಿಯ ಎಲ್ಲಾ ವಿಷಯ'] : p[0] === 'n' ? ['ಈ ಪತ್ರಿಕೆ ಮಾತ್ರ', 'GMAT + SAT ಎರಡೂ'] : ['ಈ ಪರೀಕ್ಷೆ ಮಾತ್ರ', 'ಎಲ್ಲಾ ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆ'];
+    return ks.map(function (k, i) {
+      var inCart = cartGet().some(function (a) { return covers(a, k); });
+      return '<button type="button" ' + (inCart ? 'onclick="wyOpenCart()"' : 'data-add="' + k + '"') + ' class="text-left p-3 rounded-xl border-2 ' + (inCart ? 'border-indigo-300 bg-indigo-50 text-slate-900' : 'border-white/20 bg-white text-slate-900 hover:border-emerald-400') + '">' +
+        '<div class="text-xs font-black">' + names[i] + '</div><div class="text-base font-black text-emerald-700">' + (inCart ? '🛒 ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ' : rupee(priceOf(k))) + '</div></button>';
+    }).join('');
   }
   function updateLockBanner() {
     var host = $('cfg-subject'); if (!host) return;
@@ -24743,7 +24819,8 @@ function wyStrongKeyPart() {
       '<div class="text-[11px] font-bold text-slate-300">' + (pend ? '⏳ ನಿಮ್ಮ ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ. ತೆರೆದ ತಕ್ಷಣ ಇಲ್ಲಿ ✅ ಆಗುತ್ತದೆ.' :
         (trialLeft() ? '🎁 ' + trialLeft() + ' ಉಚಿತ ಪ್ರಯೋಗ ಬಾಕಿ — "ರಚಿಸಿ" ಒತ್ತಿದರೆ SAMPLE ಗುರುತಿನೊಂದಿಗೆ ಪತ್ರಿಕೆ ಬರುತ್ತದೆ.' : 'ಉಚಿತ ಪ್ರಯೋಗ ಮುಗಿದಿದೆ. ಕೆಳಗಿನ ಯಾವುದಾದರೂ ಪ್ಯಾಕ್ ಆಯ್ಕೆ ಮಾಡಿ.')) + '</div></div></div>' +
       (available(it) ? '' : '<div class="text-[11px] font-bold text-amber-300">ಈ ವಿಷಯದ ಪ್ರಶ್ನೆಗಳು ಇನ್ನೂ ಸೇರ್ಪಡೆಯಾಗುತ್ತಿವೆ.</div>') +
-      '<div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5">' + lockOptions(it) + '</div>' +
+      '<div class="grid grid-cols-2 gap-2">' + lockOptions(it) + '</div>' +
+      (it.split(':')[0] === 'r' ? '<p class="text-[11px] font-bold text-slate-300">ಒಂದೇ ವಿಷಯ 2–3 ತರಗತಿಗೆ? <button type="button" onclick="wyPickSubjectTeacher(\'' + it.split(':')[1] + '\',' + it.split(':')[2] + ',\'' + it.split(':')[3] + '\')" class="underline text-emerald-300 font-black">ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್ ' + rupee(PRICES.st) + '</button> · <button type="button" onclick="navigateToSection(\'dashboard\')" class="underline text-slate-200">ಇತರ ಆಯ್ಕೆಗಳು</button></p>' : '') +
       '<button type="button" onclick="wyOpenCart()" class="w-full py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-black">🛒 ಕಾರ್ಟ್ ನೋಡಿ (<span class="wy-cart-n"></span>)</button></div>';
     renderCartBadges();
   }

@@ -25183,6 +25183,184 @@ function wyStrongKeyPart() {
     }
   }, true);
 })();
+
+// =========================================================================
+// 🎨 ನಲಿಕಲಿ (1–3ನೇ ತರಗತಿ) ಚಟುವಟಿಕೆ ಪ್ರಶ್ನೆಗಳು — ಹೆಚ್ಚು ಜಾಗ, ದೊಡ್ಡ ಚಿತ್ರ
+// JSON ನಲ್ಲಿ "activity" ಕೊಟ್ಟರೆ ಮಾತ್ರ ಬಳಕೆ (ಇಲ್ಲದಿದ್ದರೆ ಹಳೆಯಂತೆಯೇ):
+//   copy · letters · picword · picmatch · color · draw · circle · count
+// =========================================================================
+(function installNalikaliActivities() {
+  var RAW_BASE = 'https://raw.githubusercontent.com/withyou00/withyouqbank/main/';
+  var KN = ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯'];
+  function kn(n) { return String(n).replace(/\d/g, function (d) { return KN[d]; }); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function isUrl(s) { s = String(s || '').trim(); return /^https?:\/\//i.test(s) || /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(s) || /^images\//i.test(s); }
+  function imgUrl(s) {
+    s = String(s || '').trim();
+    var md = s.match(/!?\[[^\]]*\]\(([^)\s]+)\)/); if (md) s = md[1];
+    if (/^\/\//.test(s)) s = 'https:' + s;
+    if (/^http:\/\//i.test(s)) s = s.replace(/^http:/i, 'https:');
+    if (!/^https?:\/\//i.test(s)) s = RAW_BASE + s.replace(/^\/+/, '');
+    if (/(blogger\.googleusercontent\.com|bp\.blogspot\.com)/i.test(s)) s = s.replace(/\/s\d{2,3}(-c)?\//, '/s1600/');
+    var drv = s.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]{10,})/i);
+    if (drv) s = 'https://drive.google.com/thumbnail?id=' + drv[1] + '&sz=w1600';
+    return s.replace(/ /g, '%20');
+  }
+  function img(s, cls) { return '<img src="' + esc(imgUrl(s)) + '" class="' + (cls || 'wyk-img') + '" alt="" loading="eager">'; }
+  function cell(v, cls) { return isUrl(v) ? img(v, cls) : '<span class="wyk-word">' + esc(v) + '</span>'; }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function isEnglishPaper(rawSubj) { return /english/i.test(rawSubj || '') || (document.getElementById('cfg-medium') || {}).value === 'english_medium'; }
+  function lineHtml(en) { return en ? '<div class="wyk-4line"><i></i><i></i><i></i></div>' : '<div class="wyk-2line"></div>'; }
+  function list(v) { return Array.isArray(v) ? v : (v == null || v === '' ? [] : [v]); }
+
+  // ---------- ಪ್ರತಿ ಚಟುವಟಿಕೆಯ ಒಳಭಾಗ ----------
+  var R = {
+    copy: function (it, en) {
+      var words = list(it.words), n = Math.max(1, Math.min(4, +it.lines || 2));
+      var long = words.some(function (w) { return String(w).trim().split(/\s+/).length > 2; });
+      return '<div class="wyk-grid ' + (long ? 'wyk-cols-1' : 'wyk-cols-2') + '">' + words.map(function (w, i) {
+        var rows = ''; for (var k = 0; k < n; k++) rows += lineHtml(en);
+        return '<div class="wyk-copy"><div class="wyk-copy-word">' + (long ? kn(i + 1) + '. ' : '') + esc(w) + '</div>' + rows + '</div>';
+      }).join('') + '</div>';
+    },
+    letters: function (it) {
+      var t = Math.max(0, Math.min(6, it.trace == null ? 3 : +it.trace)), b = Math.max(0, Math.min(6, it.boxes == null ? 3 : +it.boxes));
+      return list(it.letters).map(function (L) {
+        var s = '<div class="wyk-letter-row"><span class="wyk-letter">' + esc(L) + '</span>';
+        for (var i = 0; i < t; i++) s += '<span class="wyk-letter wyk-trace">' + esc(L) + '</span>';
+        for (var j = 0; j < b; j++) s += '<span class="wyk-letter wyk-empty"></span>';
+        return s + '</div>';
+      }).join('');
+    },
+    picword: function (it, en) {
+      var items = list(it.items), help = list(it.help);
+      return (help.length ? '<div class="wyk-help">( ' + shuffle(help).map(esc).join(' , ') + ' )</div>' : '') +
+        '<div class="wyk-grid wyk-cols-' + (items.length === 4 ? 4 : 3) + '">' + items.map(function (x, i) {
+          return '<div class="wyk-card"><div class="wyk-num">' + kn(i + 1) + '</div><div class="wyk-imgbox">' + img(x.img || x.image || x.q) + '</div>' + lineHtml(en) + '</div>';
+        }).join('') + '</div>';
+    },
+    picmatch: function (it) {
+      var pairs = list(it.pairs).map(function (p) { return { a: p.img || p.a || p.left, b: p.word || p.b || p.right }; });
+      var right = shuffle(pairs.map(function (p) { return p.b; }));
+      return '<table class="wyk-match"><tbody>' + pairs.map(function (p, i) {
+        return '<tr><td class="wyk-m-l"><span class="wyk-m-in">' + kn(i + 1) + '. ' + cell(p.a, 'wyk-img wyk-img-m') + '</span></td><td class="wyk-m-dot">●</td><td class="wyk-m-gap"></td><td class="wyk-m-dot">●</td><td class="wyk-m-r">' + cell(right[i], 'wyk-img wyk-img-m') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    },
+    color: function (it) {
+      var h = Math.max(40, Math.min(200, +it.height || 95));
+      return '<div class="wyk-bigbox" style="height:' + h + 'mm">' + (it.img ? img(it.img, 'wyk-img-big') : '') + '</div>';
+    },
+    draw: function (it) {
+      var h = Math.max(30, Math.min(200, +it.height || 70));
+      return (it.img ? '<div class="wyk-example">ಉದಾಹರಣೆ: ' + img(it.img, 'wyk-img wyk-img-s') + '</div>' : '') + '<div class="wyk-bigbox" style="height:' + h + 'mm"></div>';
+    },
+    circle: function (it) {
+      return list(it.rows).map(function (r, i) {
+        return '<div class="wyk-circle-row"><div class="wyk-circle-q">' + kn(i + 1) + '. ' + esc(r.q || '') + '</div><div class="wyk-circle-opts">' +
+          list(r.options).map(function (o) { return '<span class="wyk-opt">' + cell(o, 'wyk-img wyk-img-m') + '</span>'; }).join('') + '</div></div>';
+      }).join('');
+    },
+    count: function (it) {
+      return '<div class="wyk-grid wyk-cols-2">' + list(it.items).map(function (x, i) {
+        var n = Math.max(1, Math.min(20, +x.n || +x.ans || 1)), pics = '';
+        for (var k = 0; k < n; k++) pics += img(x.img, 'wyk-img wyk-img-c');
+        return '<div class="wyk-count"><div class="wyk-num">' + kn(i + 1) + '</div><div class="wyk-count-pics">' + pics + '</div><span class="wyk-letter wyk-empty"></span></div>';
+      }).join('') + '</div>';
+    }
+  };
+  var DEFAULT_Q = {
+    copy: 'ಸುಂದರವಾಗಿ ನಕಲು ಮಾಡಿ ಬರೆ', letters: 'ಅಕ್ಷರಗಳನ್ನು ತಿದ್ದಿ ಬರೆ', picword: 'ಚಿತ್ರ ನೋಡಿ ಹೆಸರು ಬರೆ', picmatch: 'ಚಿತ್ರ ಮತ್ತು ಪದವನ್ನು ಗೆರೆ ಎಳೆದು ಹೊಂದಿಸು',
+    color: 'ಚಿತ್ರಕ್ಕೆ ಬಣ್ಣ ತುಂಬು', draw: 'ಚಿತ್ರ ಬಿಡಿಸು', circle: 'ಸರಿಯಾದದ್ದಕ್ಕೆ ಸುತ್ತು ಹಾಕು', count: 'ಎಣಿಸಿ ಸಂಖ್ಯೆ ಬರೆ'
+  };
+  function actOf(it) { var a = String((it && it.activity) || '').toLowerCase().trim(); return R[a] ? a : ''; }
+  function autoAns(it) {
+    var a = actOf(it);
+    if (it.ans) return it.ans;
+    if (a === 'picword' || a === 'count') return list(it.items).map(function (x, i) { return kn(i + 1) + '. ' + (x.ans != null ? x.ans : x.n); }).join(', ');
+    if (a === 'picmatch') return list(it.pairs).map(function (p, i) { return kn(i + 1) + ' - ' + (p.word || p.b || p.right || ''); }).join(', ');
+    if (a === 'circle') return list(it.rows).map(function (r, i) { var o = list(r.options)[(+r.ans || 1) - 1]; return kn(i + 1) + '. ' + (o && !isUrl(o) ? o : (+r.ans || 1) + 'ನೇ ಆಯ್ಕೆ'); }).join(', ');
+    return 'ಚಟುವಟಿಕೆ ಆಧಾರಿತ — ಶಿಕ್ಷಕರು ವೀಕ್ಷಿಸಿ ಅಂಕ ನೀಡುವುದು';
+  }
+  window.wyNalikaliActivityAnswer = autoAns;
+
+  // ---------- ಶೈಲಿ ----------
+  var st = document.createElement('style');
+  st.id = 'wy-nk-activity-styles';
+  st.textContent = [
+    '.wyk-block{break-inside:avoid;page-break-inside:avoid}',
+    '.wyk-grid{display:grid;gap:4mm 6mm;margin-top:2mm}.wyk-cols-1{grid-template-columns:1fr}.wyk-cols-2{grid-template-columns:1fr 1fr}.wyk-cols-3{grid-template-columns:repeat(3,1fr)}.wyk-cols-4{grid-template-columns:repeat(4,1fr)}',
+    '.wyk-copy-word{font-size:16pt;font-weight:900;margin-bottom:1mm}',
+    '.wyk-2line{height:12mm;border-top:1.6px solid #000;border-bottom:1.6px solid #000;margin:1.5mm 0 3mm;background:#fafafa}',
+    '.wyk-4line{height:13mm;position:relative;margin:1.5mm 0 3mm;border-top:1px solid #000;border-bottom:1.6px solid #000}.wyk-4line i{position:absolute;left:0;right:0;border-top:1px dashed #64748b}.wyk-4line i:nth-child(1){top:33%}.wyk-4line i:nth-child(2){top:66%;border-top:1.4px solid #dc2626}.wyk-4line i:nth-child(3){display:none}',
+    '.wyk-letter-row{display:flex;flex-wrap:wrap;gap:3mm;align-items:center;margin:2.5mm 0}',
+    '.wyk-letter{width:17mm;height:17mm;display:inline-flex;align-items:center;justify-content:center;font-size:30pt;font-weight:900;border:1.6px solid #000;border-radius:2mm;line-height:1}',
+    '.wyk-trace{color:#cbd5e1;border-style:dashed}.wyk-empty{border-style:solid;background:#fff}',
+    '.wyk-help{margin:1mm 0 2mm;padding:1.5mm 3mm;border:1.4px dashed #000;border-radius:2mm;font-size:13pt;font-weight:900;text-align:center}',
+    '.wyk-card{border:1.4px solid #000;border-radius:3mm;padding:2mm;position:relative}.wyk-num{font-size:11pt;font-weight:900}',
+    '.wyk-imgbox{height:30mm;display:flex;align-items:center;justify-content:center}.wyk-img{max-height:28mm;max-width:100%;object-fit:contain}',
+    '.wyk-match{width:100%;border-collapse:collapse;margin-top:2mm}.wyk-match td{padding:2.5mm 1mm;vertical-align:middle}.wyk-m-l{width:34%;font-weight:900;font-size:13pt}.wyk-m-r{width:34%;font-weight:900;font-size:14pt}.wyk-m-dot{width:5mm;font-size:12pt;text-align:center}.wyk-m-gap{width:auto}',
+    '.wyk-m-in{display:inline-flex;align-items:center;gap:2mm}.wyk-img-m{max-height:22mm;max-width:38mm;vertical-align:middle}.wyk-word{font-size:15pt;font-weight:900}',
+    '.wyk-bigbox{border:1.8px solid #000;border-radius:3mm;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-top:2mm}.wyk-img-big{max-width:96%;max-height:96%;object-fit:contain;filter:grayscale(1) contrast(1.2)}',
+    '.wyk-example{font-size:11pt;font-weight:800;display:flex;align-items:center;gap:2mm}.wyk-img-s{max-height:18mm}',
+    '.wyk-circle-row{display:flex;flex-wrap:wrap;align-items:center;gap:3mm;margin:3mm 0;padding-bottom:2mm;border-bottom:1px dashed #94a3b8}.wyk-circle-q{font-size:13pt;font-weight:900;min-width:45%}.wyk-circle-opts{display:flex;gap:6mm;flex-wrap:wrap}.wyk-opt{padding:2mm 3mm}',
+    '.wyk-count{display:flex;align-items:center;gap:3mm;border:1.4px solid #000;border-radius:3mm;padding:2mm}.wyk-count-pics{flex:1;display:flex;flex-wrap:wrap;gap:1.5mm}.wyk-img-c{max-height:11mm;max-width:11mm}',
+    '@media print{.wyk-trace{color:#cbd5e1 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.wyk-4line i:nth-child(2){-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
+  ].join('\n');
+  document.head.appendChild(st);
+
+  // ---------- ಹಳೆಯ ನಲಿಕಲಿ ರೆಂಡರರ್‌ನ ಮೇಲೆ ----------
+  var prevW = window.renderDedicatedNalikaliWorksheet;
+  if (typeof prevW === 'function') {
+    window.renderDedicatedNalikaliWorksheet = function (allQuestions, actualMarks, rawSubj, grade) {
+      var r = prevW.apply(this, arguments);
+      try {
+        if (!(allQuestions || []).some(actOf)) return r;
+        var paper = document.getElementById('rendered-paper'); if (!paper) return r;
+        var blocks = paper.querySelectorAll('.nk-section-block');
+        if (blocks.length !== allQuestions.length) return r;
+        var en = isEnglishPaper(rawSubj);
+        allQuestions.forEach(function (it, i) {
+          var a = actOf(it); if (!a) return;
+          var b = blocks[i], roman = (b.querySelector('.nk-section-title b') || {}).textContent || (i + 1) + '.';
+          var marks = +it.marks || 0;
+          b.classList.add('wyk-block');
+          b.innerHTML = '<div class="nk-section-head"><span class="nk-section-title"><b>' + esc(roman) + '</b> ' + esc(String(it.q || DEFAULT_Q[a]).split('\n')[0]) + '</span>' +
+            '<span class="nk-section-marks">' + (en ? marks + ' Marks' : kn(marks) + ' ಅಂಕ') + '</span></div>' + R[a](it, en);
+        });
+      } catch (e) { console.warn('nalikali activity render', e); }
+      return r;
+    };
+  }
+  var prevK = window.renderDedicatedNalikaliKeyAnswers;
+  if (typeof prevK === 'function') {
+    window.renderDedicatedNalikaliKeyAnswers = function (allQuestions) {
+      var args = Array.prototype.slice.call(arguments);
+      try {
+        args[0] = (allQuestions || []).map(function (it) {
+          if (!actOf(it)) return it;
+          return Object.assign({}, it, { type: 'vsa_1m', q: String(it.q || DEFAULT_Q[actOf(it)]).split('\n')[0], ans: autoAns(it) });
+        });
+      } catch (e) {}
+      var r = prevK.apply(this, args);
+      try {
+        if (!(allQuestions || []).some(actOf)) return r;
+        var key = document.getElementById('rendered-key');
+        var secs = key ? Array.prototype.filter.call(key.querySelectorAll('div'), function (d) { return /1\.5px solid (rgb\(203, 213, 225\)|#cbd5e1)/i.test(d.getAttribute('style') || '') && /margin-bottom: 8px/.test(d.getAttribute('style') || ''); }) : [];
+        if (secs.length === allQuestions.length) allQuestions.forEach(function (it, i) {
+          if (!actOf(it)) return;
+          var sec = secs[i], hd = sec.firstElementChild, spans = hd ? hd.querySelectorAll('span, b') : [];
+          if (spans.length) spans[spans.length - 1].textContent = kn(+it.marks || 0) + ' ಅಂಕ';
+          while (hd && hd.nextSibling) sec.removeChild(hd.nextSibling);
+          var d = document.createElement('div');
+          d.setAttribute('style', 'font-size:11pt;font-weight:700;color:#0f172a;padding:4px 6px;');
+          d.textContent = autoAns(it);
+          sec.appendChild(d);
+        });
+      } catch (e) {}
+      return r;
+    };
+  }
+})();
 </script>
 </body>
 </html>

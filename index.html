@@ -427,6 +427,7 @@
 
     function isMatchQuestion(q) {
       if (!q) return false;
+      if (q.activity) return false;   // ನಲಿಕಲಿ ಚಟುವಟಿಕೆಗಳು (picmatch) 'ಹೊಂದಿಸಿ ಬರೆಯಿರಿ' ಅಲ್ಲ
       const t = String(q.type || '').toLowerCase().trim();
       if (t === 'match' || t === 'matching' || t === 'match_the_following' || t.includes('ಹೊಂದಿಸಿ') || t.includes('ಜೋಡಿಸಿ')) return true;
       if (Array.isArray(q.matchPairs) && q.matchPairs.length > 0) return true;
@@ -25193,6 +25194,8 @@ function wyStrongKeyPart() {
   var RAW_BASE = 'https://raw.githubusercontent.com/withyou00/withyouqbank/main/';
   var KN = ['೦', '೧', '೨', '೩', '೪', '೫', '೬', '೭', '೮', '೯'];
   function kn(n) { return String(n).replace(/\d/g, function (d) { return KN[d]; }); }
+  var EN_NUM = false;   // English ಪತ್ರಿಕೆಯಲ್ಲಿ 1, 2, 3 ಸಂಖ್ಯೆಗಳು
+  function nn(n) { return EN_NUM ? String(n) : kn(n); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function isUrl(s) { s = String(s || '').trim(); return /^https?:\/\//i.test(s) || /\.(png|jpe?g|webp|gif|svg)(\?.*)?$/i.test(s) || /^images\//i.test(s); }
   function imgUrl(s) {
@@ -25206,8 +25209,39 @@ function wyStrongKeyPart() {
     if (drv) s = 'https://drive.google.com/thumbnail?id=' + drv[1] + '&sz=w1600';
     return s.replace(/ /g, '%20');
   }
-  function img(s, cls) { return '<img src="' + esc(imgUrl(s)) + '" class="' + (cls || 'wyk-img') + '" alt="" loading="eager">'; }
-  function cell(v, cls) { return isUrl(v) ? img(v, cls) : '<span class="wyk-word">' + esc(v) + '</span>'; }
+  // ಸಿದ್ಧ ರೇಖಾಚಿತ್ರಗಳು (ಬಣ್ಣ ತುಂಬಲು / ಆಕಾರ ಗುರುತಿಸಲು): "shape:star" ಇತ್ಯಾದಿ
+  var SH = {
+    circle: '<circle cx="50" cy="50" r="40"/>',
+    square: '<rect x="12" y="12" width="76" height="76"/>',
+    rectangle: '<rect x="5" y="25" width="90" height="50"/>',
+    triangle: '<polygon points="50,8 92,88 8,88"/>',
+    star: '<polygon points="50,6 61,38 95,38 67,58 78,92 50,71 22,92 33,58 5,38 39,38"/>',
+    heart: '<path d="M50 88 C10 60 5 35 20 20 C33 8 47 14 50 28 C53 14 67 8 80 20 C95 35 90 60 50 88 Z"/>',
+    house: '<polygon points="50,8 92,45 8,45"/><rect x="18" y="45" width="64" height="47"/><rect x="42" y="62" width="16" height="30"/><rect x="24" y="54" width="12" height="12"/><rect x="64" y="54" width="12" height="12"/>',
+    tree: '<rect x="43" y="62" width="14" height="32"/><circle cx="50" cy="38" r="28"/>',
+    sun: '<circle cx="50" cy="50" r="20"/><path d="M50 5v15M50 80v15M5 50h15M80 50h15M18 18l11 11M71 71l11 11M18 82l11-11M71 29l11-11"/>',
+    flower: '<circle cx="50" cy="30" r="12"/><circle cx="68" cy="42" r="12"/><circle cx="62" cy="62" r="12"/><circle cx="38" cy="62" r="12"/><circle cx="32" cy="42" r="12"/><circle cx="50" cy="48" r="9"/>',
+    fish: '<ellipse cx="45" cy="50" rx="32" ry="20"/><polygon points="76,50 95,32 95,68"/><circle cx="28" cy="45" r="3"/>',
+    apple: '<path d="M50 30 C30 18 10 32 15 58 C20 85 40 92 50 85 C60 92 80 85 85 58 C90 32 70 18 50 30 Z"/><path d="M50 30 C50 20 55 12 60 8"/><path d="M52 22 C62 12 75 15 75 15 C70 25 60 26 52 22 Z"/>',
+    ball: '<circle cx="50" cy="50" r="40"/><path d="M10 50 C35 35 65 65 90 50"/><path d="M50 10 C35 35 65 65 50 90"/>',
+    kite: '<polygon points="50,5 85,45 50,85 15,45"/><path d="M50 5v80M15 45h70M50 85 C45 92 55 95 50 99"/>',
+    butterfly: '<ellipse cx="30" cy="35" rx="20" ry="18"/><ellipse cx="70" cy="35" rx="20" ry="18"/><ellipse cx="33" cy="68" rx="15" ry="14"/><ellipse cx="67" cy="68" rx="15" ry="14"/><rect x="47" y="25" width="6" height="55" rx="3"/>',
+    umbrella: '<path d="M10 50 C10 15 90 15 90 50 Z"/><path d="M50 50 v35 C50 95 38 95 38 85"/>',
+    leaf: '<path d="M15 85 C15 35 50 10 90 10 C90 55 60 85 15 85 Z"/><path d="M15 85 L70 30"/>',
+    cup: '<path d="M20 25 h50 v45 C70 85 20 85 20 70 Z"/><path d="M70 35 C90 35 90 60 70 60"/>'
+  };
+  function svgShape(name, cls) {
+    var body = SH[String(name).toLowerCase()]; if (!body) return '<span class="wyk-word">' + esc(name) + '</span>';
+    return '<svg viewBox="0 0 100 100" class="' + (cls || 'wyk-svg') + '" fill="none" stroke="#000" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round">' + body + '</svg>';
+  }
+  function isShape(v) { return /^shape:/i.test(String(v || '').trim()); }
+  function isPictureText(v) { var t = String(v || '').trim(); return t && t.length <= 24 && !/[A-Za-z\u0C80-\u0CFF0-9]/.test(t); }   // ಎಮೋಜಿ ಮಾತ್ರ
+  function img(s, cls) {
+    if (isShape(s)) return svgShape(String(s).trim().slice(6), 'wyk-svg ' + (cls || ''));
+    if (!isUrl(s)) return '<span class="wyk-emoji ' + (cls || '') + '">' + esc(s) + '</span>';
+    return '<img src="' + esc(imgUrl(s)) + '" class="' + (cls || 'wyk-img') + '" alt="" loading="eager">';
+  }
+  function cell(v, cls) { return (isUrl(v) || isShape(v) || isPictureText(v)) ? img(v, cls) : '<span class="wyk-word">' + esc(v) + '</span>'; }
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function isEnglishPaper(rawSubj) { return /english/i.test(rawSubj || '') || (document.getElementById('cfg-medium') || {}).value === 'english_medium'; }
   function lineHtml(en) { return en ? '<div class="wyk-4line"><i></i><i></i><i></i></div>' : '<div class="wyk-2line"></div>'; }
@@ -25220,7 +25254,7 @@ function wyStrongKeyPart() {
       var long = words.some(function (w) { return String(w).trim().split(/\s+/).length > 2; });
       return '<div class="wyk-grid ' + (long ? 'wyk-cols-1' : 'wyk-cols-2') + '">' + words.map(function (w, i) {
         var rows = ''; for (var k = 0; k < n; k++) rows += lineHtml(en);
-        return '<div class="wyk-copy"><div class="wyk-copy-word">' + (long ? kn(i + 1) + '. ' : '') + esc(w) + '</div>' + rows + '</div>';
+        return '<div class="wyk-copy"><div class="wyk-copy-word">' + (long ? nn(i + 1) + '. ' : '') + esc(w) + '</div>' + rows + '</div>';
       }).join('') + '</div>';
     },
     letters: function (it) {
@@ -25236,17 +25270,23 @@ function wyStrongKeyPart() {
       var items = list(it.items), help = list(it.help);
       return (help.length ? '<div class="wyk-help">( ' + shuffle(help).map(esc).join(' , ') + ' )</div>' : '') +
         '<div class="wyk-grid wyk-cols-' + (items.length === 4 ? 4 : 3) + '">' + items.map(function (x, i) {
-          return '<div class="wyk-card"><div class="wyk-num">' + kn(i + 1) + '</div><div class="wyk-imgbox">' + img(x.img || x.image || x.q) + '</div>' + lineHtml(en) + '</div>';
+          return '<div class="wyk-card"><div class="wyk-num">' + nn(i + 1) + '</div><div class="wyk-imgbox">' + img(x.img || x.image || x.q) + '</div>' + lineHtml(en) + '</div>';
         }).join('') + '</div>';
     },
     picmatch: function (it) {
       var pairs = list(it.pairs).map(function (p) { return { a: p.img || p.a || p.left, b: p.word || p.b || p.right }; });
       var right = shuffle(pairs.map(function (p) { return p.b; }));
       return '<table class="wyk-match"><tbody>' + pairs.map(function (p, i) {
-        return '<tr><td class="wyk-m-l"><span class="wyk-m-in">' + kn(i + 1) + '. ' + cell(p.a, 'wyk-img wyk-img-m') + '</span></td><td class="wyk-m-dot">●</td><td class="wyk-m-gap"></td><td class="wyk-m-dot">●</td><td class="wyk-m-r">' + cell(right[i], 'wyk-img wyk-img-m') + '</td></tr>';
+        return '<tr><td class="wyk-m-l"><span class="wyk-m-in">' + nn(i + 1) + '. ' + cell(p.a, 'wyk-img wyk-img-m') + '</span></td><td class="wyk-m-dot">●</td><td class="wyk-m-gap"></td><td class="wyk-m-dot">●</td><td class="wyk-m-r">' + cell(right[i], 'wyk-img wyk-img-m') + '</td></tr>';
       }).join('') + '</tbody></table>';
     },
     color: function (it) {
+      if (list(it.shapes).length) {
+        return '<div class="wyk-grid wyk-cols-' + (list(it.shapes).length === 1 ? 1 : list(it.shapes).length >= 3 ? 3 : 2) + '">' + list(it.shapes).map(function (sh) {
+          var nm = typeof sh === 'string' ? sh : sh.shape, lbl = typeof sh === 'string' ? '' : (sh.label || '');
+          return '<div class="wyk-card wyk-colorcard">' + svgShape(nm, 'wyk-svg-big') + (lbl ? '<div class="wyk-color-lbl">' + esc(lbl) + '</div>' : '') + '</div>';
+        }).join('') + '</div>';
+      }
       var h = Math.max(40, Math.min(200, +it.height || 95));
       return '<div class="wyk-bigbox" style="height:' + h + 'mm">' + (it.img ? img(it.img, 'wyk-img-big') : '') + '</div>';
     },
@@ -25256,7 +25296,7 @@ function wyStrongKeyPart() {
     },
     circle: function (it) {
       return list(it.rows).map(function (r, i) {
-        return '<div class="wyk-circle-row"><div class="wyk-circle-q">' + kn(i + 1) + '. ' + esc(r.q || '') + '</div><div class="wyk-circle-opts">' +
+        return '<div class="wyk-circle-row"><div class="wyk-circle-q">' + nn(i + 1) + '. ' + esc(r.q || '') + '</div><div class="wyk-circle-opts">' +
           list(r.options).map(function (o) { return '<span class="wyk-opt">' + cell(o, 'wyk-img wyk-img-m') + '</span>'; }).join('') + '</div></div>';
       }).join('');
     },
@@ -25264,7 +25304,7 @@ function wyStrongKeyPart() {
       return '<div class="wyk-grid wyk-cols-2">' + list(it.items).map(function (x, i) {
         var n = Math.max(1, Math.min(20, +x.n || +x.ans || 1)), pics = '';
         for (var k = 0; k < n; k++) pics += img(x.img, 'wyk-img wyk-img-c');
-        return '<div class="wyk-count"><div class="wyk-num">' + kn(i + 1) + '</div><div class="wyk-count-pics">' + pics + '</div><span class="wyk-letter wyk-empty"></span></div>';
+        return '<div class="wyk-count"><div class="wyk-num">' + nn(i + 1) + '</div><div class="wyk-count-pics">' + pics + '</div><span class="wyk-letter wyk-empty"></span></div>';
       }).join('') + '</div>';
     }
   };
@@ -25305,6 +25345,9 @@ function wyStrongKeyPart() {
     '.wyk-match{width:100%;border-collapse:collapse;margin-top:2mm}.wyk-match td{padding:2.5mm 1mm;vertical-align:middle}.wyk-m-l{width:34%;font-weight:900;font-size:13pt}.wyk-m-r{width:34%;font-weight:900;font-size:14pt}.wyk-m-dot{width:5mm;font-size:12pt;text-align:center}.wyk-m-gap{width:auto}',
     '.wyk-m-in{display:inline-flex;align-items:center;gap:2mm}.wyk-img-m{max-height:22mm;max-width:38mm;vertical-align:middle}.wyk-word{font-size:15pt;font-weight:900}',
     '.wyk-bigbox{border:1.8px solid #000;border-radius:3mm;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-top:2mm}.wyk-img-big{max-width:96%;max-height:96%;object-fit:contain;filter:grayscale(1) contrast(1.2)}',
+    '.wyk-emoji{font-size:30pt;line-height:1.1;display:inline-block}.wyk-img-c.wyk-emoji{font-size:16pt}.wyk-img-m.wyk-emoji{font-size:26pt}',
+    '.wyk-svg{width:20mm;height:20mm;display:inline-block;vertical-align:middle}.wyk-svg.wyk-img-c{width:9mm;height:9mm}.wyk-svg-big{width:100%;height:48mm;display:block}',
+    '.wyk-colorcard{text-align:center}.wyk-color-lbl{font-size:13pt;font-weight:900;margin-top:1mm}',
     '.wyk-example{font-size:11pt;font-weight:800;display:flex;align-items:center;gap:2mm}.wyk-img-s{max-height:18mm}',
     '.wyk-circle-row{display:flex;flex-wrap:wrap;align-items:center;gap:3mm;margin:3mm 0;padding-bottom:2mm;border-bottom:1px dashed #94a3b8}.wyk-circle-q{font-size:13pt;font-weight:900;min-width:45%}.wyk-circle-opts{display:flex;gap:6mm;flex-wrap:wrap}.wyk-opt{padding:2mm 3mm}',
     '.wyk-count{display:flex;align-items:center;gap:3mm;border:1.4px solid #000;border-radius:3mm;padding:2mm}.wyk-count-pics{flex:1;display:flex;flex-wrap:wrap;gap:1.5mm}.wyk-img-c{max-height:11mm;max-width:11mm}',
@@ -25322,7 +25365,7 @@ function wyStrongKeyPart() {
         var paper = document.getElementById('rendered-paper'); if (!paper) return r;
         var blocks = paper.querySelectorAll('.nk-section-block');
         if (blocks.length !== allQuestions.length) return r;
-        var en = isEnglishPaper(rawSubj);
+        var en = isEnglishPaper(rawSubj); EN_NUM = en;
         allQuestions.forEach(function (it, i) {
           var a = actOf(it); if (!a) return;
           var b = blocks[i], roman = (b.querySelector('.nk-section-title b') || {}).textContent || (i + 1) + '.';

@@ -24653,35 +24653,44 @@ function wyStrongKeyPart() {
 
   // ---------- 📋 ಒಂದೇ ಮಾಸ್ಟರ್ ಕೋಷ್ಟಕ: ಎಲ್ಲಾ ತರಗತಿ × ವಿಷಯ × ಮಾಧ್ಯಮ ----------
   function masterTable() {
-    var COLS = ['kannada', 'english', 'hindi', 'mathematics', 'evs', 'science', 'social_science'];
-    var MS = [['kn', 'ಕ'], ['en', 'En'], ['bi', 'ದ್ವಿ']];
-    var cnt = { kn: 0, en: 0, bi: 0 };
-    var body = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (c) {
-      return '<tr class="border-t border-slate-100"><th class="sticky left-0 bg-white px-2 py-1.5 text-xs font-black text-slate-800 text-left whitespace-nowrap">' + c + 'ನೇ</th>' + COLS.map(function (s) {
-        if (subjectsFor(c).indexOf(s) === -1) return '<td class="px-1 py-1.5 text-center text-slate-200 text-xs">—</td>';
-        return '<td class="px-1 py-1.5"><div class="inline-flex flex-col gap-0.5">' + MS.map(function (x) {
-          if (mediaFor(c).indexOf(x[0]) === -1) return '';
-          var pr = parts(x[0], c, s); if (pr[0] || pr[1]) cnt[x[0]]++;
-          var box = function (ok, n) { return '<span class="w-5 h-5 rounded text-[10px] font-black flex items-center justify-center ' + (ok ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-300') + '">' + n + '</span>'; };
-          return '<button type="button" data-mt="' + x[0] + ':' + c + '" title="' + MEDIA[x[0]].n + ' · ' + SUBJ[s] + ' · ' + c + 'ನೇ — ಭಾಗ-1 ' + (pr[0] ? 'ಇದೆ' : 'ಇಲ್ಲ') + ', ಭಾಗ-2 ' + (pr[1] ? 'ಇದೆ' : 'ಇಲ್ಲ') + '" class="flex items-center gap-0.5 rounded-md hover:bg-emerald-50 px-0.5">' +
-            '<span class="w-6 text-[10px] font-black text-right pr-0.5 ' + (pr[0] || pr[1] ? 'text-slate-700' : 'text-slate-300') + '">' + x[1] + '</span>' + box(pr[0], 1) + box(pr[1], 2) + '</button>';
-        }).join('') + '</div></td>';
-      }).join('') + '</tr>';
-    }).join('');
-    var comp = [['n:gmat', 'NMMS GMAT'], ['n:sat', 'NMMS SAT']].concat(exams().map(function (e) { return ['e:' + e.id, e.name]; }))
-      .map(function (x) { var ok = available(x[0]); return '<span class="px-2.5 py-1 rounded-lg text-[11px] font-black ' + (ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-slate-100 text-slate-400') + '">' + (ok ? '✓ ' : '✗ ') + esc(x[1]) + '</span>'; }).join('');
-    return '<div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3" id="wy-master">' +
-      '<div class="flex flex-wrap items-end justify-between gap-2"><h3 class="text-base font-black text-slate-900">📋 ಲಭ್ಯವಿರುವ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳು — ಎಲ್ಲಾ ತರಗತಿ, ಎಲ್ಲಾ ಮಾಧ್ಯಮ</h3>' +
-      '</div>' +
-      '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-bold text-slate-600 p-3 rounded-2xl bg-slate-50 border border-slate-200">' +
-        '<div><b class="text-slate-800">ಮಾಧ್ಯಮ:</b> ಕ = ಕನ್ನಡ · En = English · ದ್ವಿ = ದ್ವಿಭಾಷಾ (1–5)</div>' +
-        '<div class="flex items-center gap-1 flex-wrap"><span class="w-5 h-5 rounded bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center">1</span> ಭಾಗ-1 (FA-1, FA-2, SA-1) &nbsp; <span class="w-5 h-5 rounded bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center">2</span> ಭಾಗ-2 (FA-3, FA-4, SA-2)</div>' +
-        '<div class="sm:col-span-2 flex items-center gap-1"><span class="w-5 h-5 rounded bg-emerald-500"></span> ಹಸಿರು = ಲಭ್ಯ &nbsp; <span class="w-5 h-5 rounded bg-slate-100 border"></span> ಬೂದು = ಇನ್ನೂ ಇಲ್ಲ &nbsp; — = ಆ ತರಗತಿಯಲ್ಲಿ ಈ ವಿಷಯ ಇಲ್ಲ</div></div>' +
-      '<p class="sm:hidden text-[10px] font-bold text-slate-400">👉 ಎಲ್ಲಾ ವಿಷಯ ನೋಡಲು ಕೋಷ್ಟಕವನ್ನು ಬದಿಗೆ ಸರಿಸಿ</p>' +
-      '<div class="overflow-x-auto -mx-2"><table class="min-w-full text-center"><thead><tr class="text-[11px] font-black text-slate-500"><th class="sticky left-0 bg-white px-2 py-1.5 text-left">ತರಗತಿ</th>' +
-      COLS.map(function (s) { return '<th class="px-1 py-1.5 whitespace-nowrap">' + SUBJ[s] + '</th>'; }).join('') + '</tr></thead><tbody>' + body + '</tbody></table></div>' +
-      '<div class="flex flex-wrap items-center gap-1.5"><span class="text-[11px] font-black text-slate-500 mr-1">🏆 ಸ್ಪರ್ಧಾತ್ಮಕ:</span>' + comp + '</div>' +
-      '<p class="text-[11px] font-bold text-slate-500">ಒಟ್ಟು ಲಭ್ಯ: ಕನ್ನಡ ಮಾಧ್ಯಮ ' + cnt.kn + ' · English ' + cnt.en + ' · ದ್ವಿಭಾಷಾ ' + cnt.bi + ' ವಿಷಯ-ತರಗತಿಗಳು. ಹಸಿರು ಗುರುತು ಒತ್ತಿದರೆ ಕೆಳಗೆ ಆ ತರಗತಿಯ ಖರೀದಿ ಭಾಗ ತೆರೆಯುತ್ತದೆ. ಹೊಸ ಪ್ರಶ್ನೆಗಳು ಸೇರಿದಂತೆ ಇದು ತಾನಾಗಿ ಬದಲಾಗುತ್ತದೆ.</p></div>';
+    var MN = { kn: 'ಕನ್ನಡ', en: 'English', bi: 'ದ್ವಿಭಾಷಾ' };
+    var ICON = { kannada: '📕', english: '📘', hindi: '📙', mathematics: '🔢', evs: '🌿', science: '🔬', social_science: '🌍' };
+    var cards = [], none = [];
+    for (var c = 1; c <= 10; c++) {
+      var rows = [];
+      subjectsFor(c).forEach(function (s) {
+        var groups = {};   // "ಭಾಗ" ಪಠ್ಯ → ಮಾಧ್ಯಮಗಳು
+        mediaFor(c).forEach(function (m) {
+          var pr = parts(m, c, s); if (!pr[0] && !pr[1]) return;
+          var t = pr[0] && pr[1] ? 'ಭಾಗ 1 ಮತ್ತು 2' : pr[0] ? 'ಭಾಗ 1' : 'ಭಾಗ 2';
+          (groups[t] = groups[t] || []).push(m);
+        });
+        var keys = Object.keys(groups); if (!keys.length) return;
+        rows.push('<div class="flex items-center justify-between gap-2 py-2"><span class="text-sm font-black text-slate-800 whitespace-nowrap">' + ICON[s] + ' ' + SUBJ[s] + '</span>' +
+          '<span class="flex flex-wrap justify-end gap-1">' + keys.map(function (t) {
+            return '<span class="px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] font-black text-emerald-800">' + t + ' · ' + groups[t].map(function (m) { return MN[m]; }).join(', ') + '</span>';
+          }).join('') + '</span></div>');
+      });
+      if (!rows.length) { none.push(c); continue; }
+      var firstM = ['kn', 'bi', 'en'].filter(function (m) { return mediaFor(c).indexOf(m) !== -1 && subjectsFor(c).some(function (s) { return available('r:' + m + ':' + c + ':' + s); }); })[0] || 'kn';
+      cards.push('<button type="button" data-mt="' + firstM + ':' + c + '" class="text-left p-4 rounded-2xl bg-white border-2 border-slate-200 hover:border-emerald-400 transition flex flex-col justify-start">' +
+        '<div class="w-full flex items-center justify-between mb-1"><span class="text-base font-black text-slate-900">' + c + 'ನೇ ತರಗತಿ</span><span class="text-[11px] font-black text-emerald-700">' + rows.length + ' ವಿಷಯ →</span></div>' +
+        '<div class="w-full divide-y divide-slate-100">' + rows.join('') + '</div></button>');
+    }
+    var comp = [['n:gmat', 'NMMS GMAT'], ['n:sat', 'NMMS SAT']].concat(exams().map(function (e) { return ['e:' + e.id, e.name]; })).filter(function (x) { return available(x[0]); });
+    if (comp.length) cards.push('<button type="button" data-dtab="cmp" class="text-left p-4 rounded-2xl bg-white border-2 border-slate-200 hover:border-emerald-400 transition flex flex-col justify-start">' +
+      '<div class="w-full flex items-center justify-between mb-1"><span class="text-base font-black text-slate-900">🏆 ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆ</span><span class="text-[11px] font-black text-emerald-700">' + comp.length + ' →</span></div>' +
+      '<div class="w-full divide-y divide-slate-100">' + comp.map(function (x) { return '<div class="py-2 text-sm font-black text-slate-800">✅ ' + esc(x[1]) + '</div>'; }).join('') + '</div></button>');
+    var enAny = regularItems(function (i) { return i.m === 'en'; }).some(available);
+    var soon = [];
+    if (none.length) soon.push(none.join(', ') + 'ನೇ ತರಗತಿ');
+    if (!enAny) soon.push('English ಮಾಧ್ಯಮ');
+    return '<div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4" id="wy-master">' +
+      '<div><h3 class="text-lg font-black text-slate-900">📋 ಈಗ ಲಭ್ಯವಿರುವ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಗಳು</h3>' +
+      '<p class="text-xs font-bold text-slate-500">ಭಾಗ 1 = FA-1, FA-2, SA-1 · ಭಾಗ 2 = FA-3, FA-4, SA-2 · ತರಗತಿ ಒತ್ತಿದರೆ ಖರೀದಿ ಭಾಗ ತೆರೆಯುತ್ತದೆ</p></div>' +
+      '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">' + cards.join('') + '</div>' +
+      (soon.length ? '<div class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-900">⏳ ಶೀಘ್ರದಲ್ಲಿ ಬರಲಿವೆ: ' + soon.join(' · ') + '</div>' : '') +
+      '</div>';
   }
   function renderMemberDashboard() {
     var v = $('view-dashboard'); if (!v || !isMember()) return false;
@@ -24727,7 +24736,7 @@ function wyStrongKeyPart() {
     }
     if (t.dataset.dcls) { DS.cls = +t.dataset.dcls; lsSet('wy_dash_cls', DS.cls); var cc = $('wy-catalog'); if (cc) cc.innerHTML = picker(); return; }
     if (t.dataset.add) { window.wyCartAdd(t.dataset.add); return; }
-    if (t.dataset.dtab) { DS.tab = t.dataset.dtab; lsSet('wy_dash_med', DS.tab); var c = $('wy-catalog'); if (c) c.innerHTML = picker(); return; }
+    if (t.dataset.dtab) { DS.tab = t.dataset.dtab; lsSet('wy_dash_med', DS.tab); var c = $('wy-catalog'); if (c) c.innerHTML = picker(); if (t.closest('#wy-master') && $('wy-picker-card')) $('wy-picker-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (t.dataset.open) openInGenerator(t.dataset.open);
   }, true);
   document.addEventListener('click', function (e) {

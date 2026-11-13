@@ -25203,6 +25203,7 @@ function wyStrongKeyPart() {
     var md = s.match(/!?\[[^\]]*\]\(([^)\s]+)\)/); if (md) s = md[1];
     if (/^\/\//.test(s)) s = 'https:' + s;
     if (/^http:\/\//i.test(s)) s = s.replace(/^http:/i, 'https:');
+    s = s.replace(/^https:\/\/raw\.github\.com\//i, 'https://raw.githubusercontent.com/').replace(/^https:\/\/github\.com\/([^\/]+)\/([^\/]+)\/(?:blob|raw)\//i, 'https://raw.githubusercontent.com/$1/$2/');
     if (!/^https?:\/\//i.test(s)) s = RAW_BASE + s.replace(/^\/+/, '');
     if (/(blogger\.googleusercontent\.com|bp\.blogspot\.com)/i.test(s)) s = s.replace(/\/s\d{2,3}(-c)?\//, '/s1600/');
     var drv = s.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]{10,})/i);
@@ -25228,6 +25229,7 @@ function wyStrongKeyPart() {
     butterfly: '<ellipse cx="30" cy="35" rx="20" ry="18"/><ellipse cx="70" cy="35" rx="20" ry="18"/><ellipse cx="33" cy="68" rx="15" ry="14"/><ellipse cx="67" cy="68" rx="15" ry="14"/><rect x="47" y="25" width="6" height="55" rx="3"/>',
     umbrella: '<path d="M10 50 C10 15 90 15 90 50 Z"/><path d="M50 50 v35 C50 95 38 95 38 85"/>',
     leaf: '<path d="M15 85 C15 35 50 10 90 10 C90 55 60 85 15 85 Z"/><path d="M15 85 L70 30"/>',
+    mango: '<path d="M30 30 C55 5 92 25 85 60 C78 92 35 95 20 70 C10 52 18 40 30 30 Z"/><path d="M38 24 C40 14 46 8 52 6"/><path d="M44 16 C55 6 68 10 68 10 C62 20 52 21 44 16 Z"/>',
     cup: '<path d="M20 25 h50 v45 C70 85 20 85 20 70 Z"/><path d="M70 35 C90 35 90 60 70 60"/>'
   };
   function svgShape(name, cls) {
@@ -25239,13 +25241,14 @@ function wyStrongKeyPart() {
   function img(s, cls) {
     if (isShape(s)) return svgShape(String(s).trim().slice(6), 'wyk-svg ' + (cls || ''));
     if (!isUrl(s)) return '<span class="wyk-emoji ' + (cls || '') + '">' + esc(s) + '</span>';
-    return '<img src="' + esc(imgUrl(s)) + '" class="' + (cls || 'wyk-img') + '" alt="" loading="eager">';
+    return '<img src="' + esc(imgUrl(s)) + '" class="' + (cls || 'wyk-img') + '" alt="" loading="eager" onerror="this.onerror=null;this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'wyk-missing\',textContent:\'ಚಿತ್ರ\'}))">';
   }
   function cell(v, cls) { return (isUrl(v) || isShape(v) || isPictureText(v)) ? img(v, cls) : '<span class="wyk-word">' + esc(v) + '</span>'; }
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function isEnglishPaper(rawSubj) { return /english/i.test(rawSubj || '') || (document.getElementById('cfg-medium') || {}).value === 'english_medium'; }
   function lineHtml(en) { return en ? '<div class="wyk-4line"><i></i><i></i><i></i></div>' : '<div class="wyk-2line"></div>'; }
   function list(v) { return Array.isArray(v) ? v : (v == null || v === '' ? [] : [v]); }
+  function pic(o) { return o == null ? '' : (typeof o === 'string' ? o : (o.img || o.image || o.picture || o.pic || o.imageUrl || '')); }
 
   // ---------- ಪ್ರತಿ ಚಟುವಟಿಕೆಯ ಒಳಭಾಗ ----------
   var R = {
@@ -25270,11 +25273,11 @@ function wyStrongKeyPart() {
       var items = list(it.items), help = list(it.help);
       return (help.length ? '<div class="wyk-help">( ' + shuffle(help).map(esc).join(' , ') + ' )</div>' : '') +
         '<div class="wyk-grid wyk-cols-' + (items.length === 4 ? 4 : 3) + '">' + items.map(function (x, i) {
-          return '<div class="wyk-card"><div class="wyk-num">' + nn(i + 1) + '</div><div class="wyk-imgbox">' + img(x.img || x.image || x.q) + '</div>' + lineHtml(en) + '</div>';
+          return '<div class="wyk-card"><div class="wyk-num">' + nn(i + 1) + '</div><div class="wyk-imgbox">' + img(pic(x) || x.q) + '</div>' + lineHtml(en) + '</div>';
         }).join('') + '</div>';
     },
     picmatch: function (it) {
-      var pairs = list(it.pairs).map(function (p) { return { a: p.img || p.a || p.left, b: p.word || p.b || p.right }; });
+      var pairs = list(it.pairs).map(function (p) { return { a: pic(p) || p.a || p.left, b: p.word || p.b || p.right }; });
       var right = shuffle(pairs.map(function (p) { return p.b; }));
       return '<table class="wyk-match"><tbody>' + pairs.map(function (p, i) {
         return '<tr><td class="wyk-m-l"><span class="wyk-m-in">' + nn(i + 1) + '. ' + cell(p.a, 'wyk-img wyk-img-m') + '</span></td><td class="wyk-m-dot">●</td><td class="wyk-m-gap"></td><td class="wyk-m-dot">●</td><td class="wyk-m-r">' + cell(right[i], 'wyk-img wyk-img-m') + '</td></tr>';
@@ -25288,11 +25291,11 @@ function wyStrongKeyPart() {
         }).join('') + '</div>';
       }
       var h = Math.max(40, Math.min(200, +it.height || 95));
-      return '<div class="wyk-bigbox" style="height:' + h + 'mm">' + (it.img ? img(it.img, 'wyk-img-big') : '') + '</div>';
+      return '<div class="wyk-bigbox" style="height:' + h + 'mm">' + (pic(it) ? img(pic(it), 'wyk-img-big') : '') + '</div>';
     },
     draw: function (it) {
       var h = Math.max(30, Math.min(200, +it.height || 70));
-      return (it.img ? '<div class="wyk-example">ಉದಾಹರಣೆ: ' + img(it.img, 'wyk-img wyk-img-s') + '</div>' : '') + '<div class="wyk-bigbox" style="height:' + h + 'mm"></div>';
+      return (pic(it) ? '<div class="wyk-example">ಉದಾಹರಣೆ: ' + img(pic(it), 'wyk-img wyk-img-s') + '</div>' : '') + '<div class="wyk-bigbox" style="height:' + h + 'mm"></div>';
     },
     circle: function (it) {
       return list(it.rows).map(function (r, i) {
@@ -25303,7 +25306,7 @@ function wyStrongKeyPart() {
     count: function (it) {
       return '<div class="wyk-grid wyk-cols-2">' + list(it.items).map(function (x, i) {
         var n = Math.max(1, Math.min(20, +x.n || +x.ans || 1)), pics = '';
-        for (var k = 0; k < n; k++) pics += img(x.img, 'wyk-img wyk-img-c');
+        for (var k = 0; k < n; k++) pics += img(pic(x), 'wyk-img wyk-img-c');
         return '<div class="wyk-count"><div class="wyk-num">' + nn(i + 1) + '</div><div class="wyk-count-pics">' + pics + '</div><span class="wyk-letter wyk-empty"></span></div>';
       }).join('') + '</div>';
     }
@@ -25345,6 +25348,8 @@ function wyStrongKeyPart() {
     '.wyk-match{width:100%;border-collapse:collapse;margin-top:2mm}.wyk-match td{padding:2.5mm 1mm;vertical-align:middle}.wyk-m-l{width:34%;font-weight:900;font-size:13pt}.wyk-m-r{width:34%;font-weight:900;font-size:14pt}.wyk-m-dot{width:5mm;font-size:12pt;text-align:center}.wyk-m-gap{width:auto}',
     '.wyk-m-in{display:inline-flex;align-items:center;gap:2mm}.wyk-img-m{max-height:22mm;max-width:38mm;vertical-align:middle}.wyk-word{font-size:15pt;font-weight:900}',
     '.wyk-bigbox{border:1.8px solid #000;border-radius:3mm;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-top:2mm}.wyk-img-big{max-width:96%;max-height:96%;object-fit:contain;filter:grayscale(1) contrast(1.2)}',
+    '.wyk-svg.wyk-img-big{width:auto;height:88%;max-width:90%;filter:none}',
+    '.wyk-missing{display:inline-flex;align-items:center;justify-content:center;width:22mm;height:18mm;border:1.4px dashed #94a3b8;border-radius:2mm;color:#94a3b8;font-size:9pt;font-weight:800}',
     '.wyk-emoji{font-size:30pt;line-height:1.1;display:inline-block}.wyk-img-c.wyk-emoji{font-size:16pt}.wyk-img-m.wyk-emoji{font-size:26pt}',
     '.wyk-svg{width:20mm;height:20mm;display:inline-block;vertical-align:middle}.wyk-svg.wyk-img-c{width:9mm;height:9mm}.wyk-svg-big{width:100%;height:48mm;display:block}',
     '.wyk-colorcard{text-align:center}.wyk-color-lbl{font-size:13pt;font-weight:900;margin-top:1mm}',

@@ -22168,6 +22168,7 @@ window.WY_ENTRANCE_EXAMS = [
         ((expiring.length || expired.length) ? '<div class="overflow-x-auto"><table class="w-full text-xs"><thead><tr class="text-left text-slate-500 border-b"><th class="py-1">ಹೆಸರು</th><th>ಖಾತೆ</th><th>ಮೊಬೈಲ್/DISE</th><th>ಅವಧಿ</th><th></th></tr></thead><tbody>' +
           expiring.concat(expired.slice(0, 20)).map(userRow).join('') + '</tbody></table></div>' : '<div class="text-[11px] text-slate-500 font-bold">ಮುಂದಿನ 30 ದಿನಗಳಲ್ಲಿ ಯಾವ ಖಾತೆಯೂ ಮುಗಿಯುವುದಿಲ್ಲ 👍</div>') +
       '</div>';
+    try { if (window.wyAfterAdminStats) await window.wyAfterAdminStats(box, daily); } catch (e) { try { console.warn('sales report', e); } catch (x) {} }
   }
   window.wyRenderAdminDashboard = renderDashboard;
 
@@ -24110,7 +24111,43 @@ function wyStrongKeyPart() {
   window.wyPackLabel = packLabel;
 
   // ---------- ಸದಸ್ಯರ ಲಾಗಿನ್ (Firebase Auth, ಮೊಬೈಲ್@withyouqp.in) ----------
-  var MEM = { profile: null, packs: {}, trial: 0, orders: [], loaded: false };
+  var MEM = { profile: null, packs: {}, trial: 0, orders: [], loaded: false, credit: 0 };
+  // ---------- 🎟️ ಕೂಪನ್ / ಸ್ನೇಹಿತರ ಶಿಫಾರಸು / ಬಹುಮಾನ (/config/promo) ----------
+  var PROMO = { coupons: {}, refPct: 10, refReward: 50, mitraUrl: 'https://withyou00.github.io/mitra/', mitraCode: '', mitraPct: 0 };
+  function applyPromo(p) {
+    if (!p) return;
+    PROMO.coupons = p.coupons || {};
+    ['refPct', 'refReward', 'mitraPct'].forEach(function (k) { if (p[k] != null && p[k] !== '') PROMO[k] = +p[k] || 0; });
+    ['mitraUrl', 'mitraCode'].forEach(function (k) { if (p[k] != null) PROMO[k] = String(p[k] || '').trim() || (k === 'mitraUrl' ? PROMO.mitraUrl : ''); });
+  }
+  async function loadPromo() { try { applyPromo(await (await fetch(FB + '/config/promo.json?t=' + Date.now())).json()); } catch (e) {} }
+  function couponOk(code) {
+    var c = code && PROMO.coupons[String(code).toUpperCase()];
+    return !!c && !c.off && (!c.until || String(c.until) >= today()) ? c : null;
+  }
+  function publicOffer() {
+    return Object.keys(PROMO.coupons || {}).map(function (code) { return { code: code, c: PROMO.coupons[code] }; })
+      .filter(function (x) { return x.c && !x.c.off && x.c.show !== false && (!x.c.until || String(x.c.until) >= today()); })
+      .map(function (x) { return { code: x.code, pct: +x.c.pct || 0, until: x.c.until || '' }; })
+      .sort(function (a, b) { return b.pct - a.pct; })[0] || null;
+  }
+  window.wyPublicOffer = publicOffer;
+  window.wyPromo = function () { return PROMO; };
+  function firstOrder() { return !MEM.orders.some(function (o) { return o.status !== 'rejected'; }); }
+  var CX_KEY = 'wy_cart_extra';
+  function cartX() { return lsGet(CX_KEY, {}) || {}; }
+  function cartCalc(l) {
+    var x = cartX(), sub = cartTotal(l), auto = publicOffer();
+    var code = String(x.coupon || '').toUpperCase() || (auto ? auto.code : '');
+    var cp = couponOk(code);
+    var couponOff = cp ? Math.round(sub * (+cp.pct || 0) / 100) : 0;
+    var me = (authInfo() || {}).mobile;
+    var refOk = !!x.ref && /^[6-9]\d{9}$/.test(x.ref) && x.ref !== me && firstOrder() && PROMO.refPct > 0;
+    var refOff = refOk ? Math.round((sub - couponOff) * PROMO.refPct / 100) : 0;
+    var creditUsed = Math.max(0, Math.min(+MEM.credit || 0, sub - couponOff - refOff));
+    return { sub: sub, coupon: cp ? code : '', auto: !x.coupon && !!cp, couponBad: !!x.coupon && !cp, couponOff: couponOff,
+      ref: refOk ? x.ref : '', refBad: !!x.ref && !refOk, refOff: refOff, creditUsed: creditUsed, total: Math.max(0, sub - couponOff - refOff - creditUsed) };
+  }
   function authInfo() { return lsGet(AUTH_KEY, null); }
   function emailOf(m) { return m + '@' + DOMAIN; }
   async function idp(path, body) {
@@ -24169,7 +24206,8 @@ function wyStrongKeyPart() {
     var m = a.mobile;
     var rec = await db('GET', '/members/' + m);
     rec = rec || {};
-    MEM.profile = rec.profile || null; MEM.packs = rec.packs || {}; MEM.trial = +rec.trial || 0;
+    MEM.profile = rec.profile || null; MEM.packs = rec.packs || {}; MEM.trial = +rec.trial || 0; MEM.credit = +rec.credit || 0;
+    loadPromo();
     try { var o = await db('GET', '/orders/' + m); MEM.orders = Object.keys(o || {}).map(function (id) { return Object.assign({ id: id }, o[id]); }); } catch (e) { MEM.orders = []; }
     MEM.loaded = true;
     try { var pr = await (await fetch(FB + '/config/prices.json')).json(); if (pr) Object.keys(PRICES).forEach(function (k) { if (pr[k] != null && pr[k] !== '') PRICES[k] = +pr[k]; }); } catch (e) {}
@@ -24418,7 +24456,7 @@ function wyStrongKeyPart() {
   }
   function openCart() {
     if (!isMember()) return openMemberAuth('register');
-    var l = cartGet(), rows = priced(l), tot = cartTotal(l), m = authInfo().mobile;
+    var l = cartGet(), rows = priced(l), CC = cartCalc(l), tot = CC.total, m = authInfo().mobile, X = cartX();
     var pend = MEM.orders.filter(function (o) { return o.status === 'pending'; });
     if (!l.length) {
       modal(head('fa-cart-shopping', 'ಕಾರ್ಟ್', '', 'from-slate-800 to-slate-900') + '<div class="p-6 text-center space-y-3"><div class="text-4xl">🛒</div><p class="font-black text-slate-800">ಕಾರ್ಟ್ ಖಾಲಿ ಇದೆ</p>' +
@@ -24439,7 +24477,15 @@ function wyStrongKeyPart() {
         return '<div class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-emerald-50 border border-emerald-200"><span class="text-xs font-bold text-emerald-900">💡 <b>' + esc(packLabel(h.k)) + '</b> (' + rupee(h.price) + ') ತೆಗೆದುಕೊಂಡರೆ ಇವೆಲ್ಲವೂ ಮತ್ತು ಇನ್ನೂ ಹೆಚ್ಚು ಸಿಗುತ್ತದೆ' + (h.save > 0 ? ' — ' + rupee(h.save) + ' ಉಳಿತಾಯ' : '') + '</span>' +
           '<button type="button" data-up="' + esc(h.k) + '" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-black shrink-0">ಬದಲಿಸಿ</button></div>';
       }).join('') +
-      '<div class="flex items-center justify-between p-3 rounded-2xl bg-slate-900 text-white"><span class="font-black text-sm">ಒಟ್ಟು</span><b class="text-xl">' + rupee(tot) + '</b></div>' +
+      '<div class="grid sm:grid-cols-2 gap-2 text-xs font-bold text-slate-700">' +
+        '<label class="p-3 rounded-2xl bg-slate-50 border space-y-1 block"><span>🎟️ ಕೂಪನ್ ಕೋಡ್</span><span class="flex gap-1.5"><input id="wy-cp" value="' + esc(X.coupon || (CC.auto ? CC.coupon : '')) + '" placeholder="ಇದ್ದರೆ" class="' + INP + ' uppercase"><button type="button" id="wy-cp-go" class="px-3 rounded-xl bg-slate-900 text-white font-black">ಅನ್ವಯಿಸಿ</button></span>' +
+          (CC.couponBad ? '<span class="block text-rose-600">ಈ ಕೂಪನ್ ಸರಿಯಿಲ್ಲ ಅಥವಾ ಅವಧಿ ಮುಗಿದಿದೆ</span>' : CC.coupon ? '<span class="block text-emerald-700">✓ ' + esc(CC.coupon) + ': ' + rupee(CC.couponOff) + ' ಕಡಿತ' + (CC.auto ? ' (ಆಫರ್ ತಾನಾಗಿಯೇ ಅನ್ವಯವಾಗಿದೆ)' : '') + '</span>' : '') + '</label>' +
+        (firstOrder() && PROMO.refPct > 0 ? '<label class="p-3 rounded-2xl bg-slate-50 border space-y-1 block"><span>🤝 ನಿಮಗೆ ಸೂಚಿಸಿದ ಶಿಕ್ಷಕರ ಮೊಬೈಲ್</span><span class="flex gap-1.5"><input id="wy-ref" value="' + esc(X.ref || '') + '" maxlength="10" inputmode="numeric" placeholder="ಇದ್ದರೆ" class="' + INP + '"><button type="button" id="wy-ref-go" class="px-3 rounded-xl bg-slate-900 text-white font-black">ಅನ್ವಯಿಸಿ</button></span>' +
+          (CC.refBad ? '<span class="block text-rose-600">ಸರಿಯಾದ 10 ಅಂಕಿಯ ಬೇರೆ ಶಿಕ್ಷಕರ ಸಂಖ್ಯೆ ಬರೆಯಿರಿ</span>' : CC.ref ? '<span class="block text-emerald-700">✓ ಮೊದಲ ಖರೀದಿ: ' + rupee(CC.refOff) + ' ಕಡಿತ</span>' : '<span class="block text-slate-500">ಮೊದಲ ಖರೀದಿಗೆ ' + PROMO.refPct + '% ಕಡಿತ</span>') + '</label>' : '') +
+      '</div>' +
+      '<div class="flex items-center justify-between p-3 rounded-2xl bg-slate-900 text-white"><span class="font-black text-sm">ಒಟ್ಟು' +
+        (CC.couponOff || CC.refOff || CC.creditUsed ? '<small class="block text-[11px] font-bold text-emerald-300">' + rupee(CC.sub) + (CC.couponOff ? ' − ಕೂಪನ್ ' + rupee(CC.couponOff) : '') + (CC.refOff ? ' − ಸ್ನೇಹಿತ ' + rupee(CC.refOff) : '') + (CC.creditUsed ? ' − ನಿಮ್ಮ ಬಹುಮಾನ ' + rupee(CC.creditUsed) : '') + '</small>' : '') +
+        '</span><b class="text-xl">' + rupee(tot) + '</b></div>' +
       '<div class="space-y-3 text-xs font-bold text-slate-700">' +
         '<div class="flex gap-3"><span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-black shrink-0">1</span><div class="flex-1"><b class="text-slate-900">' + rupee(tot) + ' ಅನ್ನು UPI ಮೂಲಕ ಕಳುಹಿಸಿ</b>' +
           '<div class="flex flex-wrap items-center gap-3 mt-2"><div id="wy-qr" class="w-36 h-36 bg-white border rounded-xl p-1"></div><div class="space-y-2"><div class="text-[10px] text-slate-500">UPI ID</div><code class="px-2 py-1 bg-slate-100 rounded-lg font-black">' + UPI + '</code> <button type="button" id="wy-upi-copy" class="px-2 py-1 rounded-lg bg-slate-200 font-black">copy</button>' +
@@ -24452,6 +24498,9 @@ function wyStrongKeyPart() {
     var w = $('wy-store-modal');
     w.querySelectorAll('[data-rm]').forEach(function (b) { b.onclick = function () { var x = cartGet(); x.splice(+b.dataset.rm, 1); cartSet(x); openCart(); refreshViews(); }; });
     w.querySelectorAll('[data-up]').forEach(function (b) { b.onclick = function () { cartAdd(b.dataset.up); openCart(); refreshViews(); }; });
+    function setX(k, v) { var x = cartX(); x[k] = v; lsSet(CX_KEY, x); openCart(); }
+    if ($('wy-cp-go')) $('wy-cp-go').onclick = function () { setX('coupon', ($('wy-cp').value || '').trim().toUpperCase()); };
+    if ($('wy-ref-go')) $('wy-ref-go').onclick = function () { setX('ref', ($('wy-ref').value || '').replace(/\D/g, '')); };
     $('wy-upi-copy').onclick = function () { try { navigator.clipboard.writeText(UPI); toast('UPI ID copy ಆಯಿತು.'); } catch (e) {} };
     qrSvg(upi).then(function (svg) { if ($('wy-qr')) $('wy-qr').innerHTML = svg; }).catch(function () { if ($('wy-qr')) $('wy-qr').style.display = 'none'; });
     $('wy-send').onclick = function () {
@@ -24462,12 +24511,14 @@ function wyStrongKeyPart() {
         var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         var p = MEM.profile || {};
         var o = { items: l, total: tot, utr: utr, status: 'pending', at: new Date().toISOString(), name: p.name || '', school: p.school || '', mobile: m, role: p.role || 'teacher' };
+        if (CC.sub !== tot) { o.sub = CC.sub; if (CC.coupon) { o.coupon = CC.coupon; o.couponOff = CC.couponOff; } if (CC.ref) { o.ref = CC.ref; o.refOff = CC.refOff; } if (CC.creditUsed) o.creditUsed = CC.creditUsed; }
         try { await db('PUT', '/orders/' + m + '/' + id, o); } catch (e) { return toast('ಆರ್ಡರ್ ಕಳುಹಿಸಲು ಆಗಲಿಲ್ಲ: ' + errMsg(e), true); }
         MEM.orders.push(Object.assign({ id: id }, o));
         var text = '*With You QP ಆರ್ಡರ್ #' + id.slice(-6).toUpperCase() + '*\n👤 ' + (p.name || '') + '\n🏫 ' + (p.school || '') + '\n📱 ' + m + '\n\n' +
           l.map(function (k) { return '• ' + packLabel(k) + ' — ' + rupee(priced(l).filter(function (x) { return x.k === k; })[0].price); }).join('\n') +
+          (o.sub ? '\n\nಮೊತ್ತ: ' + rupee(o.sub) + (o.coupon ? '\n🎟️ ಕೂಪನ್ ' + o.coupon + ': −' + rupee(o.couponOff) : '') + (o.ref ? '\n🤝 ಸೂಚಿಸಿದವರು ' + o.ref + ': −' + rupee(o.refOff) : '') + (o.creditUsed ? '\n🎁 ಬಹುಮಾನ: −' + rupee(o.creditUsed) : '') : '') +
           '\n\n💰 *ಒಟ್ಟು: ' + rupee(tot) + '*' + (utr ? '\n🧾 UTR: ' + utr : '') + '\n\nದಯವಿಟ್ಟು ಪರಿಶೀಲಿಸಿ ತೆರೆಯಿರಿ.';
-        cartSet([]);
+        cartSet([]); lsSet(CX_KEY, {});
         try { window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(text), '_blank'); } catch (e) {}
         modal(head('fa-circle-check', 'ಆರ್ಡರ್ ಕಳುಹಿಸಲಾಗಿದೆ ✓', '', 'from-emerald-600 to-teal-600') +
           '<div class="p-6 text-center space-y-3"><div class="text-4xl">🎉</div><p class="font-black text-slate-800">ಆರ್ಡರ್ ಸಂಖ್ಯೆ #' + id.slice(-6).toUpperCase() + '</p>' +
@@ -24694,6 +24745,15 @@ function wyStrongKeyPart() {
     var notes = [];
     if (trialLeft()) notes.push('🎁 <b>' + trialLeft() + ' ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ ಬಾಕಿ</b> (SAMPLE ಗುರುತಿನೊಂದಿಗೆ)');
     if (pend.length) notes.push('⏳ <b>' + pend.length + ' ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ</b> — ತೆರೆದ ತಕ್ಷಣ ಇಲ್ಲಿ ಕಾಣುತ್ತದೆ');
+    if (+MEM.credit) notes.push('🎁 <b>ನಿಮ್ಮ ಬಹುಮಾನ ' + rupee(MEM.credit) + '</b> — ಮುಂದಿನ ಖರೀದಿಯಲ್ಲಿ ತಾನಾಗಿ ಕಡಿತವಾಗುತ್ತದೆ');
+    var offer = publicOffer();
+    var me = authInfo().mobile, paid = act.length > 0;
+    var shareTxt = 'ಶಾಲಾ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ (FA, SA, ಘಟಕ, NMMS) ಉತ್ತರ ಪತ್ರಿಕೆ ಮತ್ತು ನೀಲನಕ್ಷೆಯೊಂದಿಗೆ ಒಂದೇ ಕ್ಲಿಕ್‌ನಲ್ಲಿ: ' + location.origin + location.pathname + (PROMO.refPct > 0 ? '\nಖರೀದಿಸುವಾಗ ನನ್ನ ಸಂಖ್ಯೆ ' + me + ' ಹಾಕಿದರೆ ' + PROMO.refPct + '% ಕಡಿತ.' : '');
+    var refCard = PROMO.refReward > 0 || PROMO.refPct > 0 ? '<div class="m-card m-pad m-ref"><div><b>🤝 ಸ್ನೇಹಿತರಿಗೆ ತಿಳಿಸಿ, ಬಹುಮಾನ ಪಡೆಯಿರಿ</b><small>ಅವರು ಖರೀದಿಸುವಾಗ ನಿಮ್ಮ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ <b>' + esc(me) + '</b> ಹಾಕಿದರೆ ಅವರಿಗೆ ' + PROMO.refPct + '% ಕಡಿತ' + (PROMO.refReward > 0 ? ', ನಿಮಗೆ ' + rupee(PROMO.refReward) + ' ಬಹುಮಾನ' : '') + '.</small></div>' +
+      '<a class="m-btn sm pri" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(shareTxt) + '">WhatsApp ನಲ್ಲಿ ಹಂಚಿಕೊಳ್ಳಿ</a></div>' : '';
+    var mitraCard = '<div class="m-card m-pad m-ref m-mitra"><div><b>📘 ಬೋಧನಾ ಮಿತ್ರ — ಪಾಠಯೋಜನೆ, PPT, ನೋಟ್ಸ್, ಅಂದಾಜು ಪತ್ರಿಕೆ</b><small>ನಿಮ್ಮ ಶಾಲೆಯ ಹೆಸರಿನೊಂದಿಗೆ. ಇದೇ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯಿಂದ ನೋಂದಣಿ ಮಾಡಿ.' +
+      (paid && PROMO.mitraCode && PROMO.mitraPct ? ' <span class="m-pill warn">QP ಗ್ರಾಹಕರಿಗೆ ' + PROMO.mitraPct + '% ಕಡಿತ · ಕೋಡ್ ' + esc(PROMO.mitraCode) + '</span>' : '') + '</small></div>' +
+      '<a class="m-btn sm" target="_blank" rel="noopener" href="' + esc(PROMO.mitraUrl) + '">ತೆರೆಯಿರಿ ↗</a></div>';
     var Q = window.wyShellIcons || {};
     var quick = [
       ['onclick="navigateToSection(\'generator\')"', Q.doc, 'ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಿ', 'FA · SA · ಘಟಕ · ಮೌಖಿಕ'],
@@ -24704,6 +24764,7 @@ function wyStrongKeyPart() {
     v.innerHTML = '<div class="m-view" id="wy-member-dash">' +
       '<div class="m-welcome"><p>ನಮಸ್ಕಾರ, ' + esc(p.name) + '</p><h2>' + esc(p.school || 'With You QP') + '</h2>' +
         '<div class="meta"><span>📱 ' + esc(authInfo().mobile) + '</span>' + (p.schoolEn ? '<span>' + esc(p.schoolEn) + '</span>' : '') + '<span>ಶೈಕ್ಷಣಿಕ ವರ್ಷ 2026-27</span></div></div>' +
+      (offer ? '<div class="m-offer">🎉 <b>ಆಫರ್: ಎಲ್ಲಾ ಖರೀದಿಗಳಿಗೆ ' + offer.pct + '% ಕಡಿತ</b>' + (offer.until ? ' · ' + dmy(offer.until) + ' ರವರೆಗೆ ಮಾತ್ರ' : '') + ' · ಕೋಡ್ <code class="m-code">' + esc(offer.code) + '</code> (ಕಾರ್ಟ್‌ನಲ್ಲಿ ತಾನಾಗಿಯೇ ಅನ್ವಯವಾಗುತ್ತದೆ)</div>' : '') +
       (notes.length ? '<div class="m-offer">' + notes.join('<br>') + '</div>' : '') +
       '<div class="m-stats">' + [[act.length, 'ಸಕ್ರಿಯ ಪ್ಯಾಕ್'], [openCount, 'ತೆರೆದ ವಿಷಯಗಳು'], [trialLeft() + '/' + PRICES.trial, 'ಉಚಿತ ಪ್ರಯೋಗ ಬಾಕಿ'], [pend.length, 'ಬಾಕಿ ಆರ್ಡರ್']]
         .map(function (x) { return '<div class="m-card m-stat"><b>' + x[0] + '</b><span>' + x[1] + '</span></div>'; }).join('') + '</div>' +
@@ -24714,9 +24775,11 @@ function wyStrongKeyPart() {
       masterTable() +
       '<div class="m-card" id="wy-picker-card"><div class="m-sec-h m-pad-h"><h2>ಯಾವ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಬೇಕು?</h2><span class="m-muted m-small">ವಿಷಯ ಆರಿಸಿ "ಕಾರ್ಟ್‌ಗೆ" → UPI ಪಾವತಿ → ' + validityText() + ' ತೆರೆಯುತ್ತದೆ</span></div><div id="wy-catalog">' + picker() + '</div></div>' +
       priceList() +
+      '<div class="m-two">' + refCard + mitraCard + '</div>' +
       '</div>';
     bindDash(v);
     renderCartBadges();
+    try { if (window.wyPlaceNotice) wyPlaceNotice(); } catch (e) {}
     return true;
   }
   function bindDash(root) {
@@ -24965,6 +25028,7 @@ function wyStrongKeyPart() {
   // ---------- ಆರಂಭ ----------
   (async function init() {
     refreshBank(false).then(function () { if (isMember()) refreshViews(); });
+    loadPromo().then(function () { try { if (!$('view-dashboard').classList.contains('hidden')) { if (isMember()) renderMemberDashboard(); else if (window.wyRenderOfferBar) wyRenderOfferBar(); } } catch (e) {} });
     try { var pr = await (await fetch(FB + '/config/prices.json')).json(); if (pr) Object.keys(PRICES).forEach(function (k) { if (pr[k] != null && pr[k] !== '') PRICES[k] = +pr[k]; }); } catch (e) {}
     if (!authInfo()) {
       var s = lsGet('wy_active_session', null);
@@ -24997,6 +25061,7 @@ function wyStrongKeyPart() {
     Object.keys(ord || {}).forEach(function (m) { Object.keys(ord[m] || {}).forEach(function (id) { ADM.orders.push(Object.assign({ id: id, mob: m }, ord[m][id])); }); });
     ADM.orders.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
     try { var pr = await adminGet('/config/prices'); if (pr) Object.keys(PRICES).forEach(function (k) { if (pr[k] != null && pr[k] !== '') PRICES[k] = +pr[k]; }); } catch (e) {}
+    try { applyPromo(await adminGet('/config/promo')); } catch (e) {}
   }
   var TABS = [['orders', 'fa-cart-shopping text-emerald-600', 'ಆರ್ಡರ್'], ['members', 'fa-users text-indigo-600', 'ಹೊಸ ಸದಸ್ಯರು'], ['prices', 'fa-indian-rupee-sign text-amber-600', 'ದರಗಳು']];
   var prevAdmOpen = window.openAdminDashboardModal;
@@ -25054,7 +25119,8 @@ function wyStrongKeyPart() {
           '<div class="flex flex-wrap items-start justify-between gap-2"><div><div class="text-sm font-black text-slate-900">' + esc(o.name || prof.name) + ' <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100">' + (o.role === 'school' ? '🏫 ಶಾಲೆ' : '👩‍🏫 ಶಿಕ್ಷಕರು') + '</span></div>' +
           '<div class="text-[11px] font-bold text-slate-500">🏫 ' + esc(o.school || prof.school) + ' · 📱 <a class="underline" href="https://wa.me/91' + esc(o.mob) + '" target="_blank" rel="noopener">' + esc(o.mob) + '</a></div>' +
           '<div class="text-[10px] font-bold text-slate-400">#' + esc(String(o.id).slice(-6).toUpperCase()) + ' · ' + esc(String(o.at).slice(0, 16).replace('T', ' ')) + '</div></div>' +
-          '<div class="text-right"><div class="text-lg font-black text-emerald-700">' + rupee(o.total) + '</div><div class="text-[11px] font-black ' + (o.utr ? 'text-slate-700' : 'text-slate-400') + '">UTR: ' + esc(o.utr || '—') + '</div></div></div>' +
+          '<div class="text-right"><div class="text-lg font-black text-emerald-700">' + rupee(o.total) + '</div>' +
+          (o.sub ? '<div class="text-[10px] font-bold text-slate-500">' + rupee(o.sub) + (o.coupon ? ' − ' + esc(o.coupon) + ' ' + rupee(o.couponOff) : '') + (o.ref ? ' − ಸ್ನೇಹಿತ (' + esc(o.ref) + (ADM.members[o.ref] ? '' : ' ⚠️ ಸದಸ್ಯರಲ್ಲ') + ') ' + rupee(o.refOff) : '') + (o.creditUsed ? ' − ಬಹುಮಾನ ' + rupee(o.creditUsed) : '') + '</div>' : '') + '<div class="text-[11px] font-black ' + (o.utr ? 'text-slate-700' : 'text-slate-400') + '">UTR: ' + esc(o.utr || '—') + '</div></div></div>' +
           '<ul class="text-xs font-bold text-slate-700 list-disc pl-5">' + (o.items || []).map(function (k) { return '<li>' + esc(packLabel(k)) + '</li>'; }).join('') + '</ul>' +
           (o.status === 'pending' ? '<div class="flex flex-wrap items-center gap-2 pt-1"><label class="text-[11px] font-bold text-slate-500">ಮಾನ್ಯತೆ: <input type="date" data-exp="' + esc(o.mob + '/' + o.id) + '" value="' + yearEnd() + '" data-def="' + yearEnd() + '" class="px-2 py-1 border rounded-lg text-xs font-bold"></label>' +
             '<button type="button" data-approve="' + esc(o.mob + '/' + o.id) + '" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">✅ ಹಣ ಬಂದಿದೆ — ತೆರೆಯಿರಿ</button>' +
@@ -25138,6 +25204,14 @@ function wyStrongKeyPart() {
         await adminSend('PATCH', '/members/' + mob + '/packs', body);
         await adminSend('PATCH', '/orders/' + mob + '/' + id, { status: 'done', doneAt: new Date().toISOString(), expiry: exp });
         toast('✅ ' + (o.name || mob) + ' ಅವರ ಪ್ಯಾಕ್ ತೆರೆಯಲಾಗಿದೆ');
+        try {
+          if (o.creditUsed) { var bc = Math.max(0, (+(ADM.members[mob] || {}).credit || 0) - o.creditUsed); await adminSend('PUT', '/members/' + mob + '/credit', bc); if (ADM.members[mob]) ADM.members[mob].credit = bc; }
+          if (o.ref && o.ref !== mob && ADM.members[o.ref] && PROMO.refReward > 0) {
+            var rc = (+ADM.members[o.ref].credit || 0) + PROMO.refReward;
+            await adminSend('PUT', '/members/' + o.ref + '/credit', rc); ADM.members[o.ref].credit = rc;
+            toast('🎁 ' + o.ref + ' ಅವರಿಗೆ ' + rupee(PROMO.refReward) + ' ಬಹುಮಾನ ಸೇರಿಸಲಾಗಿದೆ');
+          }
+        } catch (e) { toast('ಬಹುಮಾನ ಲೆಕ್ಕ ಉಳಿಸಲಾಗಲಿಲ್ಲ: ' + errMsg(e), true); }
         if (confirm('ಅವರಿಗೆ WhatsApp ನಲ್ಲಿ ತಿಳಿಸಲೇ?')) window.open('https://wa.me/91' + mob + '?text=' + encodeURIComponent('ನಮಸ್ಕಾರ ' + (o.name || '') + ', ನಿಮ್ಮ With You QP ಆರ್ಡರ್ #' + id.slice(-6).toUpperCase() + ' ತೆರೆಯಲಾಗಿದೆ ✅\n' + (o.items || []).map(function (k) { return '• ' + packLabel(k); }).join('\n') + '\n' + dmy(exp) + ' ವರೆಗೆ ಮಾನ್ಯ.\nಲಾಗಿನ್ ಆಗಿ Dashboard ನಲ್ಲಿ "🔄 ನವೀಕರಿಸಿ" ಒತ್ತಿ.'), '_blank');
       } else {
         if (!confirm('ಈ ಆರ್ಡರ್ ತಿರಸ್ಕರಿಸಲೇ?')) return;
@@ -25146,6 +25220,78 @@ function wyStrongKeyPart() {
     } catch (e) { return toast(errMsg(e), true); }
     renderOrders(true);
   }
+  // ---------- 📊 Admin ವರದಿ: ಮಾರಾಟ, ಸದಸ್ಯರು, ಬೇಡಿಕೆ ----------
+  window.wyAfterAdminStats = async function (box, daily) {
+    try { await adminLoad(); } catch (e) { return; }
+    var t = today(), mon = t.slice(0, 7), in30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+    var mems = Object.keys(ADM.members).map(function (m) { return Object.assign({ mob: m }, ADM.members[m]); });
+    var livePacks = function (x) { return Object.keys(x.packs || {}).filter(function (k) { return String(x.packs[k]) >= t; }); };
+    var buyers = mems.filter(function (x) { return livePacks(x).length; });
+    var newMon = mems.filter(function (x) { return String((x.profile || {}).at || '').slice(0, 7) === mon; }).length;
+    var done = ADM.orders.filter(function (o) { return o.status === 'done'; });
+    var hasOrder = {}; ADM.orders.forEach(function (o) { if (o.status !== 'rejected') hasOrder[o.mob] = 1; });
+    var trialOnly = mems.filter(function (x) { return !hasOrder[x.mob] && !Object.keys(x.packs || {}).length && (+x.trial || 0) >= 1; })
+      .sort(function (a, b) { return (+b.trial || 0) - (+a.trial || 0); });
+    var noUse = mems.filter(function (x) { return !hasOrder[x.mob] && !Object.keys(x.packs || {}).length && !(+x.trial); }).length;
+    var exp = [];
+    mems.forEach(function (x) { Object.keys(x.packs || {}).forEach(function (k) { var d = String(x.packs[k]); if (d >= t && d <= in30) exp.push({ x: x, k: k, d: d }); }); });
+    exp.sort(function (a, b) { return a.d.localeCompare(b.d); });
+    // ಆದಾಯ: ಕಳೆದ 6 ತಿಂಗಳು
+    var months = [];
+    for (var i = 5; i >= 0; i--) { var dt = new Date(); dt.setDate(1); dt.setMonth(dt.getMonth() - i); months.push(dt.toISOString().slice(0, 7)); }
+    var rev = months.map(function (m) { return done.filter(function (o) { return String(o.doneAt || o.at).slice(0, 7) === m; }).reduce(function (a, o) { return a + (+o.total || 0); }, 0); });
+    var maxRev = Math.max.apply(null, rev.concat([1]));
+    // ಹೆಚ್ಚು ಮಾರಾಟವಾದ ಪ್ಯಾಕ್ ಪ್ರಕಾರ
+    var kinds = {};
+    done.forEach(function (o) { (o.items || []).forEach(function (k) { var n = packKind(k); kinds[n] = (kinds[n] || 0) + 1; }); });
+    var kindArr = Object.keys(kinds).map(function (k) { return [k, kinds[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
+    // ಕೂಪನ್ / ಸ್ನೇಹಿತ / ಬಹುಮಾನ
+    var cps = {}, refN = 0, refAmt = 0, cpAmt = 0, crAmt = 0;
+    done.forEach(function (o) { if (o.coupon) { cps[o.coupon] = (cps[o.coupon] || 0) + 1; cpAmt += +o.couponOff || 0; } if (o.ref) { refN++; refAmt += +o.refOff || 0; } crAmt += +o.creditUsed || 0; });
+    var topRef = {}; done.forEach(function (o) { if (o.ref) topRef[o.ref] = (topRef[o.ref] || 0) + 1; });
+    var topRefArr = Object.keys(topRef).map(function (m) { return [m, topRef[m]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 5);
+    // ಪ್ರಶ್ನೆ ಇಲ್ಲದ ಕಡೆ ಬೇಡಿಕೆ (30 ದಿನ)
+    var miss = {}, cut = new Date(Date.now() - 29 * 864e5).toISOString().slice(0, 10);
+    Object.keys(daily || {}).forEach(function (d) { if (d < cut) return; var o = daily[d] || {}; Object.keys(o).forEach(function (f) { if (f.indexOf('miss_') === 0) miss[f.slice(5)] = (miss[f.slice(5)] || 0) + o[f]; }); });
+    var missArr = Object.keys(miss).map(function (k) { return [k, miss[k]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 12);
+    var wa = function (m, msg) { return '<a target="_blank" rel="noopener" href="https://wa.me/91' + esc(m) + '?text=' + encodeURIComponent(msg) + '" class="px-2 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-black whitespace-nowrap">WhatsApp</a>'; };
+    var card = function (title, body, cls) { return '<div class="p-4 bg-white border ' + (cls || 'border-slate-200') + ' rounded-2xl space-y-2"><div class="text-xs font-black text-slate-800">' + title + '</div>' + body + '</div>'; };
+    var tileS = function (n, l, sub) { return '<div class="p-3 bg-white border rounded-2xl"><div class="text-xl font-black text-slate-900">' + n + '</div><div class="text-[11px] font-bold text-slate-500">' + l + '</div>' + (sub ? '<div class="text-[10px] font-bold text-slate-400">' + sub + '</div>' : '') + '</div>'; };
+    var el = document.createElement('div'); el.id = 'wy-sales-report'; el.className = 'space-y-3 pt-2';
+    el.innerHTML = '<h3 class="font-black text-sm text-slate-900 pt-2 border-t">🛒 ಮಾರಾಟ ಮತ್ತು ಹೊಸ ಸದಸ್ಯರು</h3>' +
+      '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2">' +
+        tileS(mems.length, 'ನೋಂದಾಯಿತ ಸದಸ್ಯರು', 'ಈ ತಿಂಗಳು ಹೊಸಬರು: ' + newMon) +
+        tileS(buyers.length, 'ಪ್ಯಾಕ್ ಇರುವವರು', mems.length ? Math.round(buyers.length * 100 / mems.length) + '% ಖರೀದಿಸಿದ್ದಾರೆ' : '') +
+        tileS(trialOnly.length, 'ಪ್ರಯೋಗ ಮಾತ್ರ ಬಳಸಿದವರು', 'ಏನೂ ಬಳಸದವರು: ' + noUse) +
+        tileS(rupee(rev[5]), 'ಈ ತಿಂಗಳ ಆದಾಯ', done.length + ' ಆರ್ಡರ್ ಒಟ್ಟು') +
+      '</div>' +
+      '<div class="grid sm:grid-cols-2 gap-3">' +
+        card('💰 ತಿಂಗಳವಾರು ಆದಾಯ (6 ತಿಂಗಳು)', '<div class="flex items-end gap-2 h-28">' + months.map(function (m, i) {
+          return '<div class="flex-1 flex flex-col items-center justify-end h-full"><div class="text-[9px] font-black text-slate-700">' + (rev[i] ? rupee(rev[i]) : '') + '</div><div style="height:' + Math.max(rev[i] ? 4 : 1, Math.round(rev[i] / maxRev * 100)) + '%" class="w-full rounded-t ' + (rev[i] ? 'bg-emerald-500' : 'bg-slate-200') + '"></div><div class="text-[9px] font-bold text-slate-500 mt-0.5">' + m.slice(5) + '/' + m.slice(2, 4) + '</div></div>';
+        }).join('') + '</div>') +
+        card('📦 ಹೆಚ್ಚು ಮಾರಾಟವಾದ ಪ್ಯಾಕ್‌ಗಳು', kindArr.length ? kindArr.map(function (k) { return '<div class="flex justify-between text-xs font-bold"><span>' + esc(k[0]) + '</span><b>' + k[1] + '</b></div>'; }).join('') : '<div class="text-[11px] text-slate-500 font-bold">ಇನ್ನೂ ಮಾರಾಟ ಇಲ್ಲ</div>') +
+      '</div>' +
+      '<div class="grid sm:grid-cols-2 gap-3">' +
+        card('🎟️ ಕೂಪನ್ ಮತ್ತು 🤝 ಸ್ನೇಹಿತರ ಶಿಫಾರಸು', '<div class="text-xs font-bold text-slate-700 space-y-1">' +
+          (Object.keys(cps).length ? Object.keys(cps).map(function (c) { return '<div class="flex justify-between"><span>' + esc(c) + '</span><b>' + cps[c] + ' ಆರ್ಡರ್</b></div>'; }).join('') : '<div class="text-slate-500">ಕೂಪನ್ ಬಳಕೆ ಇಲ್ಲ</div>') +
+          '<div class="flex justify-between border-t pt-1"><span>ಸ್ನೇಹಿತರ ಶಿಫಾರಸಿನಿಂದ ಬಂದ ಆರ್ಡರ್</span><b>' + refN + '</b></div>' +
+          '<div class="text-[11px] text-slate-500">ಕೊಟ್ಟ ಕಡಿತ: ಕೂಪನ್ ' + rupee(cpAmt) + ' · ಸ್ನೇಹಿತ ' + rupee(refAmt) + ' · ಬಹುಮಾನ ಬಳಕೆ ' + rupee(crAmt) + '</div>' +
+          (topRefArr.length ? '<div class="text-[11px] text-slate-600">ಹೆಚ್ಚು ಶಿಫಾರಸು ಮಾಡಿದವರು: ' + topRefArr.map(function (r) { var pr = (ADM.members[r[0]] || {}).profile || {}; return esc(pr.name || r[0]) + ' (' + r[1] + ')'; }).join(', ') + '</div>' : '') + '</div>') +
+        card('🔍 ಪ್ರಶ್ನೆಗಳಿಲ್ಲದ ವಿಷಯಗಳಿಗೆ ಬೇಡಿಕೆ (30 ದಿನ)', missArr.length ? '<div class="text-[11px] font-bold text-slate-500">ಶಿಕ್ಷಕರು ಆರಿಸಿದರು, ಆದರೆ ಪ್ರಶ್ನೆ ಬ್ಯಾಂಕ್ ಸಿಗಲಿಲ್ಲ. ಇವುಗಳನ್ನು ಮೊದಲು ಸೇರಿಸಿ:</div>' + missArr.map(function (k) { return '<div class="flex justify-between text-xs font-bold"><span>' + esc(k[0].replace(/_/g, ' ')) + '</span><b>' + k[1] + '</b></div>'; }).join('') : '<div class="text-[11px] text-slate-500 font-bold">ಇನ್ನೂ ಡೇಟಾ ಇಲ್ಲ (ಇಂದಿನಿಂದ ಎಣಿಕೆ ಶುರು)</div>', 'border-indigo-200') +
+      '</div>' +
+      card('🎯 ಉಚಿತ ಪ್ರಯೋಗ ಬಳಸಿ ಇನ್ನೂ ಖರೀದಿಸದವರು (ಸಂಪರ್ಕಿಸಿ)', trialOnly.length ? '<div class="divide-y">' + trialOnly.slice(0, 20).map(function (x) {
+        var pr = x.profile || {};
+        return '<div class="flex items-center justify-between gap-2 py-1.5 text-xs"><span><b>' + esc(pr.name || x.mob) + '</b> <span class="text-slate-500">' + esc(pr.school || '') + ' · ' + esc(x.mob) + ' · ಪ್ರಯೋಗ ' + (+x.trial || 0) + '/' + PRICES.trial + '</span></span>' +
+          wa(x.mob, 'ನಮಸ್ಕಾರ ' + (pr.name || '') + ', With You QP ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ ಹೇಗಿತ್ತು? ನಿಮಗೆ ಬೇಕಾದ ತರಗತಿ/ವಿಷಯದ ಪ್ಯಾಕ್ ಆರಿಸಲು ಸಹಾಯ ಬೇಕಾದರೆ ತಿಳಿಸಿ.' + (publicOffer() ? ' ಈಗ ' + publicOffer().pct + '% ಆಫರ್ ಇದೆ (ಕೋಡ್ ' + publicOffer().code + ').' : '')) + '</div>';
+      }).join('') + '</div>' : '<div class="text-[11px] text-slate-500 font-bold">ಯಾರೂ ಇಲ್ಲ 👍</div>', 'border-emerald-200') +
+      card('⏳ 30 ದಿನದಲ್ಲಿ ಮುಗಿಯುವ ಸದಸ್ಯರ ಪ್ಯಾಕ್‌ಗಳು', exp.length ? '<div class="divide-y">' + exp.slice(0, 25).map(function (e) {
+        var pr = e.x.profile || {};
+        return '<div class="flex items-center justify-between gap-2 py-1.5 text-xs"><span><b>' + esc(pr.name || e.x.mob) + '</b> <span class="text-slate-500">' + esc(packLabel(e.k)) + ' · ' + dmy(e.d) + '</span></span>' +
+          wa(e.x.mob, 'ನಮಸ್ಕಾರ ' + (pr.name || '') + ', ನಿಮ್ಮ With You QP ಪ್ಯಾಕ್ "' + packLabel(e.k) + '" ' + dmy(e.d) + ' ರಂದು ಮುಗಿಯಲಿದೆ. ನವೀಕರಿಸಲು ಲಾಗಿನ್ ಆಗಿ ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಿ.') + '</div>';
+      }).join('') + '</div>' : '<div class="text-[11px] text-slate-500 font-bold">ಮುಂದಿನ 30 ದಿನಗಳಲ್ಲಿ ಯಾವ ಪ್ಯಾಕ್ ಮುಗಿಯುವುದಿಲ್ಲ 👍</div>', 'border-amber-200');
+    var old = document.getElementById('wy-sales-report'); if (old) old.remove();
+    box.appendChild(el);
+  };
   function renderPrices() {
     var v = $('adm-view-prices'); if (!v) return;
     v.innerHTML = '<div class="p-4 bg-white border rounded-2xl space-y-3"><h4 class="font-black text-slate-900">💰 ಪ್ಯಾಕ್ ದರಗಳು <span class="text-[11px] font-bold text-slate-500">(ಒಂದು ಮಾಧ್ಯಮಕ್ಕೆ, ತೆರೆದ ದಿನದಿಂದ ' + validityText() + ')</span></h4>' +
@@ -25157,6 +25303,57 @@ function wyStrongKeyPart() {
       var d = {}; v.querySelectorAll('[data-price]').forEach(function (i) { d[i.dataset.price] = Math.max(0, +i.value || 0); });
       try { await adminSend('PUT', '/config/prices', d); Object.assign(PRICES, d); toast('✅ ದರಗಳನ್ನು ಉಳಿಸಲಾಗಿದೆ'); } catch (e) { toast(errMsg(e), true); }
     };
+    renderPromoAdmin(v);
+  }
+  // ---------- 👑 Admin: ಕೂಪನ್ / ಆಫರ್ / ಸ್ನೇಹಿತರ ಶಿಫಾರಸು / ಬೋಧನಾ ಮಿತ್ರ ----------
+  function renderPromoAdmin(v) {
+    var box = document.createElement('div'); box.id = 'wy-promo-admin'; box.className = 'p-4 bg-white border rounded-2xl space-y-3 mt-3';
+    var S = 'px-2 py-1.5 border rounded-lg text-xs font-bold';
+    function draw() {
+      var codes = Object.keys(PROMO.coupons || {}).sort();
+      box.innerHTML = '<h4 class="font-black text-slate-900">🎟️ ಕೂಪನ್ ಮತ್ತು ಆಫರ್ <span class="text-[11px] font-bold text-slate-500">("ಎಲ್ಲರಿಗೂ ತೋರಿಸು" ಆದರೆ ಮುಖಪುಟದಲ್ಲಿ ಆಫರ್ ಪಟ್ಟಿ ಬರುತ್ತದೆ, ಕಾರ್ಟ್‌ನಲ್ಲಿ ತಾನಾಗಿ ಅನ್ವಯ)</span></h4>' +
+        (codes.length ? '<div class="divide-y border rounded-xl">' + codes.map(function (c) {
+          var x = PROMO.coupons[c] || {}, live = !x.off && (!x.until || String(x.until) >= today());
+          return '<div class="flex flex-wrap items-center gap-2 p-2 text-xs font-bold"><code class="px-2 py-0.5 rounded bg-slate-100 font-black">' + esc(c) + '</code><span>' + (+x.pct || 0) + '% ಕಡಿತ</span>' +
+            '<span class="text-slate-500">' + (x.until ? dmy(x.until) + ' ವರೆಗೆ' : 'ಕೊನೆಯ ದಿನ ಇಲ್ಲ') + '</span><span class="text-slate-500">' + (x.show === false ? '🔒 ಕೋಡ್ ಗೊತ್ತಿದ್ದವರಿಗೆ ಮಾತ್ರ' : '📢 ಎಲ್ಲರಿಗೂ') + '</span>' +
+            '<span class="' + (live ? 'text-emerald-700' : 'text-rose-600') + '">' + (live ? '● ಸಕ್ರಿಯ' : '● ನಿಂತಿದೆ') + '</span>' +
+            '<span class="ml-auto flex gap-1"><button type="button" data-cp-tog="' + esc(c) + '" class="px-2 py-1 rounded-lg bg-slate-100">' + (x.off ? 'ಆನ್' : 'ಆಫ್') + '</button><button type="button" data-cp-del="' + esc(c) + '" class="px-2 py-1 rounded-lg bg-rose-50 text-rose-700">ಅಳಿಸಿ</button></span></div>';
+        }).join('') + '</div>' : '<p class="text-xs font-bold text-slate-500">ಇನ್ನೂ ಕೂಪನ್ ಇಲ್ಲ.</p>') +
+        '<div class="flex flex-wrap items-end gap-2 p-3 rounded-xl bg-slate-50 border">' +
+          '<label class="text-[11px] font-bold text-slate-600">ಕೋಡ್<br><input id="cp-code" placeholder="DIWALI20" class="' + S + ' uppercase w-32"></label>' +
+          '<label class="text-[11px] font-bold text-slate-600">ಕಡಿತ %<br><input id="cp-pct" type="number" min="1" max="90" value="10" class="' + S + ' w-20"></label>' +
+          '<label class="text-[11px] font-bold text-slate-600">ಕೊನೆಯ ದಿನ<br><input id="cp-until" type="date" class="' + S + '"></label>' +
+          '<label class="text-[11px] font-bold text-slate-600 flex items-center gap-1 pb-1.5"><input id="cp-show" type="checkbox" checked> ಎಲ್ಲರಿಗೂ ತೋರಿಸು</label>' +
+          '<button type="button" id="cp-add" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-black">+ ಸೇರಿಸಿ</button></div>' +
+        '<h4 class="font-black text-slate-900 pt-2">🤝 ಸ್ನೇಹಿತರಿಗೆ ತಿಳಿಸಿ (referral)</h4>' +
+        '<div class="flex flex-wrap gap-3 text-xs font-bold text-slate-700">' +
+          '<label>ಹೊಸಬರಿಗೆ ಮೊದಲ ಖರೀದಿಯಲ್ಲಿ ಕಡಿತ %<br><input id="pr-refpct" type="number" min="0" max="50" value="' + PROMO.refPct + '" class="' + S + ' w-24"></label>' +
+          '<label>ಸೂಚಿಸಿದವರಿಗೆ ಬಹುಮಾನ ₹<br><input id="pr-refrew" type="number" min="0" value="' + PROMO.refReward + '" class="' + S + ' w-24"></label></div>' +
+        '<p class="text-[11px] font-bold text-slate-500">ಹಣ ಬಂದಿದೆ ಎಂದು ಆರ್ಡರ್ ತೆರೆದಾಗ, ಸೂಚಿಸಿದ ಸದಸ್ಯರ ಖಾತೆಗೆ ಬಹುಮಾನ ತಾನಾಗಿ ಸೇರುತ್ತದೆ. ಅದು ಅವರ ಮುಂದಿನ ಖರೀದಿಯಲ್ಲಿ ಕಡಿತವಾಗುತ್ತದೆ. 0 ಹಾಕಿದರೆ ನಿಲ್ಲುತ್ತದೆ.</p>' +
+        '<h4 class="font-black text-slate-900 pt-2">📘 ಬೋಧನಾ ಮಿತ್ರ ಜೋಡಣೆ</h4>' +
+        '<div class="flex flex-wrap gap-3 text-xs font-bold text-slate-700">' +
+          '<label>ಮಿತ್ರ ವೆಬ್‌ಸೈಟ್ ವಿಳಾಸ<br><input id="pr-murl" value="' + esc(PROMO.mitraUrl) + '" class="' + S + ' w-72"></label>' +
+          '<label>QP ಗ್ರಾಹಕರಿಗೆ ಮಿತ್ರದ ಕೂಪನ್<br><input id="pr-mcode" value="' + esc(PROMO.mitraCode) + '" placeholder="WYQP15" class="' + S + ' uppercase w-32"></label>' +
+          '<label>ಅದರ ಕಡಿತ %<br><input id="pr-mpct" type="number" min="0" max="90" value="' + PROMO.mitraPct + '" class="' + S + ' w-20"></label></div>' +
+        '<p class="text-[11px] font-bold text-slate-500">ಈ ಕೂಪನ್ ಅನ್ನು <b>ಬೋಧನಾ ಮಿತ್ರದ Admin → ದರಪಟ್ಟಿ</b>ಯಲ್ಲೂ ಅದೇ ಹೆಸರಿನಲ್ಲಿ ("ಎಲ್ಲರಿಗೂ ತೋರಿಸು" ತೆಗೆದು) ಸೇರಿಸಿ. ಪ್ಯಾಕ್ ಖರೀದಿಸಿದ QP ಗ್ರಾಹಕರಿಗೆ ಮಾತ್ರ ಇದು ಮುಖಪುಟದಲ್ಲಿ ಕಾಣುತ್ತದೆ.</p>' +
+        '<button type="button" id="pr-save" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black">💾 ಉಳಿಸಿ</button>';
+      box.querySelectorAll('[data-cp-tog]').forEach(function (b) { b.onclick = function () { var c = PROMO.coupons[b.dataset.cpTog]; c.off = !c.off; save(); }; });
+      box.querySelectorAll('[data-cp-del]').forEach(function (b) { b.onclick = function () { if (!confirm(b.dataset.cpDel + ' ಕೂಪನ್ ಅಳಿಸಲೇ?')) return; delete PROMO.coupons[b.dataset.cpDel]; save(); }; });
+      $('cp-add').onclick = function () {
+        var code = ($('cp-code').value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, ''), pct = +$('cp-pct').value || 0;
+        if (code.length < 3) return toast('ಕೋಡ್ ಕನಿಷ್ಠ 3 ಅಕ್ಷರ (A–Z, 0–9)', true);
+        if (pct < 1 || pct > 90) return toast('ಕಡಿತ 1–90% ಇರಬೇಕು', true);
+        PROMO.coupons[code] = { pct: pct, until: $('cp-until').value || '', show: $('cp-show').checked };
+        save();
+      };
+      $('pr-save').onclick = save;
+    }
+    async function save() {
+      var d = { coupons: PROMO.coupons, refPct: Math.max(0, +($('pr-refpct') || {}).value || 0), refReward: Math.max(0, +($('pr-refrew') || {}).value || 0),
+        mitraUrl: (($('pr-murl') || {}).value || '').trim(), mitraCode: (($('pr-mcode') || {}).value || '').trim().toUpperCase(), mitraPct: Math.max(0, +($('pr-mpct') || {}).value || 0) };
+      try { await adminSend('PUT', '/config/promo', d); applyPromo(d); toast('✅ ಉಳಿಸಲಾಗಿದೆ'); draw(); } catch (e) { toast(errMsg(e), true); }
+    }
+    v.appendChild(box); draw();
   }
   document.addEventListener('click', function (e) {
     var t = e.target.closest && e.target.closest('[data-ost],[data-ost-reload],[data-approve],[data-reject],[data-mgrant],[data-mrev],[data-mtrial],[data-medit]'); if (!t) return;
@@ -25996,7 +26193,8 @@ function wyStrongKeyPart() {
     login: function () { if (window.wyOpenMemberAuth) wyOpenMemberAuth('login'); else openTeacherAuthModal('login'); },
     register: function () { if (window.wyOpenMemberAuth) wyOpenMemberAuth('register'); else openTeacherAuthModal('signup'); },
     help: function () { window.open('https://wa.me/919902090911?text=' + encodeURIComponent('ನಮಸ್ಕಾರ, With You QP ಬಗ್ಗೆ ಸಹಾಯ ಬೇಕು'), '_blank'); },
-    install: function () { if (window.wyInstallApp) wyInstallApp(); }
+    install: function () { if (window.wyInstallApp) wyInstallApp(); },
+    mitra: function () { var P = (window.wyPromo && wyPromo()) || {}; window.open(P.mitraUrl || 'https://withyou00.github.io/mitra/', '_blank', 'noopener'); }
   };
   window.wyShellGo = function (k) { if (ACT[k]) ACT[k](); };
 
@@ -26009,6 +26207,7 @@ function wyStrongKeyPart() {
     items.push(['sep']);
     if (k === 'admin') items.push(['admin', I.shield, 'Admin']);
     if (k === 'guest') { items.push(['login', I.key, 'ಲಾಗಿನ್']); items.push(['register', I.plus, 'ಹೊಸ ನೋಂದಣಿ']); }
+    items.push(['mitra', I.book, 'ಬೋಧನಾ ಮಿತ್ರ ↗']);
     items.push(['help', I.help, 'ಸಹಾಯ (WhatsApp)']);
     if (k !== 'guest') items.push(['logout', I.power, 'ಲಾಗೌಟ್']);
     var showInst = !!$('wy-install-btn');
@@ -26032,6 +26231,7 @@ function wyStrongKeyPart() {
     bar.innerHTML = '<div class="m-barin"><h1>' + title + '</h1><div class="m-barr">' + right + '</div></div>';
     try { if (window.wyRenderCartBadges) wyRenderCartBadges(); } catch (e) {}
     syncCart();
+    try { if (window.wyPlaceNotice) wyPlaceNotice(); } catch (e) {}
   }
   function syncCart() {
     var n = 0; try { n = (JSON.parse(localStorage.getItem('wy_cart') || '[]') || []).length; } catch (e) {}
@@ -26165,6 +26365,210 @@ function wyStrongKeyPart() {
   }, 1500);
   renderShell();
   try { if (curView() === 'dashboard') renderUltraModernDashboard(); } catch (e) {}
+})();
+
+
+// =========================================================================
+// ✏️ ಪ್ರಶ್ನೆ ಬದಲಾವಣೆ: ಅದೇ ಪಾಠದ, ಅದೇ ಪ್ರಶ್ನೆಪ್ರಕಾರದ ಉಳಿದ ಪ್ರಶ್ನೆಗಳು ಮಾತ್ರ
+// (ಈಗಾಗಲೇ ಪತ್ರಿಕೆಯಲ್ಲಿರುವ ಪ್ರಶ್ನೆಗಳನ್ನು ಬಿಟ್ಟು)
+// =========================================================================
+(function installSameChapterQEdit() {
+  var prev = window.openPopupQuestionEditor;
+  if (typeof prev !== 'function') return;
+  var TN = { mcq: 'ಬಹು ಆಯ್ಕೆ', match: 'ಹೊಂದಿಸಿ ಬರೆಯಿರಿ', passage: 'ಗದ್ಯಭಾಗ', context: 'ಸಂದರ್ಭ ಸಹಿತ ವಿವರಣೆ', grammar_passage: 'ವ್ಯಾಕರಣ', blanks: 'ಖಾಲಿ ಬಿಟ್ಟ ಸ್ಥಳ', true_false: 'ಸರಿ / ತಪ್ಪು', analogy: 'ಸಂಬಂಧ', odd_one_out: 'ಗುಂಪಿಗೆ ಸೇರದ್ದು', vsa_1m: '1 ಅಂಕದ ಪ್ರಶ್ನೆ', sa_2m: '2 ಅಂಕದ ಪ್ರಶ್ನೆ', sa_3m: '3 ಅಂಕದ ಪ್ರಶ್ನೆ', la_4m: '4 ಅಂಕದ ಪ್ರಶ್ನೆ', la_5m: '5 ಅಂಕದ ಪ್ರಶ್ನೆ' };
+  function key(q) {
+    if (!q) return '';
+    return [q.q, q.a, q.b, q.c, q.d, q.passage].map(function (x) { return String(x || '').replace(/<[^>]+>/g, '').replace(/[\s‌‍.,?!:;'"“”‘’()\[\]_\-–—]+/g, '').toLowerCase(); }).join('|');
+  }
+  function rawType(q) { return String((q && q.type) || '').toLowerCase().trim(); }
+  function sameType(a, b) {
+    if (getCanonicalQuestionType(a) !== getCanonicalQuestionType(b)) return false;
+    var ra = rawType(a), rb = rawType(b);
+    return !(ra && rb && ra !== rb);
+  }
+  function chapKey(c) { return safeCleanMatch(String(c || '').replace(/^\s*[\d೦-೯]+\s*[\.\)]\s*/, '')); }
+  window.wyQEditAlternatives = function (qIndex) {
+    var paper = appState.activeGeneratedQuestions || [], cur = paper[qIndex];
+    if (!cur) return null;
+    var bank = appState.activeSubjectQuestions || [];
+    var used = {}; paper.forEach(function (q) { used[key(q)] = 1; });
+    var mk = getExactQuestionMarks(cur), ch = chapKey(cur.chapter);
+    var seen = {}, same = [], skipped = 0;
+    bank.forEach(function (q) {
+      if (!q || chapKey(q.chapter) !== ch || !sameType(q, cur)) return;
+      var k = key(q);
+      if (used[k]) { skipped++; return; }
+      if (seen[k]) return; seen[k] = 1;
+      same.push(q);
+    });
+    same.sort(function (a, b) { return (getExactQuestionMarks(a) === mk ? 0 : 1) - (getExactQuestionMarks(b) === mk ? 0 : 1); });
+    return { cur: cur, list: same, skipped: skipped, marks: mk, typeName: TN[getCanonicalQuestionType(cur)] || rawType(cur) || 'ಪ್ರಶ್ನೆ' };
+  };
+  function listHtml(r, qIndex) {
+    if (!r.list.length) return '<div class="p-8 text-center bg-slate-50 border rounded-2xl text-slate-500 font-bold text-xs">ಈ ಪಾಠದಲ್ಲಿ ಇದೇ ಪ್ರಕಾರದ ಬೇರೆ ಪ್ರಶ್ನೆಗಳು ಉಳಿದಿಲ್ಲ (ಎಲ್ಲವೂ ಈಗಾಗಲೇ ಪತ್ರಿಕೆಯಲ್ಲಿವೆ).<br>ಪಕ್ಕದ "ಸ್ವಂತ ಪ್ರಶ್ನೆ" ಟ್ಯಾಬ್‌ನಲ್ಲಿ ನಿಮ್ಮದೇ ಪ್ರಶ್ನೆ ಬರೆಯಬಹುದು.</div>';
+    var isMCQ = getCanonicalQuestionType(r.cur) === 'mcq';
+    var html = renderAlternativeBankListHtml(r.list, qIndex, isMCQ);
+    // ಅಂಕ ಬೇರೆ ಇದ್ದರೆ ಎಚ್ಚರಿಕೆ ಗುರುತು
+    var box = document.createElement('div'); box.innerHTML = html;
+    Array.from(box.children).forEach(function (el, i) {
+      var q = r.list[i]; el.setAttribute('data-qe-text', String(q.q || '').toLowerCase());
+      var m = getExactQuestionMarks(q);
+      if (m !== r.marks) el.insertAdjacentHTML('afterbegin', '<div class="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-0.5 inline-block">⚠️ ಇದು ' + m + ' ಅಂಕದ ಪ್ರಶ್ನೆ (ಈಗಿನದು ' + r.marks + ' ಅಂಕ)</div>');
+    });
+    return box.innerHTML;
+  }
+  window.openPopupQuestionEditor = function (qIndex) {
+    var res = prev.apply(this, arguments);
+    try {
+      var r = wyQEditAlternatives(qIndex), view = document.getElementById('qedit-view-bank');
+      if (!r || !view) return res;
+      var tab = document.getElementById('qedit-tab-bank');
+      if (tab) tab.innerHTML = '<i class="fa-solid fa-database"></i> ೧. ಇದೇ ಪಾಠದ ಬೇರೆ ಪ್ರಶ್ನೆ (' + r.list.length + ')';
+      view.innerHTML =
+        '<div class="flex flex-wrap items-center justify-between gap-2 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-950">' +
+          '<span>📖 <b>' + escapeHtml(String(r.cur.chapter || 'ಸಾಮಾನ್ಯ')) + '</b> · ' + escapeHtml(r.typeName) + '<br><span class="font-semibold text-emerald-800">ಈಗಾಗಲೇ ಪತ್ರಿಕೆಯಲ್ಲಿರುವ ಪ್ರಶ್ನೆಗಳನ್ನು ಬಿಡಲಾಗಿದೆ — ಉಳಿದ ' + r.list.length + ' ಪ್ರಶ್ನೆಗಳು</span></span>' +
+          '<input type="text" id="qedit-bank-search" placeholder="🔍 ಪ್ರಶ್ನೆ ಹುಡುಕಿ..." class="px-2.5 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-bold w-40 outline-none" /></div>' +
+        '<div id="qedit-alternatives-container" class="space-y-2.5 max-h-[48vh] overflow-y-auto pr-1">' + listHtml(r, qIndex) + '</div>';
+      var s = document.getElementById('qedit-bank-search');
+      if (s) s.oninput = function () {
+        var t = s.value.toLowerCase().trim();
+        document.querySelectorAll('#qedit-alternatives-container [data-qe-text]').forEach(function (el) { el.style.display = !t || el.getAttribute('data-qe-text').indexOf(t) !== -1 ? '' : 'none'; });
+      };
+    } catch (e) { try { console.warn('qedit', e); } catch (x) {} }
+    return res;
+  };
+  try { openPopupQuestionEditor = window.openPopupQuestionEditor; } catch (e) {}
+})();
+
+// =========================================================================
+// 📢 ಪ್ರಕಟಣೆ (ಮಿತ್ರ ಶೈಲಿ ಕಾರ್ಡ್) + 🎉 ಆಫರ್ ಪಟ್ಟಿ + 📘 ಮಿತ್ರ ಕಾರ್ಡ್ + 🔍 ಬೇಡಿಕೆ ಎಣಿಕೆ
+// =========================================================================
+(function installNoticeOfferMitra() {
+  var FB = 'https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app';
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function sess() { try { return JSON.parse(localStorage.getItem('wy_active_session') || 'null'); } catch (e) { return null; } }
+  function ann() { try { return JSON.parse(localStorage.getItem('wy_live_announcement') || '{}') || {}; } catch (e) { return {}; } }
+  function dmy(d) { var m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '-' + m[2] + '-' + m[1] : (d || ''); }
+  var KIND = { info: ['📢', 'ಪ್ರಕಟಣೆ'], new: ['🆕', 'ಹೊಸದಾಗಿ ಸೇರಿದೆ'], warn: ['⚠️', 'ಗಮನಿಸಿ'] };
+
+  var css = document.createElement('style');
+  css.textContent = [
+    '.m-notice{display:flex;gap:14px;align-items:flex-start;padding:16px 20px;border-left:4px solid var(--m-amber)}',
+    '.m-notice.warn{border-left-color:var(--m-danger)}.m-notice.new{border-left-color:var(--m-accent)}',
+    '.m-notice .ni{font-size:20px;line-height:1.3}',
+    '.m-notice b{display:block;font-size:15px}.m-notice p{margin:3px 0 0;font-size:14.5px;line-height:1.6;white-space:pre-line;color:var(--m-ink)}',
+    '.m-notice small{color:var(--m-muted);font-size:12px}',
+    '.m-notice .m-btn{margin-top:8px}',
+    '.m-notice.strip{padding:10px 16px;margin-bottom:16px}.m-notice.strip p{margin:0;font-size:13.5px}',
+    '.m-code{font-family:ui-monospace,monospace;font-weight:700;background:#fff;border:1px solid var(--m-line);border-radius:6px;padding:1px 7px}',
+    '.m-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}',
+    '.m-ref{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}',
+    '.m-ref b{display:block;font-size:15px}.m-ref small{display:block;color:var(--m-muted);font-size:13px;margin-top:2px;line-height:1.6}',
+    '.m-mitra{background:linear-gradient(135deg,#fff,#fbf6ea)}',
+    'body>#wy-live-notice-bar{display:none!important}'
+  ].join('\n');
+  document.head.appendChild(css);
+
+  function noticeHtml(strip) {
+    var a = ann();
+    if (!a.enabled || !String(a.text || '').trim()) return '';
+    var k = KIND[a.kind] || KIND.info;
+    return '<div class="m-card m-notice ' + esc(a.kind || 'info') + (strip ? ' strip' : '') + '" id="' + (strip ? 'wy-notice-strip' : 'wy-notice-card') + '"><span class="ni">' + k[0] + '</span><div style="min-width:0;flex:1">' +
+      (strip ? '' : '<b>' + k[1] + '</b>') + '<p>' + esc(a.text) + '</p>' +
+      (!strip && a.link ? '<a class="m-btn sm pri" target="_blank" rel="noopener" href="' + esc(a.link) + '">' + esc(a.linkText || 'ತೆರೆಯಿರಿ') + ' ↗</a>' : '') +
+      (!strip && a.updatedAt ? ' <small>' + esc(a.updatedAt) + '</small>' : '') + '</div></div>';
+  }
+  function offerHtml() {
+    var o = window.wyPublicOffer && wyPublicOffer();
+    if (!o) return '';
+    return '<div class="m-offer" id="wy-offer-bar">🎉 <b>ಆಫರ್: ಎಲ್ಲಾ ಖರೀದಿಗಳಿಗೆ ' + o.pct + '% ಕಡಿತ</b>' + (o.until ? ' · ' + dmy(o.until) + ' ರವರೆಗೆ ಮಾತ್ರ' : '') + ' · ಕೋಡ್ <code class="m-code">' + esc(o.code) + '</code> (ಕಾರ್ಟ್‌ನಲ್ಲಿ ತಾನಾಗಿಯೇ ಅನ್ವಯವಾಗುತ್ತದೆ)</div>';
+  }
+  function mitraCard() {
+    var P = (window.wyPromo && wyPromo()) || {}, url = P.mitraUrl || 'https://withyou00.github.io/mitra/';
+    var s = sess(), paid = !!(s && s.isLoggedIn && !s.member);
+    return '<div class="m-card m-pad m-ref m-mitra" id="wy-mitra-card"><div><b>📘 ಬೋಧನಾ ಮಿತ್ರ: ಪಾಠಯೋಜನೆ, PPT, ನೋಟ್ಸ್, ಅಂದಾಜು ಪತ್ರಿಕೆ</b><small>ನಿಮ್ಮ ಶಾಲೆಯ ಹೆಸರಿನೊಂದಿಗೆ. ಇದೇ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯಿಂದ ನೋಂದಣಿ ಮಾಡಿ.' +
+      (paid && P.mitraCode && P.mitraPct ? ' <span class="m-pill warn">QP ಗ್ರಾಹಕರಿಗೆ ' + P.mitraPct + '% ಕಡಿತ · ಕೋಡ್ ' + esc(P.mitraCode) + '</span>' : '') + '</small></div>' +
+      '<a class="m-btn sm" target="_blank" rel="noopener" href="' + esc(url) + '">ತೆರೆಯಿರಿ ↗</a></div>';
+  }
+  function after(el, html) { if (!el || !html) return; el.insertAdjacentHTML('afterend', html); }
+  // ಮುಖಪುಟ ಮತ್ತು ಜನರೇಟರ್‌ಗೆ ಸೇರಿಸುವುದು (ಪ್ರತಿ ಬಾರಿ ಪುಟ ಬದಲಾದಾಗ)
+  window.wyPlaceNotice = function () {
+    try {
+      ['wy-notice-card', 'wy-notice-strip', 'wy-offer-bar'].forEach(function (id) { var e = $(id); if (e && !e.closest('#wy-member-dash')) e.remove(); });
+      var dash = $('wy-member-dash') || $('wy-key-dash') || $('wy-guest-dash');
+      if (dash) {
+        var w = dash.querySelector('.m-welcome');
+        var nh = noticeHtml(false);
+        if (nh && !dash.querySelector('#wy-notice-card')) after(w, nh);
+        if (!dash.querySelector('.m-offer') || dash.id !== 'wy-member-dash') { if (dash.id !== 'wy-member-dash') after(w, offerHtml()); }
+        if (dash.id === 'wy-key-dash' && !$('wy-mitra-card')) dash.insertAdjacentHTML('beforeend', '<div class="m-two">' + mitraCard() + '</div>');
+      }
+      var qg = $('wy-qg'), g = $('view-generator');
+      if (qg && g && !g.classList.contains('hidden')) { var sh = noticeHtml(true); if (sh) qg.insertAdjacentHTML('beforebegin', sh); }
+    } catch (e) {}
+  };
+  window.wyRenderOfferBar = window.wyPlaceNotice;
+  window.renderLiveAnnouncementBanner = function () { var b = $('wy-live-notice-bar'); if (b) b.className = 'hidden'; window.wyPlaceNotice(); };
+  try { renderLiveAnnouncementBanner = window.renderLiveAnnouncementBanner; } catch (e) {}
+
+  // Admin: ಪ್ರಕಟಣೆಗೆ ಪ್ರಕಾರ + ಲಿಂಕ್
+  var prevOpen = window.openAdminDashboardModal;
+  window.openAdminDashboardModal = async function () {
+    var r = typeof prevOpen === 'function' ? await prevOpen.apply(this, arguments) : undefined;
+    try {
+      var ta = $('adm-notice-text');
+      if (ta && !$('adm-notice-kind')) {
+        var a = ann(), S = 'px-2.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold';
+        ta.insertAdjacentHTML('afterend', '<div class="grid sm:grid-cols-3 gap-2 mt-2">' +
+          '<label class="text-[11px] font-bold text-slate-600">ಪ್ರಕಾರ<select id="adm-notice-kind" class="' + S + ' w-full">' + Object.keys(KIND).map(function (k) { return '<option value="' + k + '"' + ((a.kind || 'info') === k ? ' selected' : '') + '>' + KIND[k][0] + ' ' + KIND[k][1] + '</option>'; }).join('') + '</select></label>' +
+          '<label class="text-[11px] font-bold text-slate-600">ಬಟನ್ ಲಿಂಕ್ (ಬೇಕಿದ್ದರೆ)<input id="adm-notice-link" value="' + esc(a.link || '') + '" placeholder="https://chat.whatsapp.com/..." class="' + S + ' w-full"></label>' +
+          '<label class="text-[11px] font-bold text-slate-600">ಬಟನ್ ಹೆಸರು<input id="adm-notice-linktext" value="' + esc(a.linkText || '') + '" placeholder="WhatsApp ಗುಂಪಿಗೆ ಸೇರಿ" class="' + S + ' w-full"></label></div>' +
+          '<p class="text-[11px] font-bold text-slate-500 mt-1">ಮುಖಪುಟದಲ್ಲಿ ಕಾರ್ಡ್ ಆಗಿ, ಪತ್ರಿಕೆ ರಚಿಸುವ ಪುಟದಲ್ಲಿ ಚಿಕ್ಕ ಪಟ್ಟಿಯಾಗಿ ಕಾಣುತ್ತದೆ.</p>');
+      }
+    } catch (e) {}
+    return r;
+  };
+  try { openAdminDashboardModal = window.openAdminDashboardModal; } catch (e) {}
+  window.saveAnnouncementSubmit = async function () {
+    var link = ((($('adm-notice-link') || {}).value) || '').trim();
+    if (link && !/^https?:\/\//i.test(link)) link = 'https://' + link;
+    var d = new Date();
+    var data = { text: (($('adm-notice-text') || {}).value || '').trim(), enabled: !!(($('adm-notice-enable') || {}).checked),
+      kind: (($('adm-notice-kind') || {}).value) || 'info', link: link, linkText: ((($('adm-notice-linktext') || {}).value) || '').trim(),
+      updatedAt: String(d.getDate()).padStart(2, '0') + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + d.getFullYear() };
+    try { var r = await fetch(FB + '/announcement.json', { method: 'PUT', body: JSON.stringify(data) }); if (!r.ok) throw new Error('DB ' + r.status); }
+    catch (e) { showToast('⚠️ ಪ್ರಕಟಣೆ ಉಳಿಸಲು ಆಗಲಿಲ್ಲ (Admin ಆಗಿ ಮತ್ತೆ ಲಾಗಿನ್ ಆಗಿ)', 'error'); return; }
+    localStorage.setItem('wy_live_announcement', JSON.stringify(data));
+    window.renderLiveAnnouncementBanner();
+    showToast('📢 ಪ್ರಕಟಣೆ ಪ್ರಕಟವಾಗಿದೆ!', 'success');
+  };
+  try { saveAnnouncementSubmit = window.saveAnnouncementSubmit; } catch (e) {}
+
+  // 🔍 ಪ್ರಶ್ನೆ ಬ್ಯಾಂಕ್ ಸಿಗದ ವಿಷಯಕ್ಕೆ ಬೇಡಿಕೆ ಎಣಿಕೆ (Admin ವರದಿಗಾಗಿ)
+  var logged = {};
+  var prevToast = window.showToast;
+  if (typeof prevToast === 'function') {
+    window.showToast = function (msg) {
+      try {
+        if (/GitHub ನಲ್ಲಿ/.test(String(msg)) && /ಕಂಡುಬಂದಿಲ್ಲ|ಸಿಗಲಿಲ್ಲ/.test(String(msg)) && sessionStorage.getItem('wy_is_admin') !== 'true') {
+          var v = function (id) { var e = $(id); return e ? e.value : ''; };
+          var med = { kannada_medium: 'ಕನ್ನಡ', english_medium: 'English', bilingual_medium: 'ದ್ವಿಭಾಷಾ' }[v('cfg-medium')] || v('cfg-medium');
+          var part = { part1: 'ಭಾಗ1', part2: 'ಭಾಗ2', all: 'ಭಾಗ1+2' }[v('cfg-part')] || '';
+          var key = (med + '_' + String(v('cfg-class')).replace(/\D/g, '') + 'ನೇ_' + String(v('cfg-subject')).replace(/\s*\(.*?\)\s*/g, '') + '_' + part).replace(/[.#$\[\]\/\s]+/g, '_').slice(0, 90);
+          if (!logged[key]) {
+            logged[key] = 1;
+            var dd = new Date(), day = dd.getFullYear() + '-' + String(dd.getMonth() + 1).padStart(2, '0') + '-' + String(dd.getDate()).padStart(2, '0');
+            var body = {}; body['miss_' + key] = { '.sv': { increment: 1 } };
+            fetch(FB + '/stats/daily/' + day + '.json', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(function () {});
+          }
+        }
+      } catch (e) {}
+      return prevToast.apply(this, arguments);
+    };
+    try { showToast = window.showToast; } catch (e) {}
+  }
+  setTimeout(window.wyPlaceNotice, 1200);
 })();
 
 </script>

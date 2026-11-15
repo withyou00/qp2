@@ -23334,6 +23334,7 @@ function wyStrongKeyPart() {
 
   // ---------- ೬. ಶಾಲೆಯ ಹೆಸರು ಮತ್ತು ಪರೀಕ್ಷೆಯ ಹೆಸರು (ದ್ವಿಭಾಷೆ) ----------
   var EXAM_EN = [
+    [/ಅಭ್ಯಾಸ ಹಾಳೆ\s*\/\s*ಮನೆಗೆಲಸ\s*\(\s*ಘಟಕ\s*\)/, 'Practice Worksheet / Homework'],
     [/LBA\s*\(\s*ಘಟಕ ಪರೀಕ್ಷೆ\s*\)/, 'LBA (Unit Test)'],
     [/([1-4೧-೪])\s*ನೇ\s*ರೂಪಣಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ\s*\(\s*(FA-\d)\s*\)/, function (m, n, fa) { return 'Formative Assessment-' + normDigits(n) + ' (' + fa + ')'; }],
     [/ಸಂಕಲನಾತ್ಮಕ ಮೌಲ್ಯಮಾಪನ\s*-\s*([12೧೨])\s*\(\s*(SA-\d)\s*\)/, function (m, n, sa) { return 'Summative Assessment-' + normDigits(n) + ' (' + sa + ')'; }],
@@ -24141,7 +24142,7 @@ function wyStrongKeyPart() {
   }
   window.wyPublicOffer = publicOffer;
   window.wyPromo = function () { return PROMO; };
-  function firstOrder() { return !MEM.orders.some(function (o) { return o.status !== 'rejected'; }); }
+  function firstOrder() { return !Object.keys(MEM.packs || {}).length && !MEM.orders.some(function (o) { return o.status !== 'rejected'; }); }
   var CX_KEY = 'wy_cart_extra';
   function cartX() { return lsGet(CX_KEY, {}) || {}; }
   function cartCalc(l) {
@@ -24306,6 +24307,80 @@ function wyStrongKeyPart() {
     toast('🛒 ಕಾರ್ಟ್‌ಗೆ ಸೇರಿಸಲಾಗಿದೆ: ' + packTitle(k) + (removed.length ? ' (ಒಳಗೊಂಡ ' + removed.length + ' ಚಿಕ್ಕ ಪ್ಯಾಕ್ ತೆಗೆಯಲಾಗಿದೆ)' : ''));
   }
   window.wyCartAdd = function (k) { if (!isMember()) { openMemberAuth('register'); return; } cartAdd(k); refreshViews(); };
+  // ---------- ⏳ ನವೀಕರಣ ನೆನಪು ----------
+  function dayShift(n) { return new Date(Date.now() + n * 864e5).toISOString().slice(0, 10); }
+  function renewList() {   // 15 ದಿನದಲ್ಲಿ ಮುಗಿಯುವ ಅಥವಾ ಕಳೆದ 60 ದಿನದಲ್ಲಿ ಮುಗಿದ ಪ್ಯಾಕ್‌ಗಳು
+    var lo = dayShift(-60), hi = dayShift(15), t = today();
+    return Object.keys(MEM.packs || {}).filter(function (k) {
+      var d = String(MEM.packs[k] || ''); if (!d || d < lo || d > hi) return false;
+      // ಇದನ್ನು ಒಳಗೊಂಡ ಬೇರೆ ಸಕ್ರಿಯ ದೊಡ್ಡ ಪ್ಯಾಕ್ ಇದ್ದರೆ ನೆನಪು ಬೇಡ
+      return !Object.keys(MEM.packs).some(function (o) { return o !== k && String(MEM.packs[o]) > hi && covers(o, k); });
+    }).map(function (k) { var d = String(MEM.packs[k]); return { k: k, d: d, left: Math.ceil((Date.parse(d) - Date.parse(t)) / 864e5) }; })
+      .sort(function (a, b) { return a.d.localeCompare(b.d); });
+  }
+  window.wyRenew = function (k) {
+    var l = cartGet();
+    if (!l.some(function (a) { return covers(a, k); })) { l = l.filter(function (a) { return !covers(k, a); }); l.push(k); cartSet(l); }
+    openCart();
+  };
+  function renewCardHtml() {
+    var R = renewList(); if (!R.length) return '';
+    return '<div class="m-card m-renew" id="wy-renew-card"><div class="m-sec-h m-pad-h"><h2>⏳ ನವೀಕರಣ ನೆನಪು</h2><span class="m-muted m-small">ನವೀಕರಿಸಿದರೆ ಈಗಿನ ಕೊನೆಯ ದಿನದಿಂದ ಮುಂದಿನ ' + validityText() + ' ಸೇರುತ್ತದೆ, ಉಳಿದ ದಿನ ವ್ಯರ್ಥವಾಗುವುದಿಲ್ಲ</span></div><div class="m-units">' +
+      R.map(function (r) {
+        var inCart = cartGet().some(function (a) { return covers(a, r.k); });
+        return '<div class="m-unit"><span class="no">' + (r.left < 0 ? '!' : r.left) + '</span><div><b>' + esc(packLabel(r.k)) + '</b><small>' +
+          (r.left < 0 ? '<span class="m-pill bad">' + dmy(r.d) + ' ರಂದು ಮುಗಿದಿದೆ</span>' : r.left === 0 ? '<span class="m-pill bad">ಇಂದು ಮುಗಿಯುತ್ತದೆ</span>' : '<span class="m-pill warn">' + dmy(r.d) + ' ರಂದು ಮುಗಿಯುತ್ತದೆ · ' + r.left + ' ದಿನ ಬಾಕಿ</span>') + '</small></div>' +
+          '<div class="acts">' + (inCart ? '<button type="button" onclick="wyOpenCart()" class="m-btn sm soft">🛒 ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ</button>' : '<button type="button" onclick="wyRenew(\'' + r.k + '\')" class="m-btn sm pri">ನವೀಕರಿಸಿ ' + rupeeO(priceOf(r.k)) + '</button>') + '</div></div>';
+      }).join('') + '</div></div>';
+  }
+  // ---------- 🆕 ಹೊಸದಾಗಿ ಸೇರಿದ ಪ್ರಶ್ನೆಗಳು (GitHub ಗೆ ಹೊಸ ಫೈಲ್ → ತಾನಾಗಿ ಪ್ರಕಟಣೆ) ----------
+  var BANKNEW = [];
+  var MEDN = { kannada_medium: ['kn', 'ಕನ್ನಡ ಮಾಧ್ಯಮ'], english_medium: ['en', 'English ಮಾಧ್ಯಮ'], bilingual_medium: ['bi', 'ದ್ವಿಭಾಷಾ ಮಾಧ್ಯಮ'] };
+  function bankLabel(path) {
+    var m = String(path).match(/^([a-z_]+_medium)\/class_(\d+)\/([a-z_]+?)(?:_part(\d))?\.json$/i);
+    if (!m) return { t: String(path).replace(/\.json$/i, '').split('/').pop().replace(/_/g, ' '), c: 0, med: '' };
+    var sub = SUBJ[m[3]] || m[3].replace(/_/g, ' ');
+    return { t: m[2] + 'ನೇ ತರಗತಿ ' + sub + (m[4] ? ' ಭಾಗ-' + m[4] : ''), c: +m[2], med: m[1], mn: (MEDN[m[1]] || [])[1] || '' };
+  }
+  async function loadBankNew() {
+    try { var d = await (await fetch(FB + '/config/bankNew.json?t=' + Date.now())).json(); BANKNEW = Array.isArray(d) ? d : (d ? Object.keys(d).map(function (k) { return d[k]; }) : []); } catch (e) { BANKNEW = []; }
+  }
+  window.wyBankNewHtml = function () {
+    var cut = dayShift(-15), s = lsGet('wy_active_session', null) || {};
+    var meds = (s.allowedMediums || []).length && !s.member ? s.allowedMediums : null;
+    var cls = !s.member && Array.isArray(s.allowedClasses) && s.allowedClasses.length && !s.allowedClasses.some(function (x) { return /all/i.test(x); }) ? s.allowedClasses.map(function (x) { return +String(x).replace(/\D/g, ''); }) : null;
+    var L = BANKNEW.filter(function (x) { return x && x.p && String(x.at || '') >= cut; }).map(function (x) { return Object.assign({ at: x.at }, bankLabel(x.p)); })
+      .filter(function (x) { return (!meds || !x.med || meds.indexOf(x.med) !== -1) && (!cls || !x.c || cls.indexOf(x.c) !== -1); })
+      .sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); }).slice(0, 8);
+    if (!L.length) return '';
+    var logged = !!s.isLoggedIn;
+    return '<div class="m-card" id="wy-banknew-card"><div class="m-sec-h m-pad-h"><h2>🆕 ಹೊಸದಾಗಿ ಸೇರಿದ ಪ್ರಶ್ನೆಗಳು</h2><span class="m-muted m-small">ಕಳೆದ 15 ದಿನಗಳಲ್ಲಿ</span></div><div class="m-units">' +
+      L.map(function (x) {
+        return '<div class="m-unit"><span class="no">' + (x.c || '★') + '</span><div><b>' + esc(x.t) + '</b><small>' + esc(x.mn) + (x.mn ? ' · ' : '') + dmy(x.at) + ' ರಂದು ಸೇರಿದೆ</small></div><div class="acts">' +
+          (logged && x.c && window.wyOpenGeneratorClass ? '<button type="button" class="m-btn sm" onclick="wyOpenGeneratorClass(' + x.c + ')">ಪತ್ರಿಕೆ ರಚಿಸಿ →</button>' : '<span class="m-pill">ಹೊಸದು</span>') + '</div></div>';
+      }).join('') + '</div></div>';
+  };
+  async function trackNewBankFiles() {   // Admin ತೆರೆದಾಗ ಮಾತ್ರ: GitHub ಪಟ್ಟಿಯನ್ನು ಹಿಂದಿನದರೊಂದಿಗೆ ಹೋಲಿಸು
+    if (sessionStorage.getItem('wy_is_admin') !== 'true' || trackNewBankFiles.busy) return;
+    trackNewBankFiles.busy = true;
+    try {
+      await refreshBank(true);
+      if (!BANK.files.length) return;
+      var seen = await adminGet('/config/bankSeen');
+      if (!Array.isArray(seen) || !seen.length) { await adminSend('PUT', '/config/bankSeen', BANK.files); return; }   // ಮೊದಲ ಬಾರಿ: ಈಗಿನ ಪಟ್ಟಿ ಆಧಾರ
+      var add = BANK.files.filter(function (f) { return seen.indexOf(f) === -1; });
+      var gone = seen.some(function (f) { return BANK.files.indexOf(f) === -1; });
+      if (add.length) {
+        await loadBankNew();
+        var cut = dayShift(-30), cur = BANKNEW.filter(function (x) { return x && String(x.at) >= cut && add.indexOf(x.p) === -1; });
+        add.forEach(function (p) { cur.push({ p: p, at: today() }); });
+        await adminSend('PUT', '/config/bankNew', cur.slice(-60)); BANKNEW = cur.slice(-60);
+        toast('🆕 ' + add.length + ' ಹೊಸ ಪ್ರಶ್ನೆ ಫೈಲ್ ಪತ್ತೆಯಾಗಿದೆ: ' + add.slice(0, 3).map(function (p) { return bankLabel(p).t; }).join(', ') + ' — ಎಲ್ಲರ ಮುಖಪುಟದಲ್ಲಿ ತಾನಾಗಿ ಪ್ರಕಟವಾಗಿದೆ');
+      }
+      if (add.length || gone) await adminSend('PUT', '/config/bankSeen', BANK.files);
+    } catch (e) {} finally { trackNewBankFiles.busy = false; }
+  }
+  window.wyTrackNewBankFiles = trackNewBankFiles;
   // "ಇದನ್ನು ತೆಗೆದುಕೊಂಡರೆ ಉಳಿತಾಯ" ಸೂಚನೆಗಳು
   function hints(l) {
     var cands = {};
@@ -24772,6 +24847,7 @@ function wyStrongKeyPart() {
     v.innerHTML = '<div class="m-view" id="wy-member-dash">' +
       '<div class="m-welcome"><p>ನಮಸ್ಕಾರ, ' + esc(p.name) + '</p><h2>' + esc(p.school || 'With You QP') + '</h2>' +
         '<div class="meta"><span>📱 ' + esc(authInfo().mobile) + '</span>' + (p.schoolEn ? '<span>' + esc(p.schoolEn) + '</span>' : '') + '<span>ಶೈಕ್ಷಣಿಕ ವರ್ಷ 2026-27</span></div></div>' +
+      renewCardHtml() +
       (offer ? '<div class="m-offer">🎉 <b>ಆಫರ್: ಎಲ್ಲಾ ಖರೀದಿಗಳಿಗೆ ' + offer.pct + '% ಕಡಿತ</b>' + (offer.until ? ' · ' + dmy(offer.until) + ' ರವರೆಗೆ ಮಾತ್ರ' : '') + ' · ಕೋಡ್ <code class="m-code">' + esc(offer.code) + '</code> (ಕಾರ್ಟ್‌ನಲ್ಲಿ ತಾನಾಗಿಯೇ ಅನ್ವಯವಾಗುತ್ತದೆ)</div>' : '') +
       (notes.length ? '<div class="m-offer">' + notes.join('<br>') + '</div>' : '') +
       '<div class="m-stats">' + [[act.length, 'ಸಕ್ರಿಯ ಪ್ಯಾಕ್'], [openCount, 'ತೆರೆದ ವಿಷಯಗಳು'], [trialLeft() + '/' + PRICES.trial, 'ಉಚಿತ ಪ್ರಯೋಗ ಬಾಕಿ'], [pend.length, 'ಬಾಕಿ ಆರ್ಡರ್']]
@@ -24788,6 +24864,10 @@ function wyStrongKeyPart() {
     bindDash(v);
     renderCartBadges();
     try { if (window.wyPlaceNotice) wyPlaceNotice(); } catch (e) {}
+    try {
+      var RL = renewList();
+      if (RL.length && !sessionStorage.getItem('wy_renew_told')) { sessionStorage.setItem('wy_renew_told', '1'); toast('⏳ ' + packLabel(RL[0].k) + (RL[0].left < 0 ? ' ಮುಗಿದಿದೆ' : ' ' + RL[0].left + ' ದಿನದಲ್ಲಿ ಮುಗಿಯುತ್ತದೆ') + ' — ಮುಖಪುಟದಲ್ಲಿ "ನವೀಕರಿಸಿ" ಒತ್ತಿ'); }
+    } catch (e) {}
     return true;
   }
   function bindDash(root) {
@@ -25036,6 +25116,8 @@ function wyStrongKeyPart() {
   // ---------- ಆರಂಭ ----------
   (async function init() {
     refreshBank(false).then(function () { if (isMember()) refreshViews(); });
+    loadBankNew().then(function () { try { if (window.wyPlaceNotice) wyPlaceNotice(); } catch (e) {} });
+    setTimeout(trackNewBankFiles, 4000);
     var lastPromo = Date.now();
     document.addEventListener('visibilitychange', function () {   // Admin ಆಫರ್ ಬದಲಿಸಿದರೆ: ಪುಟಕ್ಕೆ ಮರಳಿದಾಗ ತಾನಾಗಿ ಹೊಸ ದರ
       if (document.hidden || Date.now() - lastPromo < 60e3) return; lastPromo = Date.now();
@@ -25075,6 +25157,7 @@ function wyStrongKeyPart() {
     ADM.orders.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
     try { var pr = await adminGet('/config/prices'); if (pr) Object.keys(PRICES).forEach(function (k) { if (pr[k] != null && pr[k] !== '') PRICES[k] = +pr[k]; }); } catch (e) {}
     try { applyPromo(await adminGet('/config/promo')); } catch (e) {}
+    trackNewBankFiles();
   }
   var TABS = [['orders', 'fa-cart-shopping text-emerald-600', 'ಆರ್ಡರ್'], ['members', 'fa-users text-indigo-600', 'ಹೊಸ ಸದಸ್ಯರು'], ['prices', 'fa-indian-rupee-sign text-amber-600', 'ದರಗಳು']];
   var prevAdmOpen = window.openAdminDashboardModal;
@@ -25661,6 +25744,7 @@ function wyStrongKeyPart() {
   var QMAP = { 10: 8, 15: 12, 20: 15, 25: 16, 30: 20, 40: 24, 50: 28, 60: 32, 80: 38, 100: 45 };
   var ENTRANCE_RX = /NMMS|ಮೊರಾರ್ಜಿ|ಆದರ್ಶ|ಕಿತ್ತೂರು|ಸೈನಿಕ|ಪ್ರವೇಶ ಪರೀಕ್ಷೆ|KREIS/i;
   var EXAMS = [
+    { rx: /ಅಭ್ಯಾಸ ಹಾಳೆ/, label: '📝 ಅಭ್ಯಾಸ ಹಾಳೆ / ಮನೆಗೆಲಸ', part: 'ask', marks: 20, practice: true },
     { rx: /LBA|ಘಟಕ/i, label: 'ಘಟಕ ಪರೀಕ್ಷೆ', part: 'ask', marks: 20 },
     { rx: /FA-1/, label: 'FA-1', part: 'part1', marks: 20 },
     { rx: /FA-2/, label: 'FA-2', part: 'part1', marks: 20 },
@@ -25721,6 +25805,11 @@ function wyStrongKeyPart() {
     var box = $('wy-qg');
     var cls = $('cfg-class'), sub = $('cfg-subject'), ex = $('cfg-exam-type'), part = $('cfg-part'), med = $('cfg-medium'), lay = $('cfg-paper-layout-mode');
     var medOpts = opts(med);
+    var PRACTICE_VAL = 'ಅಭ್ಯಾಸ ಹಾಳೆ / ಮನೆಗೆಲಸ (ಘಟಕ)';
+    if (ex && !Array.from(ex.options).some(function (o) { return o.value === PRACTICE_VAL; })) {
+      var lbaO = Array.from(ex.options).filter(function (o) { return /LBA/.test(o.value); })[0];
+      if (lbaO) { var po = document.createElement('option'); po.value = PRACTICE_VAL; po.textContent = '📝 ಅಭ್ಯಾಸ ಹಾಳೆ / ಮನೆಗೆಲಸ'; lbaO.parentNode.insertBefore(po, lbaO.nextSibling); }
+    }
     var isEntrance = (ex && ex.disabled) || ENTRANCE_RX.test(sub && sub.value);
     var curExam = isEntrance ? null : examInfo(ex && ex.value);
     var isLBA = !!(curExam && /LBA|ಘಟಕ/i.test(ex.value));
@@ -25787,6 +25876,7 @@ function wyStrongKeyPart() {
     if (want === 'ask') want = ST.ask || seasonPart();
     if (Array.from(part.options).some(function (o) { return o.value === want; }) && part.value !== want) { part.value = want; fire(part); }
     if (!keepMarks) setMarks(defaultMarks(e));
+    if (e.practice && !keepMarks) { var ly = $('cfg-paper-layout-mode'); if (ly && ly.value !== 'with_answer_space' && Array.from(ly.options || []).some(function (o) { return o.value === 'with_answer_space'; })) { ly.value = 'with_answer_space'; fire(ly); } }
   }
   function setMarks(m) {
     var mi = $('cfg-total-marks'), qi = $('cfg-total-questions'); if (!mi || !qi) return;
@@ -26308,7 +26398,8 @@ function wyStrongKeyPart() {
     var html = '<div class="m-view" id="wy-key-dash">' +
       '<div class="m-welcome"><p>ನಮಸ್ಕಾರ, ' + esc(s.name || '') + '</p><h2>' + esc(s.school || s.name || 'With You QP') + '</h2>' +
         '<div class="meta">' + (s.dise && s.type === 'school' ? '<span>UDISE: ' + esc(s.dise) + '</span>' : '') + (s.mobile ? '<span>📱 ' + esc(s.mobile) + '</span>' : '') + (s.schoolEn ? '<span>' + esc(s.schoolEn) + '</span>' : '') + '<span>' + typeName + '</span><span>ಶೈಕ್ಷಣಿಕ ವರ್ಷ 2026-27</span></div></div>' +
-      (left !== null && left <= 30 ? '<div class="m-offer">⚠️ ನಿಮ್ಮ ಖಾತೆ <b>' + dmy(s.validityDate) + '</b> ರಂದು ಮುಕ್ತಾಯವಾಗುತ್ತದೆ' + (left > 0 ? ' (' + left + ' ದಿನ ಬಾಕಿ)' : '') + '. ನವೀಕರಣಕ್ಕೆ 9902090911 ಸಂಪರ್ಕಿಸಿ.</div>' : '') +
+      (left !== null && left <= 30 ? '<div class="m-card m-pad m-ref m-renew" id="wy-renew-card"><div><b>⏳ ನವೀಕರಣ ನೆನಪು: ನಿಮ್ಮ ಖಾತೆ ' + dmy(s.validityDate) + ' ರಂದು ಮುಕ್ತಾಯವಾಗುತ್ತದೆ</b><small>' + (left > 0 ? left + ' ದಿನ ಬಾಕಿ. ' : 'ಇಂದು ಕೊನೆಯ ದಿನ. ') + 'ನವೀಕರಿಸಿದರೆ ಈಗಿನ ಕೊನೆಯ ದಿನದಿಂದ ಮುಂದುವರಿಯುತ್ತದೆ.</small></div>' +
+        '<a class="m-btn sm pri" target="_blank" rel="noopener" href="https://wa.me/919902090911?text=' + encodeURIComponent('ನಮಸ್ಕಾರ, With You QP ಖಾತೆ ನವೀಕರಿಸಬೇಕು.\nಹೆಸರು: ' + (s.name || '') + '\nಶಾಲೆ: ' + (s.school || '') + '\n' + (s.type === 'school' ? 'DISE: ' + (s.dise || '') : 'ಮೊಬೈಲ್: ' + (s.mobile || '')) + '\nಈಗಿನ ಕೊನೆಯ ದಿನ: ' + dmy(s.validityDate)) + '">WhatsApp ಮೂಲಕ ನವೀಕರಿಸಿ</a></div>' : '') +
       '<div class="m-stats">' + [[cls.length, 'ತರಗತಿಗಳು'], [meds.length || 3, 'ಮಾಧ್ಯಮ'], [savedCount() || 0, 'ಉಳಿಸಿದ ಪತ್ರಿಕೆಗಳು'], [left === null ? '—' : Math.max(0, left), 'ಮಾನ್ಯತೆ ದಿನ ಬಾಕಿ']]
         .map(function (x) { return '<div class="m-card m-stat"><b>' + x[0] + '</b><span>' + x[1] + '</span></div>'; }).join('') + '</div>' +
       '<div class="m-quick">' + quick.map(function (q) { return '<button type="button" data-go="' + q[0] + '" class="m-card m-qa"><span class="ic">' + q[1] + '</span><span><b>' + q[2] + '</b><small>' + q[3] + '</small></span></button>'; }).join('') + '</div>' +
@@ -26480,6 +26571,7 @@ function wyStrongKeyPart() {
     '.m-ref{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}',
     '.m-ref b{display:block;font-size:15px}.m-ref small{display:block;color:var(--m-muted);font-size:13px;margin-top:2px;line-height:1.6}',
     '.m-mitra{background:linear-gradient(135deg,#fff,#fbf6ea)}',
+    '.m-renew{border-color:#efd3a0;background:linear-gradient(135deg,#fff,#fdf6e9)}.m-renew .m-unit .no{background:var(--m-amber-soft);color:#9a6210}',
     'body>#wy-live-notice-bar{display:none!important}'
   ].join('\n');
   document.head.appendChild(css);
@@ -26517,6 +26609,9 @@ function wyStrongKeyPart() {
         if (nh && !dash.querySelector('#wy-notice-card')) after(w, nh);
         if (!dash.querySelector('.m-offer') || dash.id !== 'wy-member-dash') { if (dash.id !== 'wy-member-dash') after(w, offerHtml()); }
         if (dash.id === 'wy-key-dash' && !$('wy-mitra-card')) dash.insertAdjacentHTML('beforeend', '<div class="m-two">' + mitraCard() + '</div>');
+        var bn = window.wyBankNewHtml ? wyBankNewHtml() : '', oldBn = $('wy-banknew-card');
+        if (oldBn) oldBn.remove();
+        if (bn) { var anchor = dash.querySelector('.m-quick'); if (anchor) anchor.insertAdjacentHTML('afterend', bn); }
       }
       var qg = $('wy-qg'), g = $('view-generator');
       if (qg && g && !g.classList.contains('hidden')) { var sh = noticeHtml(true); if (sh) qg.insertAdjacentHTML('beforebegin', sh); }
@@ -26585,6 +26680,84 @@ function wyStrongKeyPart() {
   setTimeout(window.wyPlaceNotice, 1200);
 })();
 
+
+// =========================================================================
+// 📝 ಅಭ್ಯಾಸ ಹಾಳೆ / ಮನೆಗೆಲಸ: ಘಟಕ ಪರೀಕ್ಷೆಯ ಪ್ರಶ್ನೆಗಳು, ಆದರೆ ಅಂಕ/ಸಮಯ/ನೀಲನಕ್ಷೆ ಇಲ್ಲ,
+// ಹೆಸರು ಮತ್ತು ದಿನಾಂಕ ಬರೆಯುವ ಜಾಗ, ಉತ್ತರ ಬರೆಯಲು ಸಾಲುಗಳು (ಬುಕ್ಲೆಟ್ ರೂಪ)
+// =========================================================================
+(function installPracticeSheet() {
+  var PV = 'ಅಭ್ಯಾಸ ಹಾಳೆ / ಮನೆಗೆಲಸ (ಘಟಕ)';
+  function $(id) { return document.getElementById(id); }
+  function isPractice() { var e = $('cfg-exam-type'); return !!(e && e.value === PV); }
+  var css = document.createElement('style');
+  css.textContent = [
+    '.wy-practice-out #tab-btn-blueprint,.wy-practice-out #tab-btn-omr,.wy-practice-out #wy-exam-set-bar{display:none!important}',
+    '.wy-practice-sheet .heading-right-marks,.wy-practice-sheet .wy-pr-hide{visibility:hidden}',
+    '.wy-practice-sheet .wy-pr-line{display:inline-block;min-width:150px;border-bottom:1.2px solid #000;height:1em;vertical-align:bottom}'
+  ].join('\n');
+  document.head.appendChild(css);
+  function transform(root, isKey) {
+    if (!root || root.getAttribute('data-wy-pr') === '1') return;
+    var sheets = root.querySelectorAll('.a4-board-sheet');
+    if (!sheets.length) sheets = [root];
+    Array.prototype.forEach.call(sheets, function (sh) {
+      sh.classList.add('wy-practice-sheet');
+      // ಶೀರ್ಷಿಕೆ
+      var walker = document.createTreeWalker(sh, NodeFilter.SHOW_TEXT), n, list = [];
+      while ((n = walker.nextNode())) list.push(n);
+      list.forEach(function (t) {
+        if (t.nodeValue.indexOf(PV) !== -1) t.nodeValue = t.nodeValue.replace(PV, isKey ? 'ಅಭ್ಯಾಸ ಹಾಳೆ — ಉತ್ತರಗಳು' : 'ಅಭ್ಯಾಸ ಹಾಳೆ / ಮನೆಗೆಲಸ');
+        if (/Practice Worksheet \/ Homework/.test(t.nodeValue) && isKey) t.nodeValue = t.nodeValue.replace('Practice Worksheet / Homework', 'Practice Worksheet — Answers');
+        if (/ಘಟಕದ ಹೆಸರು/.test(t.nodeValue)) t.nodeValue = t.nodeValue.replace('ಘಟಕದ ಹೆಸರು', 'ಪಾಠ');
+      });
+      // ಅಂಕ / ದಿನಾಂಕ / SET ಬದಲು: ಹೆಸರು, ದಿನಾಂಕ ಬರೆಯುವ ಜಾಗ
+      Array.prototype.forEach.call(sh.querySelectorAll('td, span, div'), function (el) {
+        if (el.children.length > 2) return;
+        var tx = el.textContent.replace(/\s+/g, ' ').trim();
+        if (/^(ಗರಿಷ್ಠ ಅಂಕಗಳು|ಅಂಕಗಳು|Max\.? Marks|Total Marks)\s*:/i.test(tx)) {
+          el.innerHTML = '';
+          var tb = el.closest('table');
+          if (!isKey && tb && !sh.querySelector('.wy-pr-namerow')) tb.insertAdjacentHTML('afterend', '<div class="wy-pr-namerow" style="display:flex;gap:18px;font-size:10.5pt;font-weight:800;margin:6px 0 2px"><span style="flex:1">ಹೆಸರು : <span class="wy-pr-line" style="width:calc(100% - 60px)"></span></span><span>ಹಜೇರಿ ಸಂಖ್ಯೆ : <span class="wy-pr-line" style="min-width:60px"></span></span></div>');
+        }
+        else if (/^(ದಿನಾಂಕ|Date)\s*:/i.test(tx)) el.innerHTML = 'ದಿನಾಂಕ : <span class="wy-pr-line" style="min-width:90px"></span>';
+        else if (/^(ಸಮಯ|Time)\s*:/i.test(tx)) el.innerHTML = '';
+        else if (/^SET\s*-\s*[A-D]$/i.test(tx)) el.classList.add('wy-pr-hide');
+      });
+    });
+    root.setAttribute('data-wy-pr', '1');
+  }
+  function apply() {
+    var out = $('output-section'); if (!out) return;
+    var on = isPractice();
+    out.classList.toggle('wy-practice-out', on);
+    if (!on) return;
+    transform($('rendered-paper'), false);
+    transform($('rendered-key'), true);
+    var pt = $('tab-btn-paper'); if (pt && !/ಅಭ್ಯಾಸ/.test(pt.textContent)) pt.innerHTML = pt.innerHTML.replace(/ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ/, 'ಅಭ್ಯಾಸ ಹಾಳೆ');
+  }
+  window.wyApplyPracticeSheet = apply;
+  // ಪತ್ರಿಕೆ ಬದಲಾದಾಗಲೆಲ್ಲಾ (ಹೊಸ ರಚನೆ, ಪ್ರಶ್ನೆ ಬದಲಾವಣೆ, ಭಾಷೆ ಬದಲಾವಣೆ)
+  var mo = new MutationObserver(function (ms) {
+    if (!isPractice()) { var o = $('output-section'); if (o) o.classList.remove('wy-practice-out'); return; }
+    var hit = ms.some(function (m) { return m.target && (m.target.id === 'rendered-paper' || m.target.id === 'rendered-key' || (m.target.closest && m.target.closest('#rendered-paper,#rendered-key'))); });
+    if (!hit) return;
+    ['rendered-paper', 'rendered-key'].forEach(function (id) { var r = $(id); if (r && r.getAttribute('data-wy-pr') === '1' && !r.querySelector('.wy-practice-sheet')) r.removeAttribute('data-wy-pr'); });
+    clearTimeout(mo.t); mo.t = setTimeout(apply, 60);
+  });
+  function watch() { var o = $('output-section'); if (o && !watch.on) { watch.on = true; mo.observe(o, { childList: true, subtree: true }); } }
+  watch(); setTimeout(watch, 1500);
+  var prevGen = window.generateExamPackageFromBank;
+  if (typeof prevGen === 'function') {
+    window.generateExamPackageFromBank = function () {
+      watch();
+      ['rendered-paper', 'rendered-key'].forEach(function (id) { var r = $(id); if (r) r.removeAttribute('data-wy-pr'); });
+      var r = prevGen.apply(this, arguments);
+      Promise.resolve(r).then(function () { setTimeout(apply, 100); setTimeout(apply, 800); });
+      return r;
+    };
+    try { generateExamPackageFromBank = window.generateExamPackageFromBank; } catch (e) {}
+  }
+})();
 </script>
 </body>
 </html>

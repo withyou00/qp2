@@ -24018,6 +24018,14 @@ function wyStrongKeyPart() {
   function validityText() { var m = +PRICES.months || 12; return m % 12 === 0 ? (m / 12) + ' ವರ್ಷ' : m + ' ತಿಂಗಳು'; }
   function dmy(s) { var m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '-' + m[2] + '-' + m[1] : String(s || ''); }
   function rupee(n) { return '₹' + Number(n || 0).toLocaleString('en-IN'); }
+  // 🎉 ಆಫರ್ ಇದ್ದರೆ: ಹಳೆಯ ದರದ ಮೇಲೆ ಗೆರೆ + ಹೊಸ ದರ (ಎಲ್ಲಾ ಕಡೆ ತಾನಾಗಿ)
+  function offerPct() { var o = (typeof publicOffer === 'function') ? publicOffer() : null; return o ? +o.pct || 0 : 0; }
+  function offerPrice(n) { var p = offerPct(); return p ? Math.round((+n || 0) * (100 - p) / 100) : (+n || 0); }
+  function rupeeO(n, plain) {
+    var p = offerPct(); n = +n || 0;
+    if (!p || !n) return rupee(n);
+    return plain ? rupee(offerPrice(n)) : '<s class="m-old">' + rupee(n) + '</s> ' + rupee(offerPrice(n));
+  }
   function subjectsFor(c) { return c <= 5 ? ['kannada', 'english', 'mathematics', 'evs'] : ['kannada', 'english', 'hindi', 'mathematics', 'science', 'social_science']; }
   function mediaFor(c) { return c <= 5 ? ['kn', 'en', 'bi'] : ['kn', 'en']; }
   function stagesFor(m) { return m === 'bi' ? ['p'] : ['p', 'u', 'h']; }
@@ -24140,12 +24148,12 @@ function wyStrongKeyPart() {
     var x = cartX(), sub = cartTotal(l), auto = publicOffer();
     var code = String(x.coupon || '').toUpperCase() || (auto ? auto.code : '');
     var cp = couponOk(code);
-    var couponOff = cp ? Math.round(sub * (+cp.pct || 0) / 100) : 0;
+    var couponOff = cp ? priced(l).reduce(function (a, r) { return a + Math.round(r.price * (+cp.pct || 0) / 100); }, 0) : 0;
     var me = (authInfo() || {}).mobile;
     var refOk = !!x.ref && /^[6-9]\d{9}$/.test(x.ref) && x.ref !== me && firstOrder() && PROMO.refPct > 0;
     var refOff = refOk ? Math.round((sub - couponOff) * PROMO.refPct / 100) : 0;
     var creditUsed = Math.max(0, Math.min(+MEM.credit || 0, sub - couponOff - refOff));
-    return { sub: sub, coupon: cp ? code : '', auto: !x.coupon && !!cp, couponBad: !!x.coupon && !cp, couponOff: couponOff,
+    return { sub: sub, pct: cp ? +cp.pct || 0 : 0, coupon: cp ? code : '', auto: !x.coupon && !!cp, couponBad: !!x.coupon && !cp, couponOff: couponOff,
       ref: refOk ? x.ref : '', refBad: !!x.ref && !refOk, refOff: refOff, creditUsed: creditUsed, total: Math.max(0, sub - couponOff - refOff - creditUsed) };
   }
   function authInfo() { return lsGet(AUTH_KEY, null); }
@@ -24471,7 +24479,7 @@ function wyStrongKeyPart() {
       '<div class="divide-y border rounded-2xl">' + rows.map(function (r, i) {
         return '<div class="flex items-center justify-between gap-3 p-3"><div class="min-w-0"><div class="text-sm font-black text-slate-900">' + esc(packTitle(r.k)) + '</div>' +
           '<div class="text-[11px] font-bold text-slate-500">' + esc(packKind(r.k)) + (packMedium(r.k) ? ' · ' + esc(packMedium(r.k)) : '') + (r.note ? ' · <span class="text-emerald-700">' + r.note + '</span>' : '') + '</div></div>' +
-          '<div class="flex items-center gap-2 shrink-0"><b class="text-sm">' + rupee(r.price) + '</b><button type="button" data-rm="' + i + '" class="w-7 h-7 rounded-full bg-rose-50 text-rose-600 font-black">✕</button></div></div>';
+          '<div class="flex items-center gap-2 shrink-0"><b class="text-sm">' + (CC.coupon ? '<s class="m-old">' + rupee(r.price) + '</s> ' + rupee(r.price - Math.round(r.price * CC.pct / 100)) : rupee(r.price)) + '</b><button type="button" data-rm="' + i + '" class="w-7 h-7 rounded-full bg-rose-50 text-rose-600 font-black">✕</button></div></div>';
       }).join('') + '</div>' +
       hs.map(function (h) {
         return '<div class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-emerald-50 border border-emerald-200"><span class="text-xs font-bold text-emerald-900">💡 <b>' + esc(packLabel(h.k)) + '</b> (' + rupee(h.price) + ') ತೆಗೆದುಕೊಂಡರೆ ಇವೆಲ್ಲವೂ ಮತ್ತು ಇನ್ನೂ ಹೆಚ್ಚು ಸಿಗುತ್ತದೆ' + (h.save > 0 ? ' — ' + rupee(h.save) + ' ಉಳಿತಾಯ' : '') + '</span>' +
@@ -24545,7 +24553,7 @@ function wyStrongKeyPart() {
     var k = packsFor(item)[0];
     var inCart = cartGet().some(function (a) { return covers(a, k); });
     return inCart ? '<button type="button" onclick="wyOpenCart()" class="m-btn sm soft">🛒 ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ</button>'
-      : '<button type="button" data-add="' + k + '" class="m-btn sm">🔒 ' + rupee(priceOf(k)) + ' · ಕಾರ್ಟ್‌ಗೆ</button>';
+      : '<button type="button" data-add="' + k + '" class="m-btn sm">🔒 ' + rupeeO(priceOf(k)) + ' · ಕಾರ್ಟ್‌ಗೆ</button>';
   }
   function packBtn(k, label) {
     var owned = ownsPack(k), inCart = cartGet().some(function (a) { return covers(a, k); });
@@ -24553,7 +24561,7 @@ function wyStrongKeyPart() {
     if (owned) return '<span class="m-pill">✅ ' + (label || 'ತೆರೆದಿದೆ') + '</span>';
     if (pend) return '<span class="m-pill warn">⏳ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ</span>';
     if (inCart) return '<button type="button" onclick="wyOpenCart()" class="m-btn sm soft">🛒 ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ</button>';
-    return '<button type="button" data-add="' + k + '" class="m-btn sm pri">' + (label || packKind(k)) + ' ' + rupee(priceOf(k)) + ' +</button>';
+    return '<button type="button" data-add="' + k + '" class="m-btn sm pri">' + (label || packKind(k)) + ' ' + rupeeO(priceOf(k)) + ' +</button>';
   }
   function sel(id, opts, val) {
     return '<select data-pb="' + id.replace('wy-pb-', '') + '" class="w-full px-2 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold">' +
@@ -24631,7 +24639,7 @@ function wyStrongKeyPart() {
       return '<div class="relative p-4 rounded-3xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col gap-2.5">' +
         (cd.tag ? '<span class="absolute -top-2 right-4 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black shadow">' + cd.tag + '</span>' : '') +
         '<div class="flex items-start justify-between gap-2"><div class="flex items-center gap-2"><span class="text-2xl">' + cd.icon + '</span><div><div class="font-black text-sm text-slate-900">' + cd.name + '</div>' +
-        '<div class="text-[11px] font-bold text-slate-500 leading-snug">' + cd.d + '</div></div></div><div class="text-lg font-black text-emerald-700 shrink-0">' + rupee(cd.t === 'st' && PB.sc.length < 2 ? PRICES.st : priceOf(k)) + '</div></div>' +
+        '<div class="text-[11px] font-bold text-slate-500 leading-snug">' + cd.d + '</div></div></div><div class="text-lg font-black text-emerald-700 shrink-0">' + rupeeO(cd.t === 'st' && PB.sc.length < 2 ? PRICES.st : priceOf(k)) + '</div></div>' +
         (fields ? '<div class="grid grid-cols-' + Math.min(cd.f.length, 3) + ' gap-1.5" data-pb-card="' + cd.t + '">' + fields + '</div>' : '') +
         '<div class="mt-auto flex items-center justify-between gap-2"><span class="text-[10px] font-bold text-slate-400 truncate">' + esc(cd.t === 'st' && PB.sc.length < 2 ? 'ಕನಿಷ್ಠ 2 ತರಗತಿ ಆರಿಸಿ (1 ತರಗತಿಗೆ ವಿಷಯ ಪ್ಯಾಕ್ ಸಾಕು)' : packLabel(k)) + '</span>' +
           (cd.t === 'st' && PB.sc.length < 2 ? '<span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-400 text-[10px] font-black">ಕಾರ್ಟ್‌ಗೆ</span>' : packBtn(k, 'ಕಾರ್ಟ್‌ಗೆ')) + '</div></div>';
@@ -24680,7 +24688,7 @@ function wyStrongKeyPart() {
       return rowHtml('r:' + m + ':' + c + ':' + s, SUBJ[s], sub, SICON[s]);
     }).join('') + '</div>' +
       (avail > 1 ? offerHtml('cls:' + m + ':' + c, '💡 ಈ ತರಗತಿಯ <b>ಎಲ್ಲಾ ವಿಷಯ</b> ಬೇಕೇ? ತರಗತಿ ಪ್ಯಾಕ್') : '') +
-      (avail ? '<p class="m-hint">ಒಂದೇ ವಿಷಯವನ್ನು 2–3 ತರಗತಿಗೆ ಬೋಧಿಸುತ್ತೀರಾ? <button type="button" onclick="wyOpenPackBuilder(\'st\')" class="m-link">ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್ ' + rupee(PRICES.st) + '</button> · ಇಡೀ ಶಾಲೆಗೆ? <button type="button" onclick="wyOpenPackBuilder(\'sch\')" class="m-link">ಶಾಲಾ ಪ್ಯಾಕ್ ' + rupee(PRICES.sch) + '</button></p>' : '');
+      (avail ? '<p class="m-hint">ಒಂದೇ ವಿಷಯವನ್ನು 2–3 ತರಗತಿಗೆ ಬೋಧಿಸುತ್ತೀರಾ? <button type="button" onclick="wyOpenPackBuilder(\'st\')" class="m-link">ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್ ' + rupeeO(PRICES.st) + '</button> · ಇಡೀ ಶಾಲೆಗೆ? <button type="button" onclick="wyOpenPackBuilder(\'sch\')" class="m-link">ಶಾಲಾ ಪ್ಯಾಕ್ ' + rupeeO(PRICES.sch) + '</button></p>' : '');
     return out;
   }
   function priceList() {
@@ -24697,7 +24705,7 @@ function wyStrongKeyPart() {
     ];
     return '<details class="m-card m-prices"><summary><span><b>ಎಲ್ಲಾ ದರಗಳು ಮತ್ತು ದೊಡ್ಡ ಪ್ಯಾಕ್‌ಗಳು</b><small>ಪ್ರತಿ ಪ್ಯಾಕ್ ತೆರೆದ ದಿನದಿಂದ ' + validityText() + ' ಮಾನ್ಯ</small></span><span class="qg-arrow">▾</span></summary>' +
       '<div class="m-plist">' + R.map(function (r) {
-        return '<div><span>' + r[1] + '<small>' + r[2] + '</small></span><span class="m-pr"><b>' + rupee(r[3]) + '</b>' + (r[0] === 'sub' ? '' : '<button type="button" onclick="wyOpenPackBuilder(\'' + r[0] + '\')" class="m-btn sm">ಆರಿಸಿ</button>') + '</span></div>';
+        return '<div><span>' + r[1] + '<small>' + r[2] + '</small></span><span class="m-pr"><b>' + rupeeO(r[3]) + '</b>' + (r[0] === 'sub' ? '' : '<button type="button" onclick="wyOpenPackBuilder(\'' + r[0] + '\')" class="m-btn sm">ಆರಿಸಿ</button>') + '</span></div>';
       }).join('') + '<p class="m-hint">ಕಾರ್ಟ್‌ನಲ್ಲಿ ಉಳಿತಾಯದ ದಾರಿ ಇದ್ದರೆ ನಾವೇ ತಿಳಿಸುತ್ತೇವೆ.</p></div></details>';
   }
   window.wyOpenPackBuilder = function (type) {
@@ -24870,7 +24878,7 @@ function wyStrongKeyPart() {
     return ks.map(function (k, i) {
       var inCart = cartGet().some(function (a) { return covers(a, k); });
       return '<button type="button" ' + (inCart ? 'onclick="wyOpenCart()"' : 'data-add="' + k + '"') + ' class="m-opt' + (i === 1 ? ' best' : '') + '">' +
-        '<span><b>' + names[i] + '</b><small>' + esc(packLabel(k)) + '</small></span><em>' + (inCart ? '🛒 ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ' : rupee(priceOf(k))) + '</em></button>';
+        '<span><b>' + names[i] + '</b><small>' + esc(packLabel(k)) + '</small></span><em>' + (inCart ? '🛒 ಕಾರ್ಟ್‌ನಲ್ಲಿದೆ' : rupeeO(priceOf(k))) + '</em></button>';
     }).join('');
   }
   function updateLockBanner() {
@@ -24895,7 +24903,7 @@ function wyStrongKeyPart() {
         (trialLeft() ? '🎁 ' + trialLeft() + ' ಉಚಿತ ಪ್ರಯೋಗ ಬಾಕಿ — "ಪತ್ರಿಕೆ ರಚಿಸಿ" ಒತ್ತಿದರೆ SAMPLE ಗುರುತಿನೊಂದಿಗೆ ಪತ್ರಿಕೆ ಬರುತ್ತದೆ.' : 'ಉಚಿತ ಪ್ರಯೋಗ ಮುಗಿದಿದೆ. ಕೆಳಗಿನ ಯಾವುದಾದರೂ ಪ್ಯಾಕ್ ಆಯ್ಕೆ ಮಾಡಿ.')) + '</small></div></div>' +
       (available(it) ? '' : '<div class="m-note warn">ಈ ವಿಷಯದ ಪ್ರಶ್ನೆಗಳು ಇನ್ನೂ ಸೇರ್ಪಡೆಯಾಗುತ್ತಿವೆ.</div>') +
       '<div class="m-opts">' + lockOptions(it) + '</div>' +
-      '<div class="m-lock-foot">' + (it.split(':')[0] === 'r' ? '<span class="m-small m-muted">ಒಂದೇ ವಿಷಯ 2–3 ತರಗತಿಗೆ? <button type="button" onclick="wyPickSubjectTeacher(\'' + it.split(':')[1] + '\',' + it.split(':')[2] + ',\'' + it.split(':')[3] + '\')" class="m-link">ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್ ' + rupee(PRICES.st) + '</button> · <button type="button" onclick="navigateToSection(\'dashboard\')" class="m-link">ಇತರ ಆಯ್ಕೆಗಳು</button></span>' : '<span></span>') +
+      '<div class="m-lock-foot">' + (it.split(':')[0] === 'r' ? '<span class="m-small m-muted">ಒಂದೇ ವಿಷಯ 2–3 ತರಗತಿಗೆ? <button type="button" onclick="wyPickSubjectTeacher(\'' + it.split(':')[1] + '\',' + it.split(':')[2] + ',\'' + it.split(':')[3] + '\')" class="m-link">ವಿಷಯ ಶಿಕ್ಷಕ ಪ್ಯಾಕ್ ' + rupeeO(PRICES.st) + '</button> · <button type="button" onclick="navigateToSection(\'dashboard\')" class="m-link">ಇತರ ಆಯ್ಕೆಗಳು</button></span>' : '<span></span>') +
       '<button type="button" onclick="wyOpenCart()" class="m-btn pri sm">🛒 ಕಾರ್ಟ್ ನೋಡಿ (<span class="wy-cart-n"></span>)</button></div></div>';
     renderCartBadges();
   }
@@ -24957,7 +24965,7 @@ function wyStrongKeyPart() {
           '<div class="flex flex-wrap items-center justify-center gap-3">' +
           '<button type="button" onclick="wyOpenMemberAuth(\'register\')" class="px-7 py-4 rounded-2xl font-black text-sm text-white bg-gradient-to-r from-emerald-500 to-teal-500 shadow-xl hover:scale-105 transition flex items-center gap-2"><i class="fa-solid fa-user-plus text-lg"></i> ಹೊಸ ನೋಂದಣಿ (ಉಚಿತ)</button>' +
           '<button type="button" onclick="wyOpenMemberAuth(\'login\')" class="px-7 py-4 rounded-2xl font-black text-sm text-slate-950 bg-white shadow-xl hover:scale-105 transition flex items-center gap-2"><i class="fa-solid fa-right-to-bracket text-lg"></i> ಲಾಗಿನ್</button></div>' +
-          '<p class="text-[11px] sm:text-xs font-bold text-emerald-200">🎁 ನೋಂದಣಿಯಾದ ತಕ್ಷಣ ' + PRICES.trial + ' ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ · ವಿಷಯ ಪ್ಯಾಕ್ ' + rupee(PRICES.sub) + ' ರಿಂದ · ಶಾಲಾ ಪ್ಯಾಕ್ ' + rupee(PRICES.sch) + '</p>' +
+          '<p class="text-[11px] sm:text-xs font-bold text-emerald-200">🎁 ನೋಂದಣಿಯಾದ ತಕ್ಷಣ ' + PRICES.trial + ' ಉಚಿತ ಪ್ರಯೋಗ ಪತ್ರಿಕೆ · ವಿಷಯ ಪ್ಯಾಕ್ ' + rupeeO(PRICES.sub) + ' ರಿಂದ · ಶಾಲಾ ಪ್ಯಾಕ್ ' + rupeeO(PRICES.sch) + (offerPct() ? ' · 🎉 ' + offerPct() + '% ಆಫರ್' : '') + '</p>' +
           '<p class="text-[11px] font-bold text-slate-400">ಹಳೆಯ Secret Key ಇರುವವರು: <button type="button" onclick="openTeacherAuthModal(\'login\')" class="underline text-slate-200">ಶಿಕ್ಷಕರು</button> · <button type="button" onclick="openSchoolAuthModal(\'login\')" class="underline text-slate-200">ಶಾಲೆ</button> · <button type="button" onclick="openCompetitiveAuthModal(\'login\')" class="underline text-slate-200">NMMS / ಮೊರಾರ್ಜಿ</button></p></div>';
       }
     } catch (e) {}
@@ -25028,7 +25036,12 @@ function wyStrongKeyPart() {
   // ---------- ಆರಂಭ ----------
   (async function init() {
     refreshBank(false).then(function () { if (isMember()) refreshViews(); });
-    loadPromo().then(function () { try { if (!$('view-dashboard').classList.contains('hidden')) { if (isMember()) renderMemberDashboard(); else if (window.wyRenderOfferBar) wyRenderOfferBar(); } } catch (e) {} });
+    var lastPromo = Date.now();
+    document.addEventListener('visibilitychange', function () {   // Admin ಆಫರ್ ಬದಲಿಸಿದರೆ: ಪುಟಕ್ಕೆ ಮರಳಿದಾಗ ತಾನಾಗಿ ಹೊಸ ದರ
+      if (document.hidden || Date.now() - lastPromo < 60e3) return; lastPromo = Date.now();
+      loadPromo().then(function () { try { if (!$('view-dashboard').classList.contains('hidden')) { if (isMember()) renderMemberDashboard(); else if (window.renderUltraModernDashboard) renderUltraModernDashboard(); } updateLockBanner(); } catch (e) {} });
+    });
+    loadPromo().then(function () { try { if (!$('view-dashboard').classList.contains('hidden')) { if (isMember()) renderMemberDashboard(); else if (window.renderUltraModernDashboard) renderUltraModernDashboard(); } } catch (e) {} });
     try { var pr = await (await fetch(FB + '/config/prices.json')).json(); if (pr) Object.keys(PRICES).forEach(function (k) { if (pr[k] != null && pr[k] !== '') PRICES[k] = +pr[k]; }); } catch (e) {}
     if (!authInfo()) {
       var s = lsGet('wy_active_session', null);
@@ -26042,6 +26055,7 @@ function wyStrongKeyPart() {
     '.m-btn.sm{padding:6px 11px;font-size:13px}.m-btn.lg{padding:12px 20px;font-size:15.5px}',
     '.m-btn:disabled{opacity:.55;cursor:progress}',
     '.m-link{background:none;border:0;padding:0;color:var(--m-accent);font-weight:600;text-decoration:underline;cursor:pointer;font:inherit}',
+    '.m-old{text-decoration:line-through;text-decoration-thickness:1.5px;opacity:.6;font-weight:500;margin-right:2px}',
     '.m-pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--m-soft);color:var(--m-accent);white-space:nowrap}',
     '.m-pill i{font-style:normal;opacity:.75;font-weight:500}',
     '.m-pill.off{background:var(--m-line);color:var(--m-muted)}.m-pill.warn{background:var(--m-amber-soft);color:#9a6210}.m-pill.bad{background:var(--m-danger-soft);color:var(--m-danger)}',

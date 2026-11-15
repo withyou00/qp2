@@ -1553,8 +1553,10 @@
         allowedClasses: classes,
         validityDate: userData.validityDate || '2030-12-31',
         allowedMediums: userData.allowedMediums || userData.mediums || null,
-        schoolEn: userData.schoolEn || ''
+        schoolEn: userData.schoolEn || '',
+        acct: window.__wyLastAcctHash || null
       };
+      window.__wyLastAcctHash = null;
 
       localStorage.setItem('wy_active_session', JSON.stringify(sessionData));
 
@@ -22336,6 +22338,7 @@ function wyStrongKeyPart() {
         var r = await origFetch(FB + '/accounts/' + h + '.json?t=' + Date.now());
         var rec = r.ok ? await r.json() : null;
         if (rec && typeof rec === 'object') {
+          window.__wyLastAcctHash = h;   // ಲಾಗಿನ್ ನಂತರ Admin ಬದಲಾವಣೆಗಳನ್ನು ಪಡೆಯಲು (Key ಅಲ್ಲ, hash ಮಾತ್ರ)
           var full = Object.assign({}, rec, { secretKey: key });
           ids.forEach(function (x) { if (x) loginOverrides['/users/' + encodeURIComponent(x) + '.json'] = full; loginOverrides['/users/' + x + '.json'] = full; });
           return;
@@ -25681,6 +25684,70 @@ function wyStrongKeyPart() {
     if (o) { ex.value = o.value; fire(ex); setMarks(defaultMarks(examInfo(o.value))); }
   }
   setTimeout(function () { alignExamOnce(); render(); }, 900);
+})();
+
+// =========================================================================
+// 🔄 ಹಳೆಯ Key ಬಳಕೆದಾರರು: Admin ಮಾಡಿದ ಬದಲಾವಣೆ (ಮಾಧ್ಯಮ, ತರಗತಿ, ವಿಷಯ, ಮಾನ್ಯತೆ, ಶಾಲೆ ಹೆಸರು)
+// ಮತ್ತೆ ಲಾಗಿನ್ ಆಗದೆಯೇ ತಾನಾಗಿ ಜಾರಿಗೆ — ಪುಟ ತೆರೆದಾಗ ಮತ್ತು ಪ್ರತಿ 10 ನಿಮಿಷಕ್ಕೊಮ್ಮೆ
+// =========================================================================
+(function installKeySessionRefresh() {
+  var FB = 'https://new-version-qp-default-rtdb.asia-southeast1.firebasedatabase.app';
+  function sess() { try { return JSON.parse(localStorage.getItem('wy_active_session') || 'null'); } catch (e) { return null; } }
+  function numList(v) { return (Array.isArray(v) ? v : String(v || '').split(',')).map(function (x) { return String(x).replace(/\D/g, ''); }).filter(function (x, i, a) { return x && a.indexOf(x) === i; }); }
+  var last = 0, busy = false;
+  async function refresh(force) {
+    var s = sess();
+    if (!s || !s.isLoggedIn || s.member || sessionStorage.getItem('wy_is_admin') === 'true') return;
+    if (s.type !== 'teacher' && s.type !== 'school' && s.type !== 'competitive') return;
+    if (busy || (!force && Date.now() - last < 60e3)) return;
+    if (!s.acct) {
+      // ಈ ಸೌಲಭ್ಯ ಬರುವ ಮೊದಲೇ ಲಾಗಿನ್ ಆಗಿದ್ದವರು: ಒಮ್ಮೆ ಮತ್ತೆ ಲಾಗಿನ್ ಆಗಬೇಕು
+      if (!sessionStorage.getItem('wy_relogin_asked')) {
+        sessionStorage.setItem('wy_relogin_asked', '1');
+        try { localStorage.removeItem('wy_active_session'); } catch (e) {}
+        alert('🔄 ಹೊಸ ಆವೃತ್ತಿ: ದಯವಿಟ್ಟು ನಿಮ್ಮ ಮೊಬೈಲ್/DISE ಮತ್ತು Secret Key ಬಳಸಿ ಒಮ್ಮೆ ಮತ್ತೆ ಲಾಗಿನ್ ಆಗಿ.\n(ನಿಮ್ಮ ಖಾತೆಯ ಹೊಸ ವಿವರಗಳು ಜಾರಿಗೆ ಬರಲು)');
+        try { renderTopUserProfileBar(); navigateToSection('dashboard'); } catch (e) {}
+      }
+      return;
+    }
+    busy = true; last = Date.now();
+    try {
+      var r = await fetch(FB + '/accounts/' + s.acct + '.json?t=' + Date.now());
+      if (!r.ok) return;
+      var u = await r.json();
+      if (!u) {   // Admin ಖಾತೆ ತೆಗೆದಿದ್ದಾರೆ / Key ಬದಲಾಗಿದೆ
+        localStorage.removeItem('wy_active_session');
+        alert('⚠️ ನಿಮ್ಮ ಖಾತೆಯ ವಿವರ ಬದಲಾಗಿದೆ. ದಯವಿಟ್ಟು ಹೊಸ Key ಬಳಸಿ ಮತ್ತೆ ಲಾಗಿನ್ ಆಗಿ.');
+        try { renderTopUserProfileBar(); navigateToSection('dashboard'); } catch (e) {}
+        return;
+      }
+      var sc = numList(u.schoolClasses);
+      var next = Object.assign({}, s, {
+        name: u.name || s.name, school: u.school || s.school, schoolEn: u.schoolEn || '',
+        allowedSubjects: u.allowedSubjects || s.allowedSubjects,
+        allowedClasses: sc.length ? sc : (u.allowedClasses || s.allowedClasses),
+        allowedMediums: u.allowedMediums || u.mediums || null,
+        validityDate: u.validityDate || s.validityDate
+      });
+      if (JSON.stringify(next) === JSON.stringify(s)) return;
+      localStorage.setItem('wy_active_session', JSON.stringify(next));
+      try { if (typeof applyUserSubjectPermissionsToUI === 'function') applyUserSubjectPermissionsToUI(next); } catch (e) {}
+      try { if (typeof renderTopUserProfileBar === 'function') renderTopUserProfileBar(); } catch (e) {}
+      try { if (window.wyApplySessionSchoolEn) window.wyApplySessionSchoolEn(true); } catch (e) {}
+      try { if (window.wyRefreshMediumAccess) window.wyRefreshMediumAccess(); } catch (e) {}
+      try { if (window.wyQuickGenRender) window.wyQuickGenRender(); } catch (e) {}
+    } catch (e) {} finally { busy = false; }
+  }
+  window.wyRefreshKeySession = refresh;
+  setTimeout(function () { refresh(true); }, 1500);
+  setInterval(function () { refresh(false); }, 10 * 60e3);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(false); });
+  // ಪತ್ರಿಕೆ ರಚಿಸುವಾಗ ಹಿನ್ನೆಲೆಯಲ್ಲಿ ಪರಿಶೀಲನೆ (ಮುಂದಿನ ಪತ್ರಿಕೆಗೆ ಜಾರಿ)
+  var prevGen = window.generateExamPackageFromBank;
+  if (typeof prevGen === 'function') {
+    window.generateExamPackageFromBank = function () { try { refresh(false); } catch (e) {} return prevGen.apply(this, arguments); };
+    try { generateExamPackageFromBank = window.generateExamPackageFromBank; } catch (e) {}
+  }
 })();
 </script>
 </body>

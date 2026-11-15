@@ -24177,7 +24177,7 @@ function wyStrongKeyPart() {
     var session = {
       isLoggedIn: true, member: true, type: 'member', role: p.role || 'teacher',
       name: p.name || '', school: p.school || '', schoolEn: p.schoolEn || '', mobile: a.mobile, dise: p.dise || a.mobile,
-      allowedSubjects: ['all'], allowedClasses: ['all'], allowedMediums: null, validityDate: '2099-12-31'
+      allowedSubjects: ['all'], allowedClasses: ['all'], allowedMediums: (Array.isArray(p.mediums) && p.mediums.length) ? p.mediums : null, validityDate: '2099-12-31'
     };
     localStorage.setItem('wy_active_session', JSON.stringify(session));
     try { if (typeof applyUserSubjectPermissionsToUI === 'function') applyUserSubjectPermissionsToUI(session); } catch (e) {}
@@ -24325,6 +24325,10 @@ function wyStrongKeyPart() {
       '<div class="grid grid-cols-2 gap-2 text-xs font-black">' +
         '<label class="flex items-center gap-2 p-2.5 border-2 rounded-xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50"><input type="radio" name="wm-role" value="teacher" checked> 👩‍🏫 ಶಿಕ್ಷಕರು</label>' +
         '<label class="flex items-center gap-2 p-2.5 border-2 rounded-xl cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50"><input type="radio" name="wm-role" value="school"> 🏫 ಶಾಲೆ / ಮುಖ್ಯ ಶಿಕ್ಷಕರು</label></div>' +
+      '<div><span class="block text-xs font-extrabold text-slate-700 mb-1">ಬೋಧನಾ ಮಾಧ್ಯಮ <span class="font-semibold text-slate-400">(ಒಂದಕ್ಕಿಂತ ಹೆಚ್ಚು ಆರಿಸಬಹುದು)</span></span><div class="grid grid-cols-3 gap-1.5 text-[11px] font-black">' +
+        [['kannada_medium', 'ಕನ್ನಡ'], ['english_medium', 'English'], ['bilingual_medium', 'ದ್ವಿಭಾಷಾ (1–5)']].map(function (m) {
+          return '<label class="flex items-center gap-1.5 p-2 border-2 rounded-xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50"><input type="checkbox" name="wm-med" value="' + m[0] + '"> ' + m[1] + '</label>';
+        }).join('') + '</div></div>' +
       field('ನಿಮ್ಮ ಹೆಸರು', '<input id="wm-name" placeholder="ಉದಾ: ಎಂ. ಬಿ. ಪಾಟೀಲ್" class="' + INP + '">') +
       field('ಶಾಲೆಯ ಪೂರ್ಣ ಹೆಸರು (ಕನ್ನಡ)', '<input id="wm-school" placeholder="ಉದಾ: ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ, ತುಮ್ಮರಗುದ್ದಿ" class="' + INP + '">', 'ಪ್ರತಿ ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆಯ ಮೇಲೆ ಇದೇ ಹೆಸರು ಬರುತ್ತದೆ.') +
       field('ಶಾಲೆಯ ಹೆಸರು (English)', '<input id="wm-school-en" placeholder="e.g. Govt Higher Primary School, Tummaraguddi" class="' + INP + '">', 'ದ್ವಿಭಾಷಾ / English ಪತ್ರಿಕೆಗಳಲ್ಲಿ ಬರುತ್ತದೆ.') +
@@ -24363,8 +24367,10 @@ function wyStrongKeyPart() {
           rec = {
             role: (document.querySelector('input[name="wm-role"]:checked') || {}).value || 'teacher',
             name: $('wm-name').value.trim(), school: $('wm-school').value.trim(), schoolEn: $('wm-school-en').value.trim(),
-            dise: ($('wm-dise').value || '').replace(/\D/g, ''), place: $('wm-place').value.trim(), mobile: m, at: new Date().toISOString()
+            dise: ($('wm-dise').value || '').replace(/\D/g, ''), place: $('wm-place').value.trim(), mobile: m, at: new Date().toISOString(),
+            mediums: Array.from(document.querySelectorAll('input[name="wm-med"]:checked')).map(function (c) { return c.value; })
           };
+          if (!rec.mediums.length) return err('ಬೋಧನಾ ಮಾಧ್ಯಮ ಆರಿಸಿ (ಕನ್ನಡ / English / ದ್ವಿಭಾಷಾ).');
           if (rec.name.length < 2) return err('ನಿಮ್ಮ ಹೆಸರು ಬರೆಯಿರಿ.');
           if (rec.school.length < 5) return err('ಶಾಲೆಯ ಪೂರ್ಣ ಹೆಸರು (ಕನ್ನಡ) ಬರೆಯಿರಿ.');
           if (rec.schoolEn.length < 5) return err('ಶಾಲೆಯ ಹೆಸರನ್ನು English ನಲ್ಲಿಯೂ ಬರೆಯಿರಿ.');
@@ -25412,6 +25418,269 @@ function wyStrongKeyPart() {
       return r;
     };
   }
+})();
+
+// ಪಾಠದ ಹೆಸರು ಒಂದೇ ರೀತಿ ಇರಲಿ: "07. ಶಾಖ" ಮತ್ತು "7. ಶಾಖ" ಒಂದೇ ಪಾಠ
+(function installChapterNameNormalizer() {
+  var prev = window.fetch;
+  function fixName(c) { return typeof c === 'string' ? c.replace(/^\s*0+(\d)/, '$1').replace(/^(\d+)\s*([\.\)])\s*/, '$1$2 ').replace(/\s{2,}/g, ' ').trim() : c; }
+  window.fetch = function (input, init) {
+    var url = typeof input === 'string' ? input : (input && input.url) || '';
+    var p = prev.apply(this, arguments);
+    if (!/withyouqbank\/main\/.*\.json/i.test(url) || (init && init.method && init.method !== 'GET')) return p;
+    return p.then(function (res) {
+      if (!res || !res.ok) return res;
+      return res.clone().text().then(function (txt) {
+        try {
+          var d = JSON.parse(txt), list = Array.isArray(d) ? d : (d && Array.isArray(d.questions) ? d.questions : null), changed = false;
+          // ಒಂದೇ ಪಾಠ ಬೇರೆ ಬೇರೆ ರೀತಿ ಬರೆದಿದ್ದರೆ ಮಾತ್ರ ("07." / "7.") ಒಂದುಗೂಡಿಸು — ಉಳಿದ ಹೆಸರುಗಳು ಹಾಗೆಯೇ
+          if (list) {
+            var groups = {};
+            list.forEach(function (q) { if (q && typeof q.chapter === 'string') { var k = fixName(q.chapter); (groups[k] = groups[k] || {})[q.chapter] = ((groups[k] || {})[q.chapter] || 0) + 1; } });
+            var canon = {};
+            Object.keys(groups).forEach(function (k) { var v = Object.keys(groups[k]); if (v.length > 1) v.forEach(function (orig) { canon[orig] = k; }); });
+            list.forEach(function (q) { if (q && canon[q.chapter] && canon[q.chapter] !== q.chapter) { q.chapter = canon[q.chapter]; changed = true; } });
+          }
+          if (!changed) return res;
+          return new Response(JSON.stringify(d), { status: res.status, statusText: res.statusText, headers: { 'Content-Type': 'application/json' } });
+        } catch (e) { return res; }
+      });
+    });
+  };
+})();
+
+// =========================================================================
+// ✨ ಸರಳ ಜನರೇಟರ್: ① ತರಗತಿ → ② ವಿಷಯ → ③ ಪರೀಕ್ಷೆ → [ರಚಿಸಿ]
+// ಹಳೆಯ ಎಲ್ಲಾ ಆಯ್ಕೆಗಳು "⚙️ ಹೆಚ್ಚಿನ ಆಯ್ಕೆಗಳು" ಒಳಗೆ — ಅವುಗಳೇ ನಿಜವಾದ ಸ್ಥಿತಿ (source of truth)
+// =========================================================================
+(function installQuickGenerator() {
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function fire(el) { if (el) el.dispatchEvent(new Event('change', { bubbles: true })); }
+  function opts(sel) { return sel ? Array.from(sel.options).filter(function (o) { return !o.disabled && !o.hidden && o.style.display !== 'none'; }) : []; }
+  function toast(m, bad) { if (window.wyStoreToast) window.wyStoreToast(m, bad); else alert(m); }
+  var QMAP = { 10: 8, 15: 12, 20: 15, 25: 16, 30: 20, 40: 24, 50: 28, 60: 32, 80: 38, 100: 45 };
+  var ENTRANCE_RX = /NMMS|ಮೊರಾರ್ಜಿ|ಆದರ್ಶ|ಕಿತ್ತೂರು|ಸೈನಿಕ|ಪ್ರವೇಶ ಪರೀಕ್ಷೆ|KREIS/i;
+  var EXAMS = [
+    { rx: /LBA|ಘಟಕ/i, label: 'ಘಟಕ ಪರೀಕ್ಷೆ', part: 'ask', marks: 20 },
+    { rx: /FA-1/, label: 'FA-1', part: 'part1', marks: 20 },
+    { rx: /FA-2/, label: 'FA-2', part: 'part1', marks: 20 },
+    { rx: /SA-1/, label: 'SA-1', part: 'part1', marks: 'sa' },
+    { rx: /FA-3/, label: 'FA-3', part: 'part2', marks: 20 },
+    { rx: /FA-4/, label: 'FA-4', part: 'part2', marks: 20 },
+    { rx: /SA-2/, label: 'SA-2', part: 'sa2', marks: 'sa' },
+    { rx: /ಮೌಖಿಕ|Oral/i, label: 'ಮೌಖಿಕ', part: 'ask', marks: 20 },
+    { rx: /ಪೂರ್ವಸಿದ್ಧತಾ|Preparatory/i, label: 'ಪೂರ್ವಸಿದ್ಧತಾ', part: 'all', marks: 'sa' }
+  ];
+  function examInfo(v) { return EXAMS.filter(function (e) { return e.rx.test(v || ''); })[0] || null; }
+  function grade() { return parseInt(String(($('cfg-class') || {}).value || '').replace(/\D/g, '')) || 0; }
+  function defaultMarks(e) { return e.marks === 'sa' ? (grade() >= 8 ? 80 : 40) : e.marks; }
+  function seasonPart() { var m = new Date().getMonth() + 1; return (m >= 6 && m <= 10) ? 'part1' : 'part2'; }
+  function shortSubject(v) { return String(v || '').replace(/\s*\(.*?\)\s*/g, ' ').replace(/^🌟\s*/, '').trim() || v; }
+  function classLabel(v) { var n = String(v).replace(/\D/g, ''); return n || v; }
+
+  var ST = { exam: null, partChoice: null, marks: null, layoutTouched: false };
+
+  // ---------- ಶೈಲಿ ----------
+  var css = document.createElement('style');
+  css.textContent = [
+    '#wy-qg .qg-chip{padding:.55rem .9rem;border-radius:.85rem;border:1.5px solid #e2e8f0;background:#fff;color:#334155;font-weight:800;font-size:.8rem;line-height:1.1;transition:all .12s}',
+    '#wy-qg .qg-chip:hover{border-color:#34d399}',
+    '#wy-qg .qg-chip.on{background:#059669;border-color:#059669;color:#fff;box-shadow:0 2px 8px rgba(5,150,105,.25)}',
+    '#wy-qg .qg-chip.soft{background:#f8fafc}',
+    '#wy-qg .qg-chip.on,#wy-qg .qg-chip.soft.on{background:#059669;border-color:#059669;color:#fff}',
+    '#wy-qg .qg-step{display:grid;grid-template-columns:1.75rem 1fr;gap:.75rem;align-items:start}',
+    '#wy-qg .qg-num{width:1.75rem;height:1.75rem;border-radius:999px;background:#ecfdf5;color:#047857;font-weight:900;font-size:.8rem;display:flex;align-items:center;justify-content:center;border:1px solid #a7f3d0}',
+    '#wy-qg .qg-title{font-size:.78rem;font-weight:900;color:#0f172a;margin:.3rem 0 .5rem}',
+    '#wy-qg-adv>summary{list-style:none;cursor:pointer}#wy-qg-adv>summary::-webkit-details-marker{display:none}',
+    '#wy-qg-adv[open] .qg-arrow{transform:rotate(180deg)}'
+  ].join('\n');
+  document.head.appendChild(css);
+
+  function chip(attr, val, on, label, extra) {
+    return '<button type="button" class="qg-chip' + (on ? ' on' : '') + (extra ? ' ' + extra : '') + '" ' + attr + '="' + esc(val) + '">' + label + '</button>';
+  }
+  function step(n, title, body) {
+    return '<div class="qg-step"><div class="qg-num">' + n + '</div><div><div class="qg-title">' + title + '</div><div class="flex flex-wrap gap-2">' + body + '</div></div></div>';
+  }
+
+  // ---------- ಹಳೆಯ ಗ್ರಿಡ್ ಅನ್ನು "ಹೆಚ್ಚಿನ ಆಯ್ಕೆಗಳು" ಒಳಗೆ ----------
+  function mount() {
+    var view = $('view-generator'); if (!view || $('wy-qg')) return !!$('wy-qg');
+    var grid = $('btn-generate') && $('btn-generate').closest('.grid');
+    if (!grid || grid.parentNode !== view) grid = view.querySelector(':scope > .grid');
+    if (!grid) return false;
+    var box = document.createElement('div');
+    box.id = 'wy-qg';
+    box.className = 'max-w-4xl mx-auto bg-white border border-slate-200 rounded-3xl shadow-sm p-5 sm:p-7 space-y-5 mb-5 no-print';
+    view.insertBefore(box, grid);
+    var adv = document.createElement('details');
+    adv.id = 'wy-qg-adv';
+    adv.className = 'max-w-6xl mx-auto mb-5 no-print';
+    adv.innerHTML = '<summary class="flex items-center justify-center gap-2 py-2 text-xs font-black text-slate-500 hover:text-emerald-700"><span>⚙️ ಹೆಚ್ಚಿನ ಆಯ್ಕೆಗಳು — ಶಾಲೆಯ ಹೆಸರು, ಅಂಕ, ಪ್ರಶ್ನೆ ಸಂಖ್ಯೆ, ಪಾಠಗಳು, ಪ್ರಶ್ನೆ ಪ್ರಕಾರಗಳು</span><span class="qg-arrow transition">▾</span></summary><div class="pt-3"></div>';
+    view.insertBefore(adv, grid);
+    adv.lastChild.appendChild(grid);
+    return true;
+  }
+
+  // ---------- ಚಿತ್ರಣ ----------
+  function render() {
+    if (!mount()) return;
+    var box = $('wy-qg');
+    var cls = $('cfg-class'), sub = $('cfg-subject'), ex = $('cfg-exam-type'), part = $('cfg-part'), med = $('cfg-medium'), lay = $('cfg-paper-layout-mode');
+    var medOpts = opts(med);
+    var isEntrance = (ex && ex.disabled) || ENTRANCE_RX.test(sub && sub.value);
+    var curExam = isEntrance ? null : examInfo(ex && ex.value);
+    var html = '<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-xl">📝</div>' +
+      '<div><h2 class="text-lg font-black text-slate-900 leading-tight">ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಿ</h2><p class="text-xs font-bold text-slate-500">ತರಗತಿ, ವಿಷಯ, ಪರೀಕ್ಷೆ ಆರಿಸಿ — ಉಳಿದದ್ದು ತಾನಾಗಿ</p></div></div>';
+    var n = 1;
+    if (medOpts.length > 1) html += step(n++, 'ಮಾಧ್ಯಮ', medOpts.map(function (o) { return chip('data-qg-med', o.value, o.value === med.value, esc(o.textContent.replace(/\(.*?\)/g, '').trim())); }).join(''));
+    html += step(n++, 'ತರಗತಿ', opts(cls).map(function (o) { return chip('data-qg-cls', o.value, o.value === cls.value, esc(classLabel(o.value)) + 'ನೇ', 'min-w-[3.4rem]'); }).join(''));
+    html += step(n++, 'ವಿಷಯ', opts(sub).filter(function (o) { return o.value; }).map(function (o) { return chip('data-qg-sub', o.value, o.value === sub.value, esc(shortSubject(o.textContent || o.value))); }).join(''));
+    if (isEntrance) {
+      html += '<div class="ml-10 p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs font-bold text-amber-900">🌟 ಪ್ರವೇಶ / ಸ್ಪರ್ಧಾತ್ಮಕ ಪರೀಕ್ಷೆ — ಪೂರ್ಣ ಪಠ್ಯಕ್ರಮ, ' + esc(($('cfg-total-marks') || {}).value) + ' ಅಂಕ. ನೇರವಾಗಿ "ರಚಿಸಿ" ಒತ್ತಿ.</div>';
+    } else {
+      var exChips = opts(ex).filter(function (o) { return !ENTRANCE_RX.test(o.value + o.textContent) && examInfo(o.value); })
+        .map(function (o) { var e = examInfo(o.value); return chip('data-qg-exam', o.value, o.value === ex.value, esc(e.label)); }).join('');
+      var extra = '';
+      if (curExam) {
+        var pv = part ? part.value : '';
+        if (curExam.part === 'sa2') extra += '<div class="w-full flex flex-wrap items-center gap-2 mt-1"><span class="text-[11px] font-black text-slate-500">ಪಠ್ಯಕ್ರಮ:</span>' +
+          chip('data-qg-part', 'part2', pv === 'part2', 'ಭಾಗ 2 ಮಾತ್ರ', 'soft') + chip('data-qg-part', 'all', pv === 'all', 'ಸಂಪೂರ್ಣ (ಭಾಗ 1 + 2)', 'soft') + '</div>';
+        if (curExam.part === 'ask') extra += '<div class="w-full flex flex-wrap items-center gap-2 mt-1"><span class="text-[11px] font-black text-slate-500">ಭಾಗ:</span>' +
+          chip('data-qg-part', 'part1', pv === 'part1', 'ಭಾಗ 1', 'soft') + chip('data-qg-part', 'part2', pv === 'part2', 'ಭಾಗ 2', 'soft') + '</div>';
+        if (/LBA|ಘಟಕ/i.test(ex.value)) {
+          var chs = Array.from(document.querySelectorAll('input[name="selected_chapter"]'));
+          extra += '<div class="w-full mt-2"><div class="text-[11px] font-black text-slate-500 mb-1.5">ಯಾವ ಪಾಠ(ಗಳು)? — ಒತ್ತಿ ಆರಿಸಿ</div><div class="flex flex-wrap gap-1.5">' +
+            (chs.length ? chs.map(function (c) { return chip('data-qg-ch', c.value, c.checked && ST.lbaPicked, esc(c.value), 'soft'); }).join('') : '<span class="text-xs font-bold text-slate-400">ಪಾಠಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ…</span>') + '</div></div>';
+        }
+      }
+      html += step(n++, 'ಪರೀಕ್ಷೆ', exChips + extra);
+      var mk = parseInt(($('cfg-total-marks') || {}).value) || 0;
+      var marksList = [20, 40, 80]; if (marksList.indexOf(mk) === -1 && mk) marksList.push(mk);
+      html += '<div class="ml-10 flex flex-wrap items-center gap-x-5 gap-y-2">' +
+        '<div class="flex flex-wrap items-center gap-1.5"><span class="text-[11px] font-black text-slate-500 mr-1">ಅಂಕ</span>' + marksList.sort(function (a, b) { return a - b; }).map(function (m) { return chip('data-qg-marks', m, m === mk, m, 'soft !py-1.5 !px-3'); }).join('') + '</div>' +
+        (lay ? '<div class="flex flex-wrap items-center gap-1.5"><span class="text-[11px] font-black text-slate-500 mr-1">ರೂಪ</span>' +
+          chip('data-qg-lay', 'paper_only', lay.value === 'paper_only', '📄 ಪ್ರಶ್ನೆಪತ್ರಿಕೆ', 'soft !py-1.5 !px-3') + chip('data-qg-lay', 'with_answer_space', lay.value === 'with_answer_space', '📝 ಬುಕ್ಲೆಟ್', 'soft !py-1.5 !px-3') + '</div>' : '') + '</div>';
+    }
+    var summary = [classLabel(cls && cls.value) + 'ನೇ ತರಗತಿ', shortSubject(sub && sub.value), curExam ? curExam.label : '', part && !part.disabled && part.value !== 'none' ? ({ part1: 'ಭಾಗ 1', part2: 'ಭಾಗ 2', all: 'ಭಾಗ 1 + 2' }[part.value] || '') : '',
+      (($('cfg-total-marks') || {}).value || '') + ' ಅಂಕ', (($('cfg-total-questions') || {}).value || '') + ' ಪ್ರಶ್ನೆ'].filter(Boolean).join(' · ');
+    html += '<div id="wy-qg-lock"></div>' +
+      '<div class="pt-1 space-y-2"><p class="text-center text-xs font-bold text-slate-500">' + esc(summary) + '</p>' +
+      '<button type="button" id="wy-qg-go" class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base shadow-md transition">ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ರಚಿಸಿ</button></div>';
+    var keepScroll = window.scrollY;
+    var lb = $('wy-lock-banner'); if (lb && lb.parentNode) lb.parentNode.removeChild(lb);   // ಲಾಕ್ ಬ್ಯಾನರ್ ಉಳಿಸಿಕೊ
+    box.innerHTML = html;
+    if (lb) $('wy-qg-lock').appendChild(lb);
+    window.scrollTo(0, keepScroll);
+    moveLock();
+    hideEntranceExamOptions();
+  }
+  function moveLock() { var b = $('wy-lock-banner'), slot = $('wy-qg-lock'); if (b && slot && b.parentNode !== slot) slot.appendChild(b); }
+  function hideEntranceExamOptions() {
+    var ex = $('cfg-exam-type'); if (!ex || ex.disabled) return;
+    Array.from(ex.options).forEach(function (o) { if (ENTRANCE_RX.test(o.value + o.textContent)) { o.hidden = true; } });
+  }
+  var rT = null;
+  function later(ms) { clearTimeout(rT); rT = setTimeout(render, ms || 60); }
+  window.wyQuickGenRender = render;
+
+  // ---------- ಕ್ರಿಯೆಗಳು ----------
+  function applyExamDefaults(keepMarks) {
+    var ex = $('cfg-exam-type'), part = $('cfg-part'), e = examInfo(ex && ex.value);
+    if (!e || !part || part.disabled) return;
+    var want = e.part;
+    if (want === 'sa2') want = ST.sa2 || 'part2';
+    if (want === 'ask') want = ST.ask || seasonPart();
+    if (Array.from(part.options).some(function (o) { return o.value === want; }) && part.value !== want) { part.value = want; fire(part); }
+    if (!keepMarks) setMarks(defaultMarks(e));
+  }
+  function setMarks(m) {
+    var mi = $('cfg-total-marks'), qi = $('cfg-total-questions'); if (!mi || !qi) return;
+    mi.value = m; qi.value = QMAP[m] || Math.max(5, Math.round(m * 0.55));
+    fire(mi); fire(qi);
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('#wy-qg [data-qg-cls],#wy-qg [data-qg-sub],#wy-qg [data-qg-exam],#wy-qg [data-qg-part],#wy-qg [data-qg-marks],#wy-qg [data-qg-lay],#wy-qg [data-qg-med],#wy-qg [data-qg-ch],#wy-qg-go');
+    if (!t) return;
+    var d = t.dataset;
+    if (d.qgMed != null) { var md = $('cfg-medium'); md.value = d.qgMed; fire(md); setTimeout(function () { applyExamDefaults(true); later(300); }, 250); return; }
+    if (d.qgCls != null) {
+      var cl = $('cfg-class'), sub = $('cfg-subject'), prevSub = sub && sub.value;
+      cl.value = d.qgCls; fire(cl);
+      setTimeout(function () {
+        var s = $('cfg-subject');
+        if (s && prevSub && Array.from(s.options).some(function (o) { return o.value === prevSub; }) && s.value !== prevSub) { s.value = prevSub; fire(s); }
+        applyExamDefaults(true); later(350);
+      }, 200);
+      return;
+    }
+    if (d.qgSub != null) { var sb = $('cfg-subject'); sb.value = d.qgSub; fire(sb); setTimeout(function () { applyExamDefaults(true); hideEntranceExamOptions(); later(350); }, 200); return; }
+    if (d.qgExam != null) { var ex = $('cfg-exam-type'); ex.value = d.qgExam; fire(ex); ST.lbaPicked = false; setTimeout(function () { applyExamDefaults(false); later(250); }, 50); return; }
+    if (d.qgPart != null) {
+      var e2 = examInfo(($('cfg-exam-type') || {}).value) || {};
+      if (e2.part === 'sa2') ST.sa2 = d.qgPart; else ST.ask = d.qgPart;
+      var p = $('cfg-part'); if (p.value !== d.qgPart) { p.value = d.qgPart; fire(p); }
+      ST.lbaPicked = false; later(300); return;
+    }
+    if (d.qgMarks != null) { setMarks(+d.qgMarks); later(); return; }
+    if (d.qgLay != null) { var l = $('cfg-paper-layout-mode'); l.value = d.qgLay; fire(l); later(); return; }
+    if (d.qgCh != null) {
+      var boxes = Array.from(document.querySelectorAll('input[name="selected_chapter"]'));
+      if (!ST.lbaPicked) { boxes.forEach(function (c) { c.checked = false; }); ST.lbaPicked = true; }
+      var cb = boxes.filter(function (c) { return c.value === d.qgCh; })[0]; if (cb) { cb.checked = !cb.checked; fire(cb); }
+      later(); return;
+    }
+    if (t.id === 'wy-qg-go') {
+      var exv = ($('cfg-exam-type') || {}).value || '';
+      var all = Array.from(document.querySelectorAll('input[name="selected_chapter"]'));
+      if (!all.length) return toast('ಈ ವಿಷಯದ ಪ್ರಶ್ನೆಗಳು ಇನ್ನೂ ಲೋಡ್ ಆಗಿಲ್ಲ / ಲಭ್ಯವಿಲ್ಲ. ಸ್ವಲ್ಪ ಕಾದು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.', true);
+      if (/LBA|ಘಟಕ/i.test(exv)) {
+        if (!ST.lbaPicked || !all.some(function (c) { return c.checked; })) return toast('ಘಟಕ ಪರೀಕ್ಷೆಗೆ ಮೊದಲು ಪಾಠವನ್ನು ಆರಿಸಿ.', true);
+      } else if (!ST.advChapters) all.forEach(function (c) { c.checked = true; });
+      var btn = $('btn-generate'); if (btn) btn.click(); else if (window.generateExamPackageFromBank) window.generateExamPackageFromBank();
+    }
+  }, true);
+
+  // ಹೆಚ್ಚಿನ ಆಯ್ಕೆಗಳಲ್ಲಿ ಪಾಠಗಳನ್ನು ಕೈಯಾರೆ ಬದಲಿಸಿದರೆ ಅದನ್ನು ಗೌರವಿಸು
+  document.addEventListener('change', function (e) {
+    var t = e.target; if (!t) return;
+    if (t.name === 'selected_chapter' && t.closest && t.closest('#wy-qg-adv') && e.isTrusted) ST.advChapters = true;
+    if (/^cfg-/.test(t.id || '')) later(120);
+  }, true);
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('#wy-qg-adv button'); if (b && /Select All|Clear/i.test(b.textContent)) ST.advChapters = /Clear/i.test(b.textContent) || ST.advChapters;
+  }, true);
+
+  // ಪಾಠಗಳು ಲೋಡ್ ಆದಾಗ / ಲಾಕ್ ಬ್ಯಾನರ್ ಬಂದಾಗ ಮರು-ಚಿತ್ರಣ
+  var obsT = null;
+  new MutationObserver(function (muts) {
+    if (muts.every(function (m) { return m.target.closest && m.target.closest('#wy-qg'); })) return;
+    clearTimeout(obsT); obsT = setTimeout(function () {
+      moveLock();
+      var cl = $('chapter-list-box'), sig = cl ? cl.children.length + ':' + (cl.firstElementChild ? cl.firstElementChild.textContent.slice(0, 20) : '') : '';
+      if (sig !== ST.chSig) { ST.chSig = sig; ST.lbaPicked = false; ST.advChapters = false; render(); }
+    }, 150);
+  }).observe(document.body, { childList: true, subtree: true });
+
+  // ನ್ಯಾವಿಗೇಶನ್ ಮತ್ತು ಲಾಗಿನ್ ನಂತರ
+  var prevNav = window.navigateToSection;
+  if (typeof prevNav === 'function') {
+    window.navigateToSection = function (sec) { var r = prevNav.apply(this, arguments); if (sec === 'generator') setTimeout(function () { alignExamOnce(); render(); }, 80); return r; };
+    try { navigateToSection = window.navigateToSection; } catch (e) {}
+  }
+  // ಮೊದಲ ಬಾರಿ: ಪರೀಕ್ಷೆ ಮತ್ತು ಭಾಗ ಹೊಂದದಿದ್ದರೆ (ಉದಾ: SA-1 + ಭಾಗ 2) ಭಾಗ ಬದಲಿಸದೆ ಪರೀಕ್ಷೆಯನ್ನೇ ಹೊಂದಿಸು — ಫೈಲ್ ಮರು-ಲೋಡ್ ಆಗುವುದಿಲ್ಲ
+  function alignExamOnce() {
+    if (ST.aligned || window.WY_NO_ALIGN) return; ST.aligned = true;
+    var ex = $('cfg-exam-type'), part = $('cfg-part'); if (!ex || !part || ex.disabled || part.disabled) return;
+    var e = examInfo(ex.value); if (!e) return;
+    var ok = e.part === 'ask' || (e.part === 'sa2' && /part2|all/.test(part.value)) || e.part === part.value;
+    if (ok) return;
+    var want = part.value === 'part1' ? /FA-1/ : part.value === 'all' ? /SA-2/ : /FA-3/;
+    var o = Array.from(ex.options).filter(function (x) { return want.test(x.value); })[0];
+    if (o) { ex.value = o.value; fire(ex); setMarks(defaultMarks(examInfo(o.value))); }
+  }
+  setTimeout(function () { alignExamOnce(); render(); }, 900);
 })();
 </script>
 </body>

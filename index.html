@@ -25787,7 +25787,8 @@ function wyStrongKeyPart() {
     '.m-app{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh;background:linear-gradient(to right,var(--m-side) 252px,transparent 252px)}',
     '.m-side{background:var(--m-side);color:var(--m-side-ink);padding:22px 14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow-y:auto;z-index:30}',
     '.m-brand{display:flex;align-items:center;gap:11px;padding:0 8px;color:#fff;cursor:pointer;user-select:none}',
-    '.m-brand .mk{width:40px;height:40px;border-radius:10px;background:var(--m-amber);color:#1d1404;display:grid;place-items:center;flex:none}',
+    '.m-brand .mk{position:relative;width:40px;height:40px;border-radius:12px;background:#fff;color:var(--m-accent2);display:grid;place-items:center;flex:none;font-weight:900;font-size:16px;letter-spacing:.5px;font-family:system-ui,sans-serif}',
+    '.m-brand .mk i{position:absolute;right:-3px;bottom:-3px;width:14px;height:14px;border-radius:50%;background:var(--m-amber);border:2px solid var(--m-side)}',
     '.m-brand b{font-weight:800;font-size:21px;line-height:1.1;display:block}.m-brand small{font-size:11.5px;opacity:.7;display:block}',
     '.m-app svg,.m-qg svg,.m-adv svg,#wy-lock-banner svg,.m-view svg{width:19px;height:19px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}',
     '.m-nav{display:grid;gap:3px}',
@@ -26011,7 +26012,7 @@ function wyStrongKeyPart() {
     items.push(['help', I.help, 'ಸಹಾಯ (WhatsApp)']);
     if (k !== 'guest') items.push(['logout', I.power, 'ಲಾಗೌಟ್']);
     var showInst = !!$('wy-install-btn');
-    side.innerHTML = '<div class="m-brand" id="wy-brand" title="With You QP"><span class="mk">' + I.book + '</span><span><b>With You QP</b><small>ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಜನರೇಟರ್</small></span></div>' +
+    side.innerHTML = '<div class="m-brand" id="wy-brand" title="With You QP"><span class="mk">WY<i></i></span><span><b>With You QP</b><small>ಪ್ರಶ್ನೆ ಪತ್ರಿಕೆ ಜನರೇಟರ್</small></span></div>' +
       '<nav class="m-nav">' + items.map(function (it) {
         if (it[0] === 'sep') return '<span class="sep"></span>';
         return '<button type="button" data-go="' + it[0] + '"' + (it[0] === v ? ' class="on"' : '') + '>' + it[1] + '<span>' + it[2] + '</span>' + (it[3] || '') + '</button>';
